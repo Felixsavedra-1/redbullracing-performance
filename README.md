@@ -1,8 +1,8 @@
 # Red Bull F1 Analytics
 
-ETL pipeline for Formula 1 performance analysis — Oracle Red Bull Racing, 2020–2025. Extracts from the Ergast API into a star-schema SQLite database, with 14 parameterized analytical queries, statistical models, and a Power BI dashboard.
+![Dashboard](docs/dashboard.png)
 
----
+ETL pipeline for Formula 1 performance analysis — Oracle Red Bull Racing, 2020–2025. Extracts from the Ergast-compatible API into a star-schema SQLite database, runs 15 quality gates, and exports five statistical models with an interactive 3D dashboard.
 
 ## Stack
 
@@ -11,54 +11,32 @@ ETL pipeline for Formula 1 performance analysis — Oracle Red Bull Racing, 2020
 | Extraction | Python `requests` — resumable, adaptive backoff |
 | Transformation | `pandas` — ref resolution, schema validation |
 | Storage | SQLite (default) or MySQL |
-| Analysis | SQL, `scipy` statistical models, Jupyter, Power BI |
+| Analysis | SQL, `scipy` OLS/MLE, Jupyter, Power BI |
+| Visualization | Plotly 3D, Three.js PBR |
 | Source | [api.jolpi.ca/ergast/f1](https://api.jolpi.ca/ergast/f1) |
-
----
 
 ## Quickstart
 
 ```bash
 pip install -r requirements.txt
-cp scripts/config.example.py scripts/config.py  # optional — defaults to SQLite
+cp scripts/config.example.py scripts/config.py
 python scripts/run_pipeline.py
 ```
 
-Runs extract → transform → load, then prints a driver summary:
-
-```
-──────────────────────────────────────────────────────────────────────
-  Oracle Red Bull Racing Drivers  2020–2025
-──────────────────────────────────────────────────────────────────────
-  Driver              Team      Period    Races    Pts  Wins  Pods   Avg  DNFs
-  ──────────────────  ────────  ──────  ───────  ────  ────  ────  ────  ────
-  Max Verstappen      Red Bull  2020–25     131  3017    63    84   1.9     5
-  Sergio Pérez        Red Bull  2021–24      84  1341     8    35   5.1     9
-  ...
-──────────────────────────────────────────────────────────────────────
-```
-
----
-
-## Pipeline flags
+## Flags
 
 ```bash
-python scripts/run_pipeline.py --fast                        # demo mode: 2021–2025, reduced retries
+python scripts/run_pipeline.py --fast                        # 2021–2025, reduced retries
 python scripts/run_pipeline.py --start-year 2022 --end-year 2024
-python scripts/run_pipeline.py --skip-extract                # skip API calls, use cached data
-python scripts/run_pipeline.py --skip-pit-stops              # faster runs without stop data
+python scripts/run_pipeline.py --skip-extract                # reuse cached data
+python scripts/run_pipeline.py --skip-pit-stops
 python scripts/run_pipeline.py --incremental                 # upsert instead of full refresh
 python scripts/run_pipeline.py --base-delay 2.0 --max-retries 8
 ```
 
----
-
 ## Analysis
 
-Five statistical models on the loaded database. Prints summary tables; `--export` saves 300 DPI PNGs and an interactive HTML dashboard to `data/exports/`.
-
 ```bash
-python scripts/run_analysis.py
 python scripts/run_analysis.py --export
 open data/exports/dashboard.html
 ```
@@ -66,70 +44,63 @@ open data/exports/dashboard.html
 | Model | Method |
 |---|---|
 | Championship trajectory | Cumulative points per driver per round |
-| Teammate head-to-head | Mean position delta, 95% t-interval, p-value |
-| Grid → finish regression | OLS with R², slope, and significance |
-| Pit stop efficiency | Z-score vs season field distribution |
-| DNF rate | Poisson MLE with exact 95% confidence intervals |
+| Teammate comparison | Mean position delta, 95% t-interval, p-value |
+| Grid → finish | OLS, R², slope, significance |
+| Pit stop efficiency | Z-score vs season field |
+| DNF rate | Poisson MLE, exact 95% CI |
 
----
-
-## Dashboard
-
-`--export` generates a self-contained `data/exports/dashboard.html` — no server required, open directly in a browser.
-
-![Dashboard](docs/dashboard.png)
-
-Three interactive Plotly charts (hover for lap-by-lap detail, scroll to zoom): championship trajectory, race finish positions, and grid vs finish. Neon glow traces on a black background with orbital camera rotation.
-
----
+Self-contained HTML — no server. Three.js PBR car model above three Plotly charts (trajectory, finish positions, grid vs finish). Neon glow traces, orbital rotation, black background.
 
 ## Queries
 
-14 named SQL queries, all parameterized by constructor. Run after the pipeline completes.
+14 parameterized SQL queries by constructor.
 
 ```bash
-python scripts/run_queries.py --list                    # list all query names
-python scripts/run_queries.py --query driver_summary    # print to stdout
-python scripts/run_queries.py --query all --export      # write all to data/exports/
+python scripts/run_queries.py --list
+python scripts/run_queries.py --query driver_summary
+python scripts/run_queries.py --query all --export
 ```
 
-Representative queries: `driver_summary`, `championship_progression`, `pit_stop_efficiency`, `qualifying_vs_race_performance`, `reliability_analysis`, `failure_modes`. See `--list` for the full set.
+`driver_summary` · `championship_progression` · `pit_stop_efficiency` · `qualifying_vs_race_performance` · `reliability_analysis` · `failure_modes`
 
----
+## Data Model
 
-## Data model
-
-Star schema in `f1_analytics.db`.
+Star schema — `f1_analytics.db`.
 
 **Dimensions:** `circuits` `seasons` `constructors` `drivers`  
 **Facts:** `races` `results` `qualifying` `pit_stops` `constructor_standings` `driver_standings`
 
-Schema DDL: `database/schema/create_tables_sqlite.sql`  
-Schema contracts (DataFrame validation): `scripts/schema_contracts.py`
+Transform resolves `*_ref` string keys to integer `*_id` surrogates. DDL: `database/schema/`. Contracts: `scripts/schema_contracts.py`.
 
----
+## Quality
 
-## MySQL
+15+ checks after each load (`--skip-quality` to bypass):
 
-SQLite requires no configuration. To use MySQL:
+- **Non-empty** — `results`, `drivers`, `races`
+- **Year bounds** — no out-of-range races; all expected years present
+- **Uniqueness** — no duplicate PKs in dimensions
+- **FK integrity** — no orphaned keys in `results`, `qualifying`, `pit_stops`
+- **Non-negative** — `points`, `laps`, `grid`, `position_order`
 
-```bash
-cp scripts/config.example.py scripts/config.py
-# edit DB_CONFIG in config.py
-mysql -u root -p < database/schema/create_tables.sql
-```
-
----
+In CI (`GITHUB_ACTIONS=true`), any failure raises `RuntimeError`.
 
 ## Tests
 
 ```bash
 python -m unittest discover -s tests
+python -m unittest tests.test_smoke           # end-to-end pipeline
+python -m unittest tests.test_quality_checks  # quality gate integration
+python -m unittest tests.test_etl_unit        # schema, DNF sentinel, FK refs
 ```
 
-Post-load quality gates (15+ checks) run automatically at the end of each pipeline run. Pass `--skip-quality` to bypass.
+## MySQL
 
----
+SQLite needs no configuration. For MySQL:
+
+```bash
+cp scripts/config.example.py scripts/config.py
+mysql -u root -p < database/schema/create_tables.sql
+```
 
 ## Structure
 
@@ -137,32 +108,29 @@ Post-load quality gates (15+ checks) run automatically at the end of each pipeli
 ├── data/
 │   ├── raw/               # extracted CSVs
 │   ├── processed/         # transformed CSVs
-│   └── cache/             # extraction resume state
+│   ├── cache/             # extraction resume state
+│   └── exports/           # dashboard.html + charts/
 ├── database/
 │   ├── queries/           # analytical_queries.yaml + .sql
 │   └── schema/            # DDL for SQLite and MySQL
-├── notebooks/
-├── powerbi/
-├── docs/
-│   └── dashboard.png      # dashboard screenshot
 ├── scripts/
 │   ├── run_pipeline.py    # main entry point
+│   ├── run_analysis.py    # models + export
+│   ├── run_queries.py     # query runner
 │   ├── extract_data.py
 │   ├── transform_data.py
 │   ├── load_data.py
-│   ├── run_queries.py
 │   ├── analytics.py
-│   ├── dashboard.py       # interactive HTML dashboard
+│   ├── dashboard.py
+│   ├── data_quality.py
 │   └── schema_contracts.py
-└── tests/
+└── powerbi/
 ```
-
----
 
 ## Troubleshooting
 
-**Rate limiting** — Raise `--base-delay` (default 1.5 s) or narrow the year range with `--start-year`/`--end-year`. Extraction is resumable; interrupted runs continue from where they left off.
+**Rate limiting** — increase `--base-delay` (default 1.5 s) or narrow the year range. Extraction is resumable.
 
-**Incomplete season** — In-progress rounds that haven't been published by the API are skipped automatically.
+**Incomplete season** — unpublished rounds are skipped automatically.
 
-**MySQL errors** — Verify credentials in `scripts/config.py` and confirm the server is reachable (`mysql.server status`).
+**MySQL errors** — verify `scripts/config.py` and check server reachability (`mysql.server status`).
