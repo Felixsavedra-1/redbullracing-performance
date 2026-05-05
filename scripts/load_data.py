@@ -11,7 +11,6 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from logging_utils import setup_logging
 from schema_contracts import validate_dataframe, SCHEMA_CONTRACTS
 from constants import CONSTRUCTOR_ID
 
@@ -363,7 +362,12 @@ class F1DataLoader:
             if table == "results":
                 self._rb_driver_ids = set(df["driver_id"].dropna().astype(int))
             return df
-        if table in ("pit_stops", "driver_standings") and self._rb_driver_ids:
+        if table in ("pit_stops", "driver_standings"):
+            if not self._rb_driver_ids:
+                self.logger.warning(
+                    "Skipping %s: driver ID list is empty — results must be loaded first.", table
+                )
+                return df.head(0)
             return df[df["driver_id"].isin(self._rb_driver_ids)].copy()
         return df
 

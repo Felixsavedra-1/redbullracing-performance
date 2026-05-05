@@ -153,7 +153,7 @@ def _dry_run_preview() -> None:
         except OSError:
             rows.append([table_name, "—", "error"])
     print(format_table(headers, rows, {1}))
-    logger.info("Re-run without --dry-run to load the above into the database.")
+    _log.info("Re-run without --dry-run to load the above into the database.")
 
 
 def run_full_pipeline(
