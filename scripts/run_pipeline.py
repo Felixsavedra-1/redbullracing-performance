@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -87,7 +88,7 @@ def _shorten_teams(raw: str) -> str:
 
 
 def _print_driver_summary(engine) -> None:
-    logger = setup_logging()
+    _log = logging.getLogger("f1_analytics")
     try:
         placeholders = ", ".join(f":r{i}" for i in range(len(TEAM_REFS)))
         params = {f"r{i}": r for i, r in enumerate(TEAM_REFS)}
@@ -118,7 +119,7 @@ def _print_driver_summary(engine) -> None:
         print(format_table(headers, rows, right_cols))
         print(f"{rule}\n")
     except Exception as e:
-        logger.debug("driver summary skipped: %s", e)
+        _log.debug("driver summary skipped: %s", e)
 
 
 def _normalize_year_range(start_year: int, end_year: int) -> tuple[int, int, bool]:
@@ -133,8 +134,8 @@ def _normalize_year_range(start_year: int, end_year: int) -> tuple[int, int, boo
 
 
 def _dry_run_preview() -> None:
-    logger = setup_logging()
-    logger.info("DRY RUN — extract and transform complete. Would load:")
+    _log = logging.getLogger("f1_analytics")
+    _log.info("DRY RUN — extract and transform complete. Would load:")
     headers = ["Table", "Rows", "Status"]
     rows = []
     for table_name, csv_name, *_ in F1DataLoader._TABLE_SPECS:
@@ -368,7 +369,7 @@ Examples:
             max_base_delay=args.max_base_delay,
         )
     except KeyboardInterrupt:
-        print("\nPipeline interrupted by user.")
+        logging.getLogger("f1_analytics").warning("Pipeline interrupted by user.")
         sys.exit(1)
     except Exception as exc:
         logger = setup_logging()

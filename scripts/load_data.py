@@ -59,7 +59,7 @@ class F1DataLoader:
         self.strict_schema = strict_schema
         self.run_id = run_id or str(uuid.uuid4())
         self.source_url = source_url
-        self.logger = setup_logging()
+        self.logger = logging.getLogger("f1_analytics")
         self._rb_driver_ids: set = set()
         self._connect()
         self._ensure_metadata_tables()

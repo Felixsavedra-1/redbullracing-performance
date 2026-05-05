@@ -1,8 +1,8 @@
-from __future__ import annotations
-
+import base64
 import logging
 import os
 import sys
+from datetime import datetime, timezone
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -13,23 +13,34 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from analytics import _ref_params, championship_trajectory
+from analytics import _ref_params
 
 logger = logging.getLogger("f1_analytics")
 
-_BG             = "#000000"
-_FONT           = "Courier New, monospace"
-_GRID           = "#1e1e1e"
-_TICK           = "#888888"
-_ACCENT         = "#FFFFFF"   # white
-_MAX_COLOR      = "#1E41FF"   # Verstappen blue
-_TEAMMATE_COLOR = "#FF1800"   # teammate red
+_LOGO_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "redbullracinglogo.jpg")
+)
+
+_BG   = "#000000"
+_FONT = "Courier New, monospace"
+_GRID = "#1e1e1e"
+_TICK = "#888888"
+_ACCENT = "#FFFFFF"
+
+_DRIVER_COLORS = {
+    "Verstappen": "#1E41FF",  # blue
+    "Pérez":      "#FFFFFF",  # white
+    "Tsunoda":    "#FF1800",  # red
+    "Lawson":     "#FFDD00",  # yellow
+}
+_FALLBACK_COLORS = ["#1E41FF", "#FFFFFF", "#FF1800", "#FFDD00", "#888888"]
 
 
 def _driver_color(name: str, idx: int) -> str:
-    if "Verstappen" in name:
-        return _MAX_COLOR
-    return _TEAMMATE_COLOR if idx > 0 else _MAX_COLOR
+    for surname, color in _DRIVER_COLORS.items():
+        if surname in name:
+            return color
+    return _FALLBACK_COLORS[idx % len(_FALLBACK_COLORS)]
 
 
 # --------------------------------------------------------------------------- #
@@ -42,37 +53,69 @@ _HTML_TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PLACEHOLDER_TITLE</title>
+<title>PLACEHOLDER_TITLE · F1 Performance Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:'Courier New',monospace}
-header{padding:40px 32px 32px;border-bottom:3px solid #FFFFFF}
-h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em}
-.sub{color:#666;font-size:.7rem;letter-spacing:.15em;margin-top:8px;text-transform:uppercase}
-.car-viewer{padding:24px 0 0;display:flex;justify-content:center}
+body{background:#000;color:#fff;font-family:'Courier New',monospace;min-height:100vh}
+header{padding:36px 40px 28px;border-bottom:2px solid #CC0000;background:linear-gradient(180deg,#050505 0%,#000 100%)}
+.hd-team{font-size:.55rem;letter-spacing:.30em;color:#1E41FF;text-transform:uppercase;margin-bottom:6px}
+h1{font-size:1.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;line-height:1.1}
+h1 span.accent{color:#1E41FF}
+.sub{color:#555;font-size:.65rem;letter-spacing:.18em;margin-top:10px;text-transform:uppercase}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #111}
+.stat-card{padding:18px 24px;border-right:1px solid #111;transition:background .2s}
+.stat-card:last-child{border-right:none}
+.stat-card:hover{background:#0a0a0a}
+.stat-val{font-size:1.35rem;font-weight:700;color:#fff;letter-spacing:.06em}
+.stat-lbl{font-size:.52rem;color:#555;letter-spacing:.20em;margin-top:4px;text-transform:uppercase}
+.car-viewer{padding:32px 0 0;display:flex;justify-content:center;border-bottom:1px solid #0f0f0f;background:radial-gradient(ellipse at 50% 60%,#090912 0%,#000 70%)}
 #f1car{display:block;width:100%;height:440px}
-.charts{padding:32px;display:grid;grid-template-columns:1fr;gap:32px}
+.charts{padding:40px;display:grid;grid-template-columns:1fr;gap:40px}
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
-.chart-section{border-top:1px solid #FFFFFF;padding-top:16px}
-@media(max-width:860px){.chart-row{grid-template-columns:1fr}}
+.chart-section{border-top:1px solid #1a1a1a;padding-top:20px}
+.chart-label{font-size:.60rem;letter-spacing:.25em;color:#1E41FF;text-transform:uppercase;margin-bottom:12px}
+footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:space-between;align-items:center}
+.ft-left{font-size:.52rem;color:#333;letter-spacing:.15em;text-transform:uppercase}
+.ft-right{font-size:.52rem;color:#333;letter-spacing:.10em}
+.ft-right span{color:#1E41FF}
+@media(max-width:860px){.chart-row{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){h1{font-size:1.3rem}.stats-row{grid-template-columns:1fr}.charts{padding:24px}}
+.logo-bar{display:flex;justify-content:center;padding:28px 0 16px}
+.logo-img{height:81px;display:block;filter:invert(1) hue-rotate(180deg)}
 </style>
 </head>
 <body>
+<div class="logo-bar">PLACEHOLDER_LOGO</div>
 <header>
-  <h1>PLACEHOLDER_HEADING</h1>
+  <div class="hd-team">Oracle Red Bull Racing</div>
+  <h1>Red Bull F1 Analytics</h1>
   <p class="sub">PLACEHOLDER_SUBTITLE</p>
 </header>
+<div class="stats-row">PLACEHOLDER_STATS</div>
 <div class="car-viewer">
   <canvas id="f1car"></canvas>
 </div>
 <div class="charts">
-  <div class="chart-section">PLACEHOLDER_C1</div>
+  <div class="chart-section">
+    <div class="chart-label">Championship · Season Progress</div>
+    PLACEHOLDER_C1
+  </div>
   <div class="chart-row">
-    <div class="chart-section">PLACEHOLDER_C2</div>
-    <div class="chart-section">PLACEHOLDER_C3</div>
+    <div class="chart-section">
+      <div class="chart-label">Race Results · Finish Positions</div>
+      PLACEHOLDER_C2
+    </div>
+    <div class="chart-section">
+      <div class="chart-label">Pace · Grid vs Finish</div>
+      PLACEHOLDER_C3
+    </div>
   </div>
 </div>
+<footer>
+  <div class="ft-left">Oracle Red Bull Racing · Performance Analytics</div>
+  <div class="ft-right">Generated PLACEHOLDER_TS &nbsp;·&nbsp; <span>Oracle Red Bull Racing</span></div>
+</footer>
 <script>
 (function(){
   var c=document.getElementById('f1car');
@@ -112,7 +155,7 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     pmrem.dispose();
   })();
 
-  // Lighting — supplements IBL for hard shadows
+  // Lighting
   scene.add(new THREE.HemisphereLight(0xd0e4ff,0x1a1825,0.28));
   var s1=new THREE.DirectionalLight(0xfff8f0,1.70);
   s1.position.set(6,12,5); s1.castShadow=true;
@@ -124,12 +167,12 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   var s2=new THREE.DirectionalLight(0x8899cc,0.42); s2.position.set(-5,3,-3); scene.add(s2);
   var s3=new THREE.DirectionalLight(0x5577ee,0.32); s3.position.set(-2,2,-8); scene.add(s3);
 
-  // Ground — dark reflective surface
+  // Ground
   var gnd=new THREE.Mesh(new THREE.PlaneGeometry(20,16),
     new THREE.MeshStandardMaterial({color:0x060606,metalness:0.0,roughness:0.52,envMapIntensity:0.5}));
   gnd.rotation.x=-Math.PI/2; gnd.position.y=-0.57; gnd.receiveShadow=true; scene.add(gnd);
 
-  // Materials — MeshPhysicalMaterial with clearcoat for all painted/metallic surfaces
+  // Materials
   var PI=Math.PI;
   var mNav=new THREE.MeshPhysicalMaterial({color:0x0D1B8C,metalness:0.06,roughness:0.26,clearcoat:1.0,clearcoatRoughness:0.05});
   var mRed=new THREE.MeshPhysicalMaterial({color:0xCC0000,metalness:0.04,roughness:0.23,clearcoat:1.0,clearcoatRoughness:0.04});
@@ -154,20 +197,49 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     q.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dx/len,dy/len,dz/len));
     m.setRotationFromQuaternion(q); return m;
   }
+  // Elliptical cross-section body section (CylinderGeometry scaled to oval, rotated along X)
+  function el(rx,ry,depth,mat,x,y,z,rxr,ryr,rzr){
+    var m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,depth,32),mat);
+    m.scale.set(rx,1,ry);
+    m.position.set(x||0,y||0,z||0);
+    m.rotation.set(rxr||0,ryr||0,rzr||0);
+    return m;
+  }
+  // NACA-like airfoil extruded along Z for wing elements
+  function wing(span,chord,thick,mat,x,y,z,ryRot){
+    var sh=new THREE.Shape(),t=thick*0.5;
+    sh.moveTo(0,0);
+    sh.bezierCurveTo(chord*0.1,t, chord*0.4,t, chord,0);
+    sh.bezierCurveTo(chord*0.4,-t, chord*0.1,-t, 0,0);
+    var geo=new THREE.ExtrudeGeometry(sh,{depth:span,bevelEnabled:false,steps:1});
+    geo.translate(0,0,-span*0.5);
+    var m=new THREE.Mesh(geo,mat);
+    m.position.set(x||0,y||0,z||0);
+    m.rotation.y=ryRot||0;
+    return m;
+  }
+  // Quadratic bezier tube — used for halo arch
+  function tube3(ax,ay,az,bx2,by2,bz2,cx2,cy2,cz2,r,mat){
+    var crv=new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(ax,ay,az),
+      new THREE.Vector3(bx2,by2,bz2),
+      new THREE.Vector3(cx2,cy2,cz2)
+    );
+    return new THREE.Mesh(new THREE.TubeGeometry(crv,20,r,8,false),mat);
+  }
 
   var car=new THREE.Group();
 
-  // Chassis — 5-section tapered monocoque (Coke-bottle waist visible from above)
-  car.add(bx(0.70,0.40,0.62,mNav, 1.25,0.05,0));
-  car.add(bx(0.80,0.40,0.70,mNav, 0.50,0.05,0));
-  car.add(bx(0.50,0.38,0.52,mNav,-0.15,0.05,0));
-  car.add(bx(0.50,0.40,0.62,mNav,-0.65,0.05,0));
-  car.add(bx(0.75,0.36,0.55,mNav,-1.28,0.05,0));
-  car.add(bx(1.10,0.21,0.54,mNav,-0.30,0.31,0));
-  car.add(bx(0.58,0.13,0.60,mNav, 0.53,0.27,0));
+  // Chassis — elliptical monocoque sections (Coke-bottle waist profile)
+  car.add(el(0.31, 0.20, 0.70, mNav,  1.25, 0.05, 0, 0, 0, PI/2));
+  car.add(el(0.35, 0.21, 0.80, mNav,  0.50, 0.05, 0, 0, 0, PI/2));
+  car.add(el(0.26, 0.19, 0.50, mNav, -0.15, 0.05, 0, 0, 0, PI/2));
+  car.add(el(0.31, 0.21, 0.50, mNav, -0.65, 0.05, 0, 0, 0, PI/2));
+  car.add(el(0.275,0.18, 0.75, mNav, -1.28, 0.05, 0, 0, 0, PI/2));
+  car.add(el(0.27, 0.105,1.10, mNav, -0.30, 0.31, 0, 0, 0, PI/2));
+  car.add(el(0.30, 0.065,0.58, mNav,  0.53, 0.27, 0, 0, 0, PI/2));
 
-  // Nose — smooth LatheGeometry revolution profile (replaces 4 coarse cylinders)
-  // rotation.z=-PI/2 maps local Y to world +X; position.x=1.60 places base at monocoque front
+  // Nose — LatheGeometry revolution profile
   var nosePts=[
     new THREE.Vector2(0.28,0.00),
     new THREE.Vector2(0.27,0.08),
@@ -185,20 +257,23 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   car.add(noseMesh);
   car.add(cy(0.022,0.022,0.06,8,mRed,3.10,-0.01,0,0,0,-PI/2));
 
-  // Front wing — 3 carbon cascade elements + red endplates
-  car.add(bx(0.30,0.040,2.12,mC,2.86,-0.245,0));
-  car.add(bx(0.24,0.036,1.94,mC,2.66,-0.200,0));
-  car.add(bx(0.18,0.030,1.74,mC,2.48,-0.158,0));
+  // Front wing — airfoil-section elements + red endplates
+  car.add(wing(2.12, 0.30, 0.040, mC, 2.86, -0.245, 0, 0));
+  car.add(wing(1.94, 0.24, 0.036, mC, 2.66, -0.200, 0, 0));
+  car.add(wing(1.74, 0.18, 0.030, mC, 2.48, -0.158, 0, 0));
   [-1.03,1.03].forEach(function(z){
     car.add(bx(0.50,0.32,0.05,mRed,2.66,-0.095,z));
     car.add(bx(0.20,0.10,0.05,mRed,2.84,-0.30,z));
   });
   [-0.20,0.20].forEach(function(z){car.add(bx(0.06,0.24,0.04,mC,2.72,-0.075,z));});
 
-  // Sidepods — navy body with red accent on outer face
+  // Sidepods — tapered oval cross-sections, wider at intake than exit
   [-0.53,0.53].forEach(function(z){
     var sg=z>0?1:-1;
-    car.add(bx(1.62,0.35,0.33,mNav,-0.24,-0.03,z));
+    var sf=new THREE.Mesh(new THREE.CylinderGeometry(0.175,0.145,0.85,24),mNav);
+    sf.scale.set(1,1,1.9); sf.rotation.z=PI/2; sf.position.set(0.10,-0.03,z+sg*0.02); car.add(sf);
+    var sr=new THREE.Mesh(new THREE.CylinderGeometry(0.130,0.090,0.77,24),mNav);
+    sr.scale.set(1,1,1.7); sr.rotation.z=PI/2; sr.position.set(-0.565,-0.03,z+sg*0.02); car.add(sr);
     car.add(bx(0.90,0.32,0.012,mRed,-0.16,-0.03,z+sg*0.166));
     car.add(bx(0.09,0.21,0.09,mC,0.37,0.04,z));
     car.add(bx(1.22,0.08,0.26,mC,-0.39,-0.23,z));
@@ -209,21 +284,29 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     [-0.34-bi*0.09,0.34+bi*0.09].forEach(function(z){car.add(bx(0.09,0.20,0.03,mC,0.84,-0.04,z));});
   }
 
-  // Engine cover — sculpted 3-piece PU hump + gold stripe repositioned to fin top
-  car.add(bx(0.70,0.52,0.054,mNav,-0.20,0.46,0));
-  car.add(bx(0.28,0.28,0.054,mNav, 0.09,0.39,0));
+  // Engine cover — LatheGeometry fin profile + gold stripe + oval intake
+  var ecPts=[
+    new THREE.Vector2(0.000,0.00),new THREE.Vector2(0.085,0.10),
+    new THREE.Vector2(0.195,0.26),new THREE.Vector2(0.260,0.35),
+    new THREE.Vector2(0.240,0.25),new THREE.Vector2(0.185,0.10),
+    new THREE.Vector2(0.000,0.00)
+  ];
+  var ecMesh=new THREE.Mesh(new THREE.LatheGeometry(ecPts,20),mNav);
+  ecMesh.rotation.z=PI/2; ecMesh.scale.set(1,0.054,1);
+  ecMesh.position.set(-0.20,0.18,0); car.add(ecMesh);
   car.add(bx(0.70,0.040,0.054,mGold,-0.20,0.71,0));
-  car.add(bx(0.21,0.19,0.32,mNav,0.29,0.39,0));
+  var riMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,0.19,20),mNav);
+  riMesh.scale.set(1,1,2.0); riMesh.position.set(0.29,0.39,0); car.add(riMesh);
 
-  // Halo — central post + top arch + angled rear legs
-  car.add(bx(0.06,0.34,0.042,mG,0.60,0.52,0));
-  car.add(bx(0.50,0.072,0.56,mG,0.57,0.70,0));
+  // Halo — cylindrical post + bezier arch + angled rear legs
+  car.add(cy(0.028,0.028,0.34,12,mG,0.60,0.52,0));
+  car.add(tube3(0.40,0.70,-0.28, 0.57,0.82,0, 0.40,0.70,0.28, 0.034,mG));
   car.add(bar(0.40,0.70,-0.28, 0.18,0.30,-0.26, 0.022,mG));
   car.add(bar(0.40,0.70, 0.28, 0.18,0.30, 0.26, 0.022,mG));
 
-  // Mirrors — stanchion + polished face
-  car.add(bx(0.04,0.28,0.04,mC,0.50,0.38,-0.26));
-  car.add(bx(0.04,0.28,0.04,mC,0.50,0.38, 0.26));
+  // Mirrors — cylindrical stanchions + polished faces
+  car.add(cy(0.016,0.016,0.28,8,mC,0.50,0.38,-0.26));
+  car.add(cy(0.016,0.016,0.28,8,mC,0.50,0.38, 0.26));
   car.add(bx(0.11,0.07,0.17,mR,0.47,0.53,-0.26));
   car.add(bx(0.11,0.07,0.17,mR,0.47,0.53, 0.26));
 
@@ -231,20 +314,18 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   var helm=mk(new THREE.SphereGeometry(0.14,24,18),mB,0.41,0.36,0);
   helm.scale.set(1.2,0.92,1.1); car.add(helm);
 
-  // Floor (1.80 m wide) + diffuser strakes + diffuser ramp wedge
+  // Floor + diffuser strakes + diffuser ramp
   car.add(bx(3.12,0.042,1.80,mC,-0.08,-0.21,0));
   for(var ds=-3;ds<=3;ds++){car.add(bx(0.64,0.13,0.03,mC,-1.83,-0.15,ds*0.245));}
-  // Diffuser ramp: rz=2.719 → dir(-0.912,+0.410); rear exit(-2.021,-0.060), floor junction(-1.639,-0.232)
   car.add(bx(0.42,0.030,1.60,mC,-1.830,-0.146,0,0,0,2.719));
 
-  // Rear wing assembly — swan-neck pylons connect crash structure to wing (fixes floating wing)
+  // Rear wing — airfoil-section elements + swan-neck pylons + endplates
   car.add(bx(0.33,0.23,0.42,mNav,-1.71,0.07,0));
   car.add(bx(0.54,0.065,0.90,mC,-1.85,0.19,0));
-  // Swan-neck pylons: crash top (y=0.185) → wing underside (y=0.661), 18 mm carbon tube
   car.add(bar(-1.62,0.185,-0.13, -2.00,0.661,-0.18, 0.018,mC));
   car.add(bar(-1.62,0.185, 0.13, -2.00,0.661, 0.18, 0.018,mC));
-  car.add(bx(0.27,0.058,1.60,mC,-2.03,0.69,0));
-  car.add(bx(0.18,0.046,1.48,mC,-1.87,0.63,0));
+  car.add(wing(1.60, 0.27, 0.058, mC, -2.03, 0.69, 0, 0));
+  car.add(wing(1.48, 0.18, 0.046, mC, -1.87, 0.63, 0, 0));
   [-0.80,0.80].forEach(function(z){
     car.add(bx(0.31,0.58,0.048,mRed,-1.97,0.41,z));
   });
@@ -265,12 +346,11 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     car.add(bar(wx,-0.28,wz,-1.44,-0.18,ci, 0.016,mG));
   });
 
-  // Wheels — LatheGeometry tire profile; flat tread, rounded shoulders, bulging sidewalls
+  // Wheels — LatheGeometry tire profile
   function addWheel(x,z,tw){
     var g=new THREE.Group();
     var fs=(z>0)?1:-1,fY=fs*tw*0.46;
     var R=0.340,ri=0.260,hw=tw*0.50;
-    // Tire cross-section profile revolved around the axle (Y axis pre-rotation)
     var tp=[
       new THREE.Vector2(ri,          hw+0.004),
       new THREE.Vector2(ri+0.022,    hw-0.002),
@@ -300,7 +380,6 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   addWheel(-1.52,-0.88,0.405); addWheel(-1.52,0.88,0.405);
 
   scene.add(car); car.rotation.y=PI/6;
-  // Enable cast + receive shadows on every mesh in the car group
   car.traverse(function(o){if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
 
   function animate(){requestAnimationFrame(animate);car.rotation.y+=0.004;renderer.render(scene,cam);}
@@ -371,6 +450,32 @@ def _layout_2d(title: str, xaxis_title: str = "", yaxis_title: str = "",
 #  SQL helpers                                                                  #
 # --------------------------------------------------------------------------- #
 
+def _round_by_round_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
+    """Cumulative points and finish position per driver per round, all seasons.
+    Returns: year | round | driver | points | position
+    Computed from results — independent of driver_standings population."""
+    placeholders, params = _ref_params(team_refs)
+    sql = f"""
+    SELECT
+        ra.year, ra.round,
+        COALESCE(da.forename,'') || ' ' || COALESCE(da.surname,'') AS driver,
+        SUM(COALESCE(res.points, 0)) OVER (
+            PARTITION BY res.driver_id, ra.year
+            ORDER BY ra.round
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS points,
+        CAST(res.position_order AS INTEGER) AS position
+    FROM results res
+    JOIN constructors c ON res.constructor_id = c.constructor_id
+    JOIN drivers da     ON res.driver_id       = da.driver_id
+    JOIN races ra       ON res.race_id         = ra.race_id
+    WHERE c.constructor_ref IN ({placeholders})
+    ORDER BY da.driver_id, ra.year, ra.round
+    """
+    with engine.connect() as conn:
+        return pd.read_sql(text(sql), conn, params=params)
+
+
 def _grid_finish_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
     placeholders, params = _ref_params(team_refs)
     sql = (
@@ -431,7 +536,7 @@ def chart_race_positions_2d(traj_df: pd.DataFrame) -> go.Figure:
         return go.Figure(layout=layout)
 
     latest = int(traj_df["year"].max())
-    df = traj_df[traj_df["year"] == latest].sort_values("round")
+    df = traj_df[(traj_df["year"] == latest) & (traj_df["position"] < 999)].sort_values("round")
     layout = _layout_2d(
         f"RACE POSITIONS · {latest}",
         xaxis_title="ROUND",
@@ -468,7 +573,6 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
     if df.empty:
         return fig
 
-    # Diagonal reference line (grid = finish, no change)
     mx = max(df["grid"].max(), df["finish"].max()) + 1
     fig.add_trace(go.Scatter(
         x=[1, mx], y=[1, mx],
@@ -481,7 +585,7 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
-        delta = g["grid"] - g["finish"]   # positive = gained positions
+        delta = g["grid"] - g["finish"]
         fig.add_trace(go.Scatter(
             x=g["grid"], y=g["finish"],
             mode="markers",
@@ -511,9 +615,9 @@ def generate_dashboard(
     team_name: str,
     output_path: str,
 ) -> None:
-    traj = championship_trajectory(engine, team_refs)
+    traj = _round_by_round_df(engine, team_refs)
     if traj.empty:
-        logger.warning("championship_trajectory returned no data — dashboard charts will be blank")
+        logger.warning("_round_by_round_df returned no data — dashboard charts will be blank")
 
     gf = _grid_finish_df(engine, team_refs)
 
@@ -530,14 +634,36 @@ def generate_dashboard(
     year_range = f"{years[0]}–{years[-1]}" if years else ""
     subtitle = f"PERFORMANCE DASHBOARD \xb7 {year_range}" if year_range else "PERFORMANCE DASHBOARD"
 
+    total_races = int(traj["round"].nunique()) if not traj.empty else "—"
+    total_wins  = int((gf["finish"] == 1).sum()) if not gf.empty else "—"
+    stat_html = (
+        f'<div class="stat-card"><div class="stat-val">{year_range or "—"}</div>'
+        f'<div class="stat-lbl">Seasons</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{total_races}</div>'
+        f'<div class="stat-lbl">Race Rounds Analyzed</div></div>'
+        f'<div class="stat-card"><div class="stat-val">{total_wins}</div>'
+        f'<div class="stat-lbl">Wins in Dataset</div></div>'
+        f'<div class="stat-card"><div class="stat-val">4</div>'
+        f'<div class="stat-lbl">Constructors Titles</div></div>'
+    )
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    logo_html = ""
+    if os.path.exists(_LOGO_PATH):
+        with open(_LOGO_PATH, "rb") as fh:
+            b64 = base64.b64encode(fh.read()).decode()
+        logo_html = f'<img src="data:image/jpeg;base64,{b64}" class="logo-img" alt="Red Bull Racing">'
+
     html = (
         _HTML_TEMPLATE
-        .replace("PLACEHOLDER_TITLE",    f"{team_name} — F1 ANALYTICS")
-        .replace("PLACEHOLDER_HEADING",  f"{team_name} — F1 ANALYTICS")
+        .replace("PLACEHOLDER_TITLE",    team_name)
         .replace("PLACEHOLDER_SUBTITLE", subtitle)
+        .replace("PLACEHOLDER_LOGO",     logo_html)
+        .replace("PLACEHOLDER_STATS",    stat_html)
         .replace("PLACEHOLDER_C1",       div1)
         .replace("PLACEHOLDER_C2",       div2)
         .replace("PLACEHOLDER_C3",       div3)
+        .replace("PLACEHOLDER_TS",       ts)
     )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
