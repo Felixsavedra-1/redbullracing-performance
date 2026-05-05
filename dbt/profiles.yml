@@ -1,0 +1,7 @@
+f1_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('F1_DUCKDB_PATH', '../f1_analytics.duckdb') }}"
+      threads: 4

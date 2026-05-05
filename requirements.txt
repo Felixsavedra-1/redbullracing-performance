@@ -1,7 +1,9 @@
 requests==2.31.0
 pandas==2.1.0
 sqlalchemy==2.0.20
-pymysql==1.1.0
+duckdb>=0.10.0
+duckdb-engine>=0.13.0
+dbt-duckdb>=1.7.0
 numpy==1.24.3
 pyyaml>=6.0
 scipy>=1.11.0

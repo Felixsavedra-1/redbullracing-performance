@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: driver_summary
+    description: "Career statistics for each Red Bull family driver"
+    columns:
+      - name: driver_name
+        tests: [not_null, unique]
+      - name: points
+        tests: [not_null]
+
+  - name: pit_stop_efficiency
+    description: "Per-driver pit stop timing metrics by season, including standard deviation"
+    columns:
+      - name: avg_stop_ms
+        tests: [not_null]
+
+  - name: championship_progression
+    description: "Constructor standings progression round-by-round with points gained per race"
+
+  - name: qualifying_vs_race
+    description: "Grid position vs race finish position delta analysis per driver per season"

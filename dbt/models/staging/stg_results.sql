@@ -1,0 +1,20 @@
+select
+    race_id,
+    driver_id,
+    constructor_id,
+    number,
+    grid,
+    position,
+    position_text,
+    position_order,
+    points,
+    laps,
+    time_result,
+    milliseconds,
+    fastest_lap,
+    fastest_lap_rank,
+    fastest_lap_time,
+    fastest_lap_speed,
+    status,
+    position_order = 999 as is_dnf
+from {{ source('f1_raw', 'results') }}

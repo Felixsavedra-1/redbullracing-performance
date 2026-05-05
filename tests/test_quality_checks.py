@@ -7,18 +7,12 @@ from sqlalchemy import create_engine, text
 from scripts.data_quality import run_quality_checks
 
 
-def apply_sqlite_schema(engine) -> None:
-    schema_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "database",
-        "schema",
-        "create_tables_sqlite.sql",
-    )
-    schema_path = os.path.abspath(schema_path)
+def apply_duckdb_schema(engine) -> None:
+    schema_path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "database", "schema", "create_tables_duckdb.sql",
+    ))
     with open(schema_path, "r") as handle:
         schema_sql = handle.read()
-
     with engine.connect() as conn:
         for statement in schema_sql.split(";"):
             stmt = statement.strip()
@@ -30,9 +24,9 @@ def apply_sqlite_schema(engine) -> None:
 class TestQualityChecks(unittest.TestCase):
     def test_quality_checks_pass_for_minimal_valid_data(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            db_path = os.path.join(tmp_dir, "quality.db")
-            engine = create_engine(f"sqlite:///{db_path}")
-            apply_sqlite_schema(engine)
+            db_path = os.path.join(tmp_dir, "quality.duckdb")
+            engine = create_engine(f"duckdb:///{db_path}")
+            apply_duckdb_schema(engine)
 
             with engine.connect() as conn:
                 conn.execute(
@@ -87,8 +81,8 @@ class TestQualityCheckFailures(unittest.TestCase):
     """Each test inserts exactly one violation and verifies the specific check fires."""
 
     def _engine_with_base_data(self):
-        engine = create_engine("sqlite:///:memory:")
-        apply_sqlite_schema(engine)
+        engine = create_engine("duckdb:///:memory:")
+        apply_duckdb_schema(engine)
         with engine.begin() as conn:
             conn.execute(text(
                 "INSERT INTO circuits VALUES (1,'silverstone','Silverstone','Silverstone','UK',52.07,-1.02,0,'')"

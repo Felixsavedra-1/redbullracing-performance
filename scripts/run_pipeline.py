@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import subprocess
 import sys
 
 import pandas as pd
@@ -14,7 +15,7 @@ from logging_utils import setup_logging, format_table
 from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, TEAM_NAME, TEAM_REFS
 from extract_data import F1DataExtractor
 from transform_data import F1DataTransformer
-from load_data import F1DataLoader
+from load_data import F1DataLoader, DB_CONFIG
 from data_quality import run_quality_checks
 from extract_telemetry import extract_all as extract_telemetry
 
@@ -33,6 +34,27 @@ def _load_skipped(name: str) -> dict:
 
 
 _DRIVER_SUMMARY_SQL = """
+SELECT
+    COALESCE(d.forename, '') || ' ' || COALESCE(d.surname, '') AS driver,
+    STRING_AGG(DISTINCT con.constructor_name, ',') AS team,
+    COUNT(*) AS races,
+    SUM(res.points) AS points,
+    COUNT(*) FILTER (WHERE res.position = 1)  AS wins,
+    COUNT(*) FILTER (WHERE res.position <= 3) AS podiums,
+    ROUND(AVG(res.position_order) FILTER (WHERE res.position_order < 999), 1) AS avg_finish,
+    COUNT(*) FILTER (WHERE res.position_order = 999) AS dnfs,
+    MIN(r.year) AS from_yr,
+    MAX(r.year) AS to_yr
+FROM results res
+JOIN races        r   ON res.race_id        = r.race_id
+JOIN drivers      d   ON res.driver_id      = d.driver_id
+JOIN constructors con ON res.constructor_id = con.constructor_id
+WHERE con.constructor_ref IN ({team_refs})
+GROUP BY d.driver_id, d.forename, d.surname
+ORDER BY points DESC
+"""
+
+_DRIVER_SUMMARY_SQL_SQLITE = """
 SELECT
     COALESCE(d.forename, '') || ' ' || COALESCE(d.surname, '') AS driver,
     GROUP_CONCAT(DISTINCT con.constructor_name) AS team,
@@ -69,7 +91,8 @@ def _print_driver_summary(engine) -> None:
     try:
         placeholders = ", ".join(f":r{i}" for i in range(len(TEAM_REFS)))
         params = {f"r{i}": r for i, r in enumerate(TEAM_REFS)}
-        sql = _DRIVER_SUMMARY_SQL.format(team_refs=placeholders)
+        template = _DRIVER_SUMMARY_SQL if (DB_CONFIG or {}).get("type") == "duckdb" else _DRIVER_SUMMARY_SQL_SQLITE
+        sql = template.format(team_refs=placeholders)
         with engine.connect() as conn:
             df = pd.read_sql(text(sql), conn, params=params)
         if df.empty:
@@ -140,6 +163,7 @@ def run_full_pipeline(
     skip_load: bool = False,
     skip_pit_stops: bool = False,
     skip_quality: bool = False,
+    skip_dbt: bool = False,
     include_telemetry: bool = False,
     dry_run: bool = False,
     mode: str = "full_refresh",
@@ -224,6 +248,17 @@ def run_full_pipeline(
                 raise RuntimeError("Data quality checks failed")
             else:
                 logger.info("Data quality checks passed")
+
+        if not skip_dbt:
+            dbt_dir = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "dbt"))
+            if os.path.isdir(dbt_dir):
+                logger.info("BUILDING dbt ANALYTICAL MODELS")
+                result = subprocess.run(
+                    ["dbt", "run", "--profiles-dir", dbt_dir, "--project-dir", dbt_dir],
+                )
+                if result.returncode != 0:
+                    raise RuntimeError("dbt run failed")
+                logger.info("dbt models built successfully.")
     else:
         logger.info("[3/3] SKIPPING DATABASE LOAD (--skip-load flag)")
 
@@ -283,6 +318,7 @@ Examples:
     parser.add_argument("--skip-load", action="store_true", help="Skip database loading step")
     parser.add_argument("--skip-pit-stops", action="store_true", help="Skip pit stop extraction")
     parser.add_argument("--skip-quality", action="store_true", help="Skip data quality checks")
+    parser.add_argument("--skip-dbt", action="store_true", help="Skip dbt analytical model build")
     parser.add_argument("--incremental", action="store_true", help="Use incremental load instead of full refresh")
     parser.add_argument("--no-strict-schema", action="store_true", help="Do not fail on schema contract warnings")
     parser.add_argument("--telemetry", action="store_true",
@@ -322,6 +358,7 @@ Examples:
             skip_load=args.skip_load,
             skip_pit_stops=args.skip_pit_stops,
             skip_quality=args.skip_quality,
+            skip_dbt=args.skip_dbt,
             include_telemetry=args.telemetry,
             dry_run=args.dry_run,
             mode=mode,

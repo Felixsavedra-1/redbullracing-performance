@@ -1,9 +1,8 @@
 import os
-import sqlite3
 import tempfile
 import unittest
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 from scripts.transform_data import F1DataTransformer
 from scripts.load_data import F1DataLoader
@@ -223,37 +222,41 @@ class TestPipelineSmoke(unittest.TestCase):
             transformer = F1DataTransformer(raw_data_path=raw_dir + "/", processed_data_path=processed_dir + "/")
             transformer.transform_all()
 
-            db_path = os.path.join(tmp_dir, "f1_analytics.db")
+            db_path = os.path.join(tmp_dir, "f1_analytics.duckdb")
             loader = F1DataLoader(
-                config={"type": "sqlite", "filename": db_path},
+                config={"type": "duckdb", "filename": db_path},
                 processed_data_path=processed_dir + "/",
             )
             loader.load_all()
 
             self.assertTrue(os.path.exists(db_path))
 
-            with sqlite3.connect(db_path) as conn:
-                cur = conn.cursor()
-
-                cur.execute("SELECT COUNT(*) FROM results")
-                self.assertGreater(cur.fetchone()[0], 0, "results table must not be empty")
+            engine = create_engine(f"duckdb:///{db_path}")
+            with engine.connect() as conn:
+                self.assertGreater(
+                    conn.execute(text("SELECT COUNT(*) FROM results")).fetchone()[0], 0,
+                    "results table must not be empty",
+                )
 
                 # No NULL primary keys — a NULL PK indicates a broken ref-map or schema issue.
                 for table, pk in [("drivers", "driver_id"), ("races", "race_id"),
                                   ("circuits", "circuit_id"), ("constructors", "constructor_id")]:
-                    cur.execute(f"SELECT COUNT(*) FROM {table} WHERE {pk} IS NULL")
-                    self.assertEqual(cur.fetchone()[0], 0, f"{table}.{pk} must not be NULL")
+                    self.assertEqual(
+                        conn.execute(text(f"SELECT COUNT(*) FROM {table} WHERE {pk} IS NULL")).fetchone()[0], 0,
+                        f"{table}.{pk} must not be NULL",
+                    )
 
                 # FK spot-check: every result row references a real driver.
-                cur.execute("""
-                    SELECT COUNT(*) FROM results r
-                    LEFT JOIN drivers d ON r.driver_id = d.driver_id
-                    WHERE d.driver_id IS NULL
-                """)
-                self.assertEqual(cur.fetchone()[0], 0, "results must not contain orphaned driver_id")
+                self.assertEqual(
+                    conn.execute(text("""
+                        SELECT COUNT(*) FROM results r
+                        LEFT JOIN drivers d ON r.driver_id = d.driver_id
+                        WHERE d.driver_id IS NULL
+                    """)).fetchone()[0], 0,
+                    "results must not contain orphaned driver_id",
+                )
 
             # Data quality gates must all pass on the minimal dataset.
-            engine = create_engine(f"sqlite:///{db_path}")
             failures = run_quality_checks(engine, start_year=2024, end_year=2024)
             self.assertEqual(failures, [], f"Quality checks failed: {failures}")
 

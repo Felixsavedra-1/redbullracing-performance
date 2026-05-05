@@ -1,0 +1,205 @@
+[0m19:08:27.317576 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1147ca6d0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x114998d50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1149aecd0>]}
+
+
+============================== 19:08:27.320362 | 5aa90889-1f4a-40d9-a33c-3850cb24b111 ==============================
+[0m19:08:27.320362 [info ] [MainThread]: Running with dbt=1.11.8
+[0m19:08:27.320669 [debug] [MainThread]: running dbt with arguments {'log_cache_events': 'False', 'empty': 'False', 'warn_error': 'None', 'partial_parse': 'True', 'log_format': 'default', 'profiles_dir': '.', 'send_anonymous_usage_stats': 'True', 'fail_fast': 'False', 'introspect': 'True', 'debug': 'False', 'no_print': 'None', 'static_parser': 'True', 'write_json': 'True', 'indirect_selection': 'eager', 'quiet': 'False', 'cache_selected_only': 'False', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'version_check': 'True', 'use_experimental_parser': 'False', 'use_colors': 'True', 'log_path': 'logs', 'printer_width': '80', 'invocation_command': 'dbt compile --profiles-dir . --project-dir .'}
+[0m19:08:27.455774 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'project_id', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1149d4490>]}
+[0m19:08:27.484524 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'adapter_info', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x113590850>]}
+[0m19:08:27.485621 [info ] [MainThread]: Registered adapter: duckdb=1.10.1
+[0m19:08:27.572315 [debug] [MainThread]: checksum: 7d524ac048c2100769df89d592e662e060a73ca564e31bd9c2a37efdfe8d8ab6, vars: {}, profile: , target: , version: 1.11.8
+[0m19:08:27.572889 [info ] [MainThread]: Unable to do partial parsing because saved manifest not found. Starting full parse.
+[0m19:08:27.573173 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'partial_parser', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1149f8b10>]}
+[0m19:08:28.259481 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'load_project', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1159021d0>]}
+[0m19:08:28.308891 [debug] [MainThread]: Wrote artifact WritableManifest to ./target/manifest.json
+[0m19:08:28.309942 [debug] [MainThread]: Wrote artifact SemanticManifest to ./target/semantic_manifest.json
+[0m19:08:28.315348 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'resource_counts', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x111bb5f10>]}
+[0m19:08:28.315652 [info ] [MainThread]: Found 10 models, 14 data tests, 8 sources, 475 macros
+[0m19:08:28.315823 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x115af7ed0>]}
+[0m19:08:28.317069 [info ] [MainThread]: 
+[0m19:08:28.317249 [info ] [MainThread]: Concurrency: 4 threads (target='dev')
+[0m19:08:28.317387 [info ] [MainThread]: 
+[0m19:08:28.317605 [debug] [MainThread]: Acquiring new duckdb connection 'master'
+[0m19:08:28.320024 [debug] [ThreadPool]: Acquiring new duckdb connection 'list_f1_analytics_main'
+[0m19:08:28.370324 [debug] [ThreadPool]: Using duckdb connection "list_f1_analytics_main"
+[0m19:08:28.370589 [debug] [ThreadPool]: On list_f1_analytics_main: BEGIN
+[0m19:08:28.370737 [debug] [ThreadPool]: Opening a new connection, currently in state init
+[0m19:08:28.377180 [debug] [ThreadPool]: SQL status: OK in 0.006 seconds
+[0m19:08:28.377476 [debug] [ThreadPool]: Using duckdb connection "list_f1_analytics_main"
+[0m19:08:28.377644 [debug] [ThreadPool]: On list_f1_analytics_main: /* {"app": "dbt", "dbt_version": "1.11.8", "profile_name": "f1_analytics", "target_name": "dev", "connection_name": "list_f1_analytics_main"} */
+select
+      'f1_analytics' as database,
+      table_name as name,
+      table_schema as schema,
+      CASE table_type
+        WHEN 'BASE TABLE' THEN 'table'
+        WHEN 'VIEW' THEN 'view'
+        WHEN 'LOCAL TEMPORARY' THEN 'table'
+        END as type
+    from system.information_schema.tables
+    where lower(table_schema) = 'main'
+    and lower(table_catalog) = 'f1_analytics'
+  
+[0m19:08:28.379289 [debug] [ThreadPool]: SQL status: OK in 0.001 seconds
+[0m19:08:28.379937 [debug] [ThreadPool]: On list_f1_analytics_main: ROLLBACK
+[0m19:08:28.380350 [debug] [ThreadPool]: Failed to rollback 'list_f1_analytics_main'
+[0m19:08:28.380498 [debug] [ThreadPool]: On list_f1_analytics_main: Close
+[0m19:08:28.380806 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'runnable_timing', 'label': '5aa90889-1f4a-40d9-a33c-3850cb24b111', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x115a8b550>]}
+[0m19:08:28.382469 [debug] [Thread-1 (]: Began running node model.f1_analytics.stg_constructor_standings
+[0m19:08:28.382685 [debug] [Thread-2 (]: Began running node model.f1_analytics.stg_drivers
+[0m19:08:28.382897 [debug] [Thread-3 (]: Began running node model.f1_analytics.stg_pit_stops
+[0m19:08:28.383066 [debug] [Thread-4 (]: Began running node model.f1_analytics.stg_qualifying
+[0m19:08:28.383280 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly list_f1_analytics_main, now model.f1_analytics.stg_constructor_standings)
+[0m19:08:28.383555 [debug] [Thread-2 (]: Acquiring new duckdb connection 'model.f1_analytics.stg_drivers'
+[0m19:08:28.383995 [debug] [Thread-3 (]: Acquiring new duckdb connection 'model.f1_analytics.stg_pit_stops'
+[0m19:08:28.384235 [debug] [Thread-4 (]: Acquiring new duckdb connection 'model.f1_analytics.stg_qualifying'
+[0m19:08:28.384421 [debug] [Thread-1 (]: Began compiling node model.f1_analytics.stg_constructor_standings
+[0m19:08:28.384590 [debug] [Thread-2 (]: Began compiling node model.f1_analytics.stg_drivers
+[0m19:08:28.384753 [debug] [Thread-3 (]: Began compiling node model.f1_analytics.stg_pit_stops
+[0m19:08:28.384911 [debug] [Thread-4 (]: Began compiling node model.f1_analytics.stg_qualifying
+[0m19:08:28.388908 [debug] [Thread-1 (]: Writing injected SQL for node "model.f1_analytics.stg_constructor_standings"
+[0m19:08:28.390276 [debug] [Thread-2 (]: Writing injected SQL for node "model.f1_analytics.stg_drivers"
+[0m19:08:28.391548 [debug] [Thread-3 (]: Writing injected SQL for node "model.f1_analytics.stg_pit_stops"
+[0m19:08:28.392819 [debug] [Thread-4 (]: Writing injected SQL for node "model.f1_analytics.stg_qualifying"
+[0m19:08:28.393492 [debug] [Thread-4 (]: Began executing node model.f1_analytics.stg_qualifying
+[0m19:08:28.393678 [debug] [Thread-1 (]: Began executing node model.f1_analytics.stg_constructor_standings
+[0m19:08:28.393838 [debug] [Thread-3 (]: Began executing node model.f1_analytics.stg_pit_stops
+[0m19:08:28.394001 [debug] [Thread-2 (]: Began executing node model.f1_analytics.stg_drivers
+[0m19:08:28.394327 [debug] [Thread-4 (]: Finished running node model.f1_analytics.stg_qualifying
+[0m19:08:28.394623 [debug] [Thread-1 (]: Finished running node model.f1_analytics.stg_constructor_standings
+[0m19:08:28.394892 [debug] [Thread-3 (]: Finished running node model.f1_analytics.stg_pit_stops
+[0m19:08:28.395162 [debug] [Thread-2 (]: Finished running node model.f1_analytics.stg_drivers
+[0m19:08:28.395336 [debug] [Thread-4 (]: Began running node model.f1_analytics.stg_races
+[0m19:08:28.395537 [debug] [Thread-1 (]: Began running node model.f1_analytics.stg_results
+[0m19:08:28.395879 [debug] [Thread-3 (]: Began running node test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a
+[0m19:08:28.396078 [debug] [Thread-4 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_qualifying, now model.f1_analytics.stg_races)
+[0m19:08:28.396245 [debug] [Thread-2 (]: Began running node test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07
+[0m19:08:28.396420 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_constructor_standings, now model.f1_analytics.stg_results)
+[0m19:08:28.396603 [debug] [Thread-3 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_pit_stops, now test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a)
+[0m19:08:28.396765 [debug] [Thread-4 (]: Began compiling node model.f1_analytics.stg_races
+[0m19:08:28.396930 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_drivers, now test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07)
+[0m19:08:28.397088 [debug] [Thread-1 (]: Began compiling node model.f1_analytics.stg_results
+[0m19:08:28.397243 [debug] [Thread-3 (]: Began compiling node test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a
+[0m19:08:28.398580 [debug] [Thread-4 (]: Writing injected SQL for node "model.f1_analytics.stg_races"
+[0m19:08:28.398752 [debug] [Thread-2 (]: Began compiling node test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07
+[0m19:08:28.400132 [debug] [Thread-1 (]: Writing injected SQL for node "model.f1_analytics.stg_results"
+[0m19:08:28.405390 [debug] [Thread-3 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a"
+[0m19:08:28.407366 [debug] [Thread-2 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07"
+[0m19:08:28.407699 [debug] [Thread-1 (]: Began executing node model.f1_analytics.stg_results
+[0m19:08:28.407848 [debug] [Thread-4 (]: Began executing node model.f1_analytics.stg_races
+[0m19:08:28.408188 [debug] [Thread-1 (]: Finished running node model.f1_analytics.stg_results
+[0m19:08:28.408541 [debug] [Thread-4 (]: Finished running node model.f1_analytics.stg_races
+[0m19:08:28.408769 [debug] [Thread-2 (]: Began executing node test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07
+[0m19:08:28.408939 [debug] [Thread-3 (]: Began executing node test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a
+[0m19:08:28.409127 [debug] [Thread-1 (]: Began running node test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4
+[0m19:08:28.409491 [debug] [Thread-2 (]: Finished running node test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07
+[0m19:08:28.409842 [debug] [Thread-3 (]: Finished running node test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a
+[0m19:08:28.410002 [debug] [Thread-4 (]: Began running node model.f1_analytics.championship_progression
+[0m19:08:28.410172 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_results, now test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4)
+[0m19:08:28.410350 [debug] [Thread-2 (]: Began running node model.f1_analytics.driver_summary
+[0m19:08:28.410558 [debug] [Thread-3 (]: Began running node model.f1_analytics.pit_stop_efficiency
+[0m19:08:28.410755 [debug] [Thread-4 (]: Re-using an available connection from the pool (formerly model.f1_analytics.stg_races, now model.f1_analytics.championship_progression)
+[0m19:08:28.410918 [debug] [Thread-1 (]: Began compiling node test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4
+[0m19:08:28.411082 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_drivers_driver_name.02466b1b07, now model.f1_analytics.driver_summary)
+[0m19:08:28.411260 [debug] [Thread-3 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_drivers_driver_id.a38f982d3a, now model.f1_analytics.pit_stop_efficiency)
+[0m19:08:28.411426 [debug] [Thread-4 (]: Began compiling node model.f1_analytics.championship_progression
+[0m19:08:28.414254 [debug] [Thread-1 (]: Writing injected SQL for node "test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4"
+[0m19:08:28.414444 [debug] [Thread-2 (]: Began compiling node model.f1_analytics.driver_summary
+[0m19:08:28.414620 [debug] [Thread-3 (]: Began compiling node model.f1_analytics.pit_stop_efficiency
+[0m19:08:28.416167 [debug] [Thread-4 (]: Writing injected SQL for node "model.f1_analytics.championship_progression"
+[0m19:08:28.418079 [debug] [Thread-2 (]: Writing injected SQL for node "model.f1_analytics.driver_summary"
+[0m19:08:28.421368 [debug] [Thread-3 (]: Writing injected SQL for node "model.f1_analytics.pit_stop_efficiency"
+[0m19:08:28.421742 [debug] [Thread-1 (]: Began executing node test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4
+[0m19:08:28.422197 [debug] [Thread-1 (]: Finished running node test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4
+[0m19:08:28.422397 [debug] [Thread-1 (]: Began running node model.f1_analytics.qualifying_vs_race
+[0m19:08:28.422660 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.f1_analytics.unique_stg_drivers_driver_id.4bdb9070a4, now model.f1_analytics.qualifying_vs_race)
+[0m19:08:28.422850 [debug] [Thread-3 (]: Began executing node model.f1_analytics.pit_stop_efficiency
+[0m19:08:28.423019 [debug] [Thread-4 (]: Began executing node model.f1_analytics.championship_progression
+[0m19:08:28.423198 [debug] [Thread-1 (]: Began compiling node model.f1_analytics.qualifying_vs_race
+[0m19:08:28.423369 [debug] [Thread-2 (]: Began executing node model.f1_analytics.driver_summary
+[0m19:08:28.423638 [debug] [Thread-3 (]: Finished running node model.f1_analytics.pit_stop_efficiency
+[0m19:08:28.423910 [debug] [Thread-4 (]: Finished running node model.f1_analytics.championship_progression
+[0m19:08:28.425875 [debug] [Thread-1 (]: Writing injected SQL for node "model.f1_analytics.qualifying_vs_race"
+[0m19:08:28.426220 [debug] [Thread-2 (]: Finished running node model.f1_analytics.driver_summary
+[0m19:08:28.426420 [debug] [Thread-3 (]: Began running node test.f1_analytics.not_null_stg_races_race_id.926792b414
+[0m19:08:28.426659 [debug] [Thread-4 (]: Began running node test.f1_analytics.not_null_stg_races_season.9595de9e62
+[0m19:08:28.426890 [debug] [Thread-2 (]: Began running node test.f1_analytics.not_null_stg_results_constructor_id.b25952823d
+[0m19:08:28.427142 [debug] [Thread-3 (]: Re-using an available connection from the pool (formerly model.f1_analytics.pit_stop_efficiency, now test.f1_analytics.not_null_stg_races_race_id.926792b414)
+[0m19:08:28.427333 [debug] [Thread-4 (]: Re-using an available connection from the pool (formerly model.f1_analytics.championship_progression, now test.f1_analytics.not_null_stg_races_season.9595de9e62)
+[0m19:08:28.427498 [debug] [Thread-1 (]: Began executing node model.f1_analytics.qualifying_vs_race
+[0m19:08:28.427675 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly model.f1_analytics.driver_summary, now test.f1_analytics.not_null_stg_results_constructor_id.b25952823d)
+[0m19:08:28.427847 [debug] [Thread-3 (]: Began compiling node test.f1_analytics.not_null_stg_races_race_id.926792b414
+[0m19:08:28.428008 [debug] [Thread-4 (]: Began compiling node test.f1_analytics.not_null_stg_races_season.9595de9e62
+[0m19:08:28.428288 [debug] [Thread-1 (]: Finished running node model.f1_analytics.qualifying_vs_race
+[0m19:08:28.428451 [debug] [Thread-2 (]: Began compiling node test.f1_analytics.not_null_stg_results_constructor_id.b25952823d
+[0m19:08:28.430574 [debug] [Thread-3 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_races_race_id.926792b414"
+[0m19:08:28.432582 [debug] [Thread-4 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_races_season.9595de9e62"
+[0m19:08:28.432788 [debug] [Thread-1 (]: Began running node test.f1_analytics.not_null_stg_results_driver_id.cbc2312025
+[0m19:08:28.434732 [debug] [Thread-2 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_results_constructor_id.b25952823d"
+[0m19:08:28.435092 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly model.f1_analytics.qualifying_vs_race, now test.f1_analytics.not_null_stg_results_driver_id.cbc2312025)
+[0m19:08:28.435468 [debug] [Thread-4 (]: Began executing node test.f1_analytics.not_null_stg_races_season.9595de9e62
+[0m19:08:28.435635 [debug] [Thread-3 (]: Began executing node test.f1_analytics.not_null_stg_races_race_id.926792b414
+[0m19:08:28.435797 [debug] [Thread-1 (]: Began compiling node test.f1_analytics.not_null_stg_results_driver_id.cbc2312025
+[0m19:08:28.436168 [debug] [Thread-4 (]: Finished running node test.f1_analytics.not_null_stg_races_season.9595de9e62
+[0m19:08:28.436340 [debug] [Thread-2 (]: Began executing node test.f1_analytics.not_null_stg_results_constructor_id.b25952823d
+[0m19:08:28.436648 [debug] [Thread-3 (]: Finished running node test.f1_analytics.not_null_stg_races_race_id.926792b414
+[0m19:08:28.438793 [debug] [Thread-1 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_results_driver_id.cbc2312025"
+[0m19:08:28.439004 [debug] [Thread-4 (]: Began running node test.f1_analytics.not_null_stg_results_points.84eac64e75
+[0m19:08:28.439315 [debug] [Thread-2 (]: Finished running node test.f1_analytics.not_null_stg_results_constructor_id.b25952823d
+[0m19:08:28.439497 [debug] [Thread-3 (]: Began running node test.f1_analytics.not_null_stg_results_race_id.21429ac306
+[0m19:08:28.439735 [debug] [Thread-4 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_races_season.9595de9e62, now test.f1_analytics.not_null_stg_results_points.84eac64e75)
+[0m19:08:28.439929 [debug] [Thread-2 (]: Began running node test.f1_analytics.unique_stg_races_race_id.df3bd1c120
+[0m19:08:28.440131 [debug] [Thread-3 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_races_race_id.926792b414, now test.f1_analytics.not_null_stg_results_race_id.21429ac306)
+[0m19:08:28.440323 [debug] [Thread-4 (]: Began compiling node test.f1_analytics.not_null_stg_results_points.84eac64e75
+[0m19:08:28.440489 [debug] [Thread-1 (]: Began executing node test.f1_analytics.not_null_stg_results_driver_id.cbc2312025
+[0m19:08:28.440655 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_results_constructor_id.b25952823d, now test.f1_analytics.unique_stg_races_race_id.df3bd1c120)
+[0m19:08:28.440818 [debug] [Thread-3 (]: Began compiling node test.f1_analytics.not_null_stg_results_race_id.21429ac306
+[0m19:08:28.442733 [debug] [Thread-4 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_results_points.84eac64e75"
+[0m19:08:28.443034 [debug] [Thread-1 (]: Finished running node test.f1_analytics.not_null_stg_results_driver_id.cbc2312025
+[0m19:08:28.443199 [debug] [Thread-2 (]: Began compiling node test.f1_analytics.unique_stg_races_race_id.df3bd1c120
+[0m19:08:28.445056 [debug] [Thread-3 (]: Writing injected SQL for node "test.f1_analytics.not_null_stg_results_race_id.21429ac306"
+[0m19:08:28.445284 [debug] [Thread-1 (]: Began running node test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c
+[0m19:08:28.447127 [debug] [Thread-2 (]: Writing injected SQL for node "test.f1_analytics.unique_stg_races_race_id.df3bd1c120"
+[0m19:08:28.447320 [debug] [Thread-4 (]: Began executing node test.f1_analytics.not_null_stg_results_points.84eac64e75
+[0m19:08:28.447541 [debug] [Thread-1 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_results_driver_id.cbc2312025, now test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c)
+[0m19:08:28.447874 [debug] [Thread-4 (]: Finished running node test.f1_analytics.not_null_stg_results_points.84eac64e75
+[0m19:08:28.448044 [debug] [Thread-1 (]: Began compiling node test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c
+[0m19:08:28.448203 [debug] [Thread-3 (]: Began executing node test.f1_analytics.not_null_stg_results_race_id.21429ac306
+[0m19:08:28.448489 [debug] [Thread-4 (]: Began running node test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1
+[0m19:08:28.448646 [debug] [Thread-2 (]: Began executing node test.f1_analytics.unique_stg_races_race_id.df3bd1c120
+[0m19:08:28.450496 [debug] [Thread-1 (]: Writing injected SQL for node "test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c"
+[0m19:08:28.450784 [debug] [Thread-3 (]: Finished running node test.f1_analytics.not_null_stg_results_race_id.21429ac306
+[0m19:08:28.450961 [debug] [Thread-4 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_results_points.84eac64e75, now test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1)
+[0m19:08:28.451255 [debug] [Thread-2 (]: Finished running node test.f1_analytics.unique_stg_races_race_id.df3bd1c120
+[0m19:08:28.451477 [debug] [Thread-3 (]: Began running node test.f1_analytics.not_null_driver_summary_points.afcaea62ad
+[0m19:08:28.451661 [debug] [Thread-4 (]: Began compiling node test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1
+[0m19:08:28.451853 [debug] [Thread-2 (]: Began running node test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b
+[0m19:08:28.452035 [debug] [Thread-1 (]: Began executing node test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c
+[0m19:08:28.452194 [debug] [Thread-3 (]: Re-using an available connection from the pool (formerly test.f1_analytics.not_null_stg_results_race_id.21429ac306, now test.f1_analytics.not_null_driver_summary_points.afcaea62ad)
+[0m19:08:28.455229 [debug] [Thread-4 (]: Writing injected SQL for node "test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1"
+[0m19:08:28.455521 [debug] [Thread-2 (]: Re-using an available connection from the pool (formerly test.f1_analytics.unique_stg_races_race_id.df3bd1c120, now test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b)
+[0m19:08:28.455856 [debug] [Thread-1 (]: Finished running node test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c
+[0m19:08:28.456030 [debug] [Thread-3 (]: Began compiling node test.f1_analytics.not_null_driver_summary_points.afcaea62ad
+[0m19:08:28.456245 [debug] [Thread-2 (]: Began compiling node test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b
+[0m19:08:28.458291 [debug] [Thread-3 (]: Writing injected SQL for node "test.f1_analytics.not_null_driver_summary_points.afcaea62ad"
+[0m19:08:28.460106 [debug] [Thread-2 (]: Writing injected SQL for node "test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b"
+[0m19:08:28.460271 [debug] [Thread-4 (]: Began executing node test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1
+[0m19:08:28.460643 [debug] [Thread-4 (]: Finished running node test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1
+[0m19:08:28.460895 [debug] [Thread-2 (]: Began executing node test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b
+[0m19:08:28.461061 [debug] [Thread-3 (]: Began executing node test.f1_analytics.not_null_driver_summary_points.afcaea62ad
+[0m19:08:28.461349 [debug] [Thread-2 (]: Finished running node test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b
+[0m19:08:28.461619 [debug] [Thread-3 (]: Finished running node test.f1_analytics.not_null_driver_summary_points.afcaea62ad
+[0m19:08:28.462132 [debug] [MainThread]: Connection 'master' was properly closed.
+[0m19:08:28.462274 [debug] [MainThread]: Connection 'test.f1_analytics.not_null_pit_stop_efficiency_avg_stop_ms.7f50a3d56c' was properly closed.
+[0m19:08:28.462398 [debug] [MainThread]: Connection 'test.f1_analytics.unique_driver_summary_driver_name.e645e98f3b' was properly closed.
+[0m19:08:28.462512 [debug] [MainThread]: Connection 'test.f1_analytics.not_null_driver_summary_points.afcaea62ad' was properly closed.
+[0m19:08:28.462627 [debug] [MainThread]: Connection 'test.f1_analytics.not_null_driver_summary_driver_name.7c582b38c1' was properly closed.
+[0m19:08:28.463883 [debug] [MainThread]: Command end result
+[0m19:08:28.480571 [debug] [MainThread]: Wrote artifact WritableManifest to ./target/manifest.json
+[0m19:08:28.481585 [debug] [MainThread]: Wrote artifact SemanticManifest to ./target/semantic_manifest.json
+[0m19:08:28.485136 [debug] [MainThread]: Wrote artifact RunExecutionResult to ./target/run_results.json
+[0m19:08:28.516611 [debug] [MainThread]: Resource report: {"command_name": "compile", "command_success": true, "command_wall_clock_time": 1.2434648, "process_in_blocks": "0", "process_kernel_time": 0.238951, "process_mem_max_rss": "177111040", "process_out_blocks": "0", "process_user_time": 2.292154}
+[0m19:08:28.516980 [debug] [MainThread]: Command `dbt compile` succeeded at 19:08:28.516932 after 1.24 seconds
+[0m19:08:28.517206 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10491e3d0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1147bf490>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x104948210>]}
+[0m19:08:28.517420 [debug] [MainThread]: Flushing usage events
+[0m19:08:29.147537 [debug] [MainThread]: An error was encountered while trying to flush usage events

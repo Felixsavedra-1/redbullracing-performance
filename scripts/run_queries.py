@@ -85,15 +85,7 @@ def main() -> None:
             raise ValueError(f"Invalid team ref (must be lowercase alphanumeric/underscore): {r!r}")
     team_refs_sql = ", ".join(f"'{r}'" for r in TEAM_REFS)
 
-    sqlite_version = None
-    if (DB_CONFIG or {}).get("type", "sqlite") == "sqlite":
-        with engine.connect() as conn:
-            row = conn.execute(text("SELECT sqlite_version()")).fetchone()
-            if row:
-                sqlite_version = tuple(int(x) for x in row[0].split("."))
-
-    _WINDOW_FN_QUERIES = {"championship_progression", "failure_modes"}
-    _MIN_SQLITE_FOR_WINDOW = (3, 25, 0)
+    _is_duckdb = (DB_CONFIG or {}).get("type") == "duckdb"
 
     queries = load_queries_from_yaml(args.file)
 
@@ -111,14 +103,15 @@ def main() -> None:
                 logger.warning("Query '%s' not found. Use --list to see available queries.", query_name)
                 continue
 
-            if query_name in _WINDOW_FN_QUERIES and sqlite_version and sqlite_version < _MIN_SQLITE_FOR_WINDOW:
-                logger.warning(
-                    "Skipping %s: requires SQLite ≥ 3.25 for window functions (found %s).",
-                    query_name, ".".join(str(x) for x in sqlite_version),
-                )
-                continue
             logger.info("Executing %s...", query_name)
             resolved = query_text.replace("{team_refs}", team_refs_sql)
+            if _is_duckdb:
+                resolved = resolved.replace(
+                    "GROUP_CONCAT(DISTINCT ", "STRING_AGG(DISTINCT "
+                ).replace(
+                    "STRING_AGG(DISTINCT con.constructor_name)",
+                    "STRING_AGG(DISTINCT con.constructor_name, ',')",
+                )
             df = execute_query(engine, query_name, resolved, params=params)
 
             if df is not None and not df.empty:

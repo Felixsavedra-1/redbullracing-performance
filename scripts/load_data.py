@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pandas as pd
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, inspect as sa_inspect, text
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
@@ -33,6 +33,8 @@ except ImportError:
 def _build_connection_string(config: dict) -> str:
     if config.get("type") == "sqlite":
         return f"sqlite:///{config.get('filename', 'f1_analytics.db')}"
+    if config.get("type") == "duckdb":
+        return f"duckdb:///{config.get('filename', 'f1_analytics.duckdb')}"
     return (
         f"mysql+pymysql://{config['user']}:{config['password']}"
         f"@{config['host']}:{config['port']}/{config['database']}"
@@ -64,21 +66,22 @@ class F1DataLoader:
 
     def _connect(self) -> None:
         try:
-            if self.config.get("type") == "sqlite":
-                db_file = self.config.get("filename", "f1_analytics.db")
+            db_type = self.config.get("type")
+            if db_type in ("sqlite", "duckdb"):
+                db_file = self.config.get("filename", "f1_analytics.duckdb")
                 if self.mode == "full_refresh" and os.path.exists(db_file):
                     bak_file = db_file + ".bak"
                     os.replace(db_file, bak_file)
                     self.logger.warning("Full refresh: renamed %s → %s.", db_file, bak_file)
                 if not os.path.isabs(db_file) and "/" in db_file:
                     os.makedirs(os.path.dirname(db_file), exist_ok=True)
-                self.logger.info("Connecting to SQLite database at %s.", db_file)
+                self.logger.info("Connecting to %s database at %s.", db_type, db_file)
             else:
                 self.logger.info("Connecting to MySQL at %s.", self.config.get("host"))
 
             self.engine = create_engine(_build_connection_string(self.config))
 
-            if self.config.get("type") == "sqlite":
+            if db_type == "sqlite":
                 # Enable FK enforcement on every new connection — SQLite disables it by default.
                 @event.listens_for(self.engine, "connect")
                 def set_fk_pragma(dbapi_conn, _):
@@ -87,10 +90,10 @@ class F1DataLoader:
             with self.engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
 
-            if self.config.get("type") == "sqlite":
-                self._apply_sqlite_schema()
-                if self.mode == "incremental":
-                    self._check_schema_drift()
+            self._apply_schema()
+
+            if self._is_file_db and self.mode == "incremental":
+                self._check_schema_drift()
 
             self.logger.info("Database connection established.")
 
@@ -99,16 +102,18 @@ class F1DataLoader:
             self.logger.error("Check your database configuration in scripts/config.py.")
             raise
 
-    def _apply_sqlite_schema(self) -> None:
-        schema_path = os.path.join(SCRIPT_DIR, "..", "database", "schema", "create_tables_sqlite.sql")
-        schema_path = os.path.abspath(schema_path)
-        if not os.path.exists(schema_path):
-            self.logger.warning("SQLite schema file not found: %s", schema_path)
+    @property
+    def _is_file_db(self) -> bool:
+        return self.config.get("type") in ("sqlite", "duckdb")
+
+    def _apply_schema_file(self, filename: str) -> None:
+        schema_path = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "database", "schema", filename))
+        try:
+            with open(schema_path, "r") as handle:
+                schema_sql = handle.read()
+        except FileNotFoundError:
+            self.logger.warning("Schema file not found: %s", schema_path)
             return
-
-        with open(schema_path, "r") as handle:
-            schema_sql = handle.read()
-
         with self.engine.connect() as conn:
             for statement in schema_sql.split(";"):
                 stmt = statement.strip()
@@ -116,34 +121,34 @@ class F1DataLoader:
                     conn.execute(text(stmt))
             conn.commit()
 
+    def _apply_schema(self) -> None:
+        db_type = self.config.get("type")
+        filenames = {"sqlite": "create_tables_sqlite.sql", "duckdb": "create_tables_duckdb.sql"}
+        if db_type in filenames:
+            self._apply_schema_file(filenames[db_type])
+
     def _check_schema_drift(self) -> None:
-        with self.engine.connect() as conn:
-            for table_name, _, cols, _, _ in self._TABLE_SPECS:
-                exists = conn.execute(
-                    text("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=:t"),
-                    {"t": table_name},
-                ).fetchone()[0]
-                if not exists:
-                    self.logger.warning(
-                        "Schema drift: table '%s' is missing. Run without --incremental to recreate.",
-                        table_name,
-                    )
-                    continue
-                if not cols:
-                    continue
-                existing_cols = {
-                    row[1]
-                    for row in conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
-                }
-                missing = [c for c in cols if c not in existing_cols]
-                if missing:
-                    self.logger.warning(
-                        "Schema drift: '%s' is missing columns %s. Run without --incremental to apply changes.",
-                        table_name, missing,
-                    )
+        inspector = sa_inspect(self.engine)
+        existing_tables = set(inspector.get_table_names())
+        table_cols = {t: {c["name"] for c in inspector.get_columns(t)} for t in existing_tables}
+        for table_name, _, cols, _, _ in self._TABLE_SPECS:
+            if table_name not in existing_tables:
+                self.logger.warning(
+                    "Schema drift: table '%s' is missing. Run without --incremental to recreate.",
+                    table_name,
+                )
+                continue
+            if not cols:
+                continue
+            missing = [c for c in cols if c not in table_cols[table_name]]
+            if missing:
+                self.logger.warning(
+                    "Schema drift: '%s' is missing columns %s. Run without --incremental to apply changes.",
+                    table_name, missing,
+                )
 
     def _ensure_metadata_tables(self) -> None:
-        if self.config.get("type") == "sqlite":
+        if self._is_file_db:
             return
 
         with self.engine.connect() as conn:
@@ -211,7 +216,7 @@ class F1DataLoader:
             conn.commit()
 
     def _record_table_load(self, table_name: str, rows: int) -> None:
-        if self.config.get("type") == "sqlite":
+        if self._is_file_db:
             upsert_sql = (
                 """
                 INSERT INTO pipeline_run_tables (run_id, table_name, rows_loaded)
@@ -237,9 +242,7 @@ class F1DataLoader:
             conn.commit()
 
     def _quote(self, identifier: str) -> str:
-        if self.config.get("type") == "sqlite":
-            return f'"{identifier}"'
-        return f"`{identifier}`"
+        return f'"{identifier}"' if self._is_file_db else f"`{identifier}`"
 
     def _validate_df(self, df: pd.DataFrame, table_name: str) -> None:
         issues = validate_dataframe(table_name, df)
@@ -284,7 +287,7 @@ class F1DataLoader:
         column_list = ", ".join(columns)
         select_list = ", ".join(columns)
 
-        if self.config.get("type") == "sqlite":
+        if self._is_file_db:
             upsert_sql = (
                 f"INSERT OR REPLACE INTO {table_name} ({column_list}) "
                 f"SELECT {select_list} FROM {staging_table}"

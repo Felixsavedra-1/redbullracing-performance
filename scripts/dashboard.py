@@ -80,50 +80,65 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   var H=440,W=c.parentElement.offsetWidth||900;
   c.width=W; c.height=H;
 
-  // Renderer — PBR pipeline + PCFSoft shadow maps
+  // Renderer — PBR pipeline, ACES filmic, PCFSoft shadows
   var renderer=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});
   renderer.setSize(W,H); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=0.95;
+  renderer.toneMappingExposure=1.15;
+  renderer.physicallyCorrectLights=true;
 
   var scene=new THREE.Scene();
-  var cam=new THREE.PerspectiveCamera(35,W/H,0.1,100);
-  cam.position.set(5.5,2.4,4.8); cam.lookAt(0,0.1,0);
+  var cam=new THREE.PerspectiveCamera(32,W/H,0.1,100);
+  cam.position.set(5.5,2.4,4.8); cam.lookAt(0,0.05,0);
 
-  // Lighting — HemisphereLight sky/ground gradient + shadow-casting key light
-  var hemi=new THREE.HemisphereLight(0xc8d8ff,0x222222,0.55);
-  scene.add(hemi);
-  var s1=new THREE.DirectionalLight(0xffffff,1.10);
+  // Procedural studio environment map — bakes key/fill/rim into IBL
+  (function(){
+    var pmrem=new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    var envMat=new THREE.ShaderMaterial({
+      side:THREE.BackSide,
+      vertexShader:'varying vec3 vN;void main(){vN=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'varying vec3 vN;void main(){vec3 n=normalize(vN);vec3 col=mix(vec3(0.012,0.012,0.018),vec3(0.16,0.20,0.28),smoothstep(-0.4,0.7,n.y));float k=pow(max(0.,dot(n,normalize(vec3(0.50,0.78,0.35)))),10.);col+=k*vec3(1.00,0.95,0.86)*2.8;float f=pow(max(0.,dot(n,normalize(vec3(-0.72,0.18,-0.48)))),5.);col+=f*vec3(0.38,0.48,0.70)*0.58;float r=pow(max(0.,dot(n,normalize(vec3(-0.22,0.28,-0.94)))),7.);col+=r*vec3(0.50,0.62,1.00)*0.42;float fl=pow(max(0.,dot(n,vec3(0.,-1.,0.))),2.);col+=fl*vec3(0.08,0.06,0.04)*0.18;gl_FragColor=vec4(col,1.);}'
+    });
+    var envMesh=new THREE.Mesh(new THREE.SphereGeometry(50,32,16),envMat);
+    var es=new THREE.Scene(); es.add(envMesh);
+    var cubeRT=new THREE.WebGLCubeRenderTarget(512,{format:THREE.RGBFormat,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+    var cc=new THREE.CubeCamera(1,100,cubeRT);
+    es.add(cc); cc.update(renderer,es);
+    scene.environment=pmrem.fromCubemap(cubeRT.texture).texture;
+    pmrem.dispose();
+  })();
+
+  // Lighting — supplements IBL for hard shadows
+  scene.add(new THREE.HemisphereLight(0xd0e4ff,0x1a1825,0.28));
+  var s1=new THREE.DirectionalLight(0xfff8f0,1.70);
   s1.position.set(6,12,5); s1.castShadow=true;
-  s1.shadow.mapSize.width=1024; s1.shadow.mapSize.height=1024;
+  s1.shadow.mapSize.width=s1.shadow.mapSize.height=2048;
   s1.shadow.camera.near=1; s1.shadow.camera.far=40;
   s1.shadow.camera.left=-5; s1.shadow.camera.right=5;
   s1.shadow.camera.top=4; s1.shadow.camera.bottom=-4;
-  s1.shadow.bias=-0.001;
-  scene.add(s1);
-  var s2=new THREE.DirectionalLight(0x7799cc,0.28); s2.position.set(-5,3,-3); scene.add(s2);
-  var s3=new THREE.DirectionalLight(0xffeedd,0.18); s3.position.set(4,2,6); scene.add(s3);
+  s1.shadow.bias=-0.0005; scene.add(s1);
+  var s2=new THREE.DirectionalLight(0x8899cc,0.42); s2.position.set(-5,3,-3); scene.add(s2);
+  var s3=new THREE.DirectionalLight(0x5577ee,0.32); s3.position.set(-2,2,-8); scene.add(s3);
 
-  // Ground plane
-  var gnd=new THREE.Mesh(new THREE.PlaneGeometry(18,14),
-    new THREE.MeshStandardMaterial({color:0x080808,metalness:0.0,roughness:0.82}));
-  gnd.rotation.x=-Math.PI/2; gnd.position.y=-0.57;
-  gnd.receiveShadow=true;
-  scene.add(gnd);
+  // Ground — dark reflective surface
+  var gnd=new THREE.Mesh(new THREE.PlaneGeometry(20,16),
+    new THREE.MeshStandardMaterial({color:0x060606,metalness:0.0,roughness:0.52,envMapIntensity:0.5}));
+  gnd.rotation.x=-Math.PI/2; gnd.position.y=-0.57; gnd.receiveShadow=true; scene.add(gnd);
 
-  // Materials — MeshStandardMaterial PBR, physically correct per surface type
-  var mNav=new THREE.MeshStandardMaterial({color:0x0D1B8C,metalness:0.05,roughness:0.45});
-  var mRed=new THREE.MeshStandardMaterial({color:0xCC0000,metalness:0.04,roughness:0.42});
-  var mGold=new THREE.MeshStandardMaterial({color:0xC9A85C,metalness:0.60,roughness:0.40});
-  var mC=new THREE.MeshStandardMaterial({color:0x141414,metalness:0.10,roughness:0.70});
-  var mT=new THREE.MeshStandardMaterial({color:0x060606,metalness:0.00,roughness:0.95});
-  var mR=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.80,roughness:0.25});
-  var mG=new THREE.MeshStandardMaterial({color:0x777777,metalness:0.55,roughness:0.50});
-  var mB=new THREE.MeshStandardMaterial({color:0x1E41FF,metalness:0.04,roughness:0.38});
+  // Materials — MeshPhysicalMaterial with clearcoat for all painted/metallic surfaces
   var PI=Math.PI;
+  var mNav=new THREE.MeshPhysicalMaterial({color:0x0D1B8C,metalness:0.06,roughness:0.26,clearcoat:1.0,clearcoatRoughness:0.05});
+  var mRed=new THREE.MeshPhysicalMaterial({color:0xCC0000,metalness:0.04,roughness:0.23,clearcoat:1.0,clearcoatRoughness:0.04});
+  var mGold=new THREE.MeshPhysicalMaterial({color:0xC9A85C,metalness:0.84,roughness:0.12,clearcoat:0.55,clearcoatRoughness:0.14});
+  var mC=new THREE.MeshPhysicalMaterial({color:0x0a0a0a,metalness:0.24,roughness:0.55,clearcoat:0.55,clearcoatRoughness:0.25});
+  var mT=new THREE.MeshStandardMaterial({color:0x030303,metalness:0.0,roughness:0.98});
+  var mR=new THREE.MeshPhysicalMaterial({color:0xBBBBBB,metalness:0.96,roughness:0.03,clearcoat:0.3});
+  var mG=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.74,roughness:0.28});
+  var mB=new THREE.MeshPhysicalMaterial({color:0x1E41FF,metalness:0.04,roughness:0.32,clearcoat:0.85,clearcoatRoughness:0.07});
 
   function mk(geo,mat,x,y,z,rx,ry,rz){
     var m=new THREE.Mesh(geo,mat);
@@ -164,7 +179,7 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     new THREE.Vector2(0.04,1.32),
     new THREE.Vector2(0.02,1.46)
   ];
-  var noseMesh=new THREE.Mesh(new THREE.LatheGeometry(nosePts,20),mNav);
+  var noseMesh=new THREE.Mesh(new THREE.LatheGeometry(nosePts,32),mNav);
   noseMesh.rotation.z=-PI/2;
   noseMesh.position.set(1.60,-0.01,0);
   car.add(noseMesh);
@@ -213,7 +228,7 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
   car.add(bx(0.11,0.07,0.17,mR,0.47,0.53, 0.26));
 
   // Helmet (Verstappen blue)
-  var helm=mk(new THREE.SphereGeometry(0.14,18,14),mB,0.41,0.36,0);
+  var helm=mk(new THREE.SphereGeometry(0.14,24,18),mB,0.41,0.36,0);
   helm.scale.set(1.2,0.92,1.1); car.add(helm);
 
   // Floor (1.80 m wide) + diffuser strakes + diffuser ramp wedge
@@ -250,19 +265,34 @@ h1{font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.2em
     car.add(bar(wx,-0.28,wz,-1.44,-0.18,ci, 0.016,mG));
   });
 
-  // Wheels — 5-spoke rim; rear tyres 405 mm wide
+  // Wheels — LatheGeometry tire profile; flat tread, rounded shoulders, bulging sidewalls
   function addWheel(x,z,tw){
     var g=new THREE.Group();
     var fs=(z>0)?1:-1,fY=fs*tw*0.46;
-    g.add(mk(new THREE.CylinderGeometry(0.34,0.34,tw,32),mT,0,0,0));
-    g.add(mk(new THREE.CylinderGeometry(0.258,0.258,tw+0.005,28),mR,0,0,0));
-    g.add(mk(new THREE.CylinderGeometry(0.268,0.268,0.028,28),mR,0,fY,0));
-    g.add(mk(new THREE.CylinderGeometry(0.068,0.068,tw+0.03,12),mG,0,0,0));
+    var R=0.340,ri=0.260,hw=tw*0.50;
+    // Tire cross-section profile revolved around the axle (Y axis pre-rotation)
+    var tp=[
+      new THREE.Vector2(ri,          hw+0.004),
+      new THREE.Vector2(ri+0.022,    hw-0.002),
+      new THREE.Vector2(R-0.030,     hw-0.004),
+      new THREE.Vector2(R-0.006,     hw-0.026),
+      new THREE.Vector2(R,           hw-0.056),
+      new THREE.Vector2(R,           0),
+      new THREE.Vector2(R,         -(hw-0.056)),
+      new THREE.Vector2(R-0.006,   -(hw-0.026)),
+      new THREE.Vector2(R-0.030,   -(hw-0.004)),
+      new THREE.Vector2(ri+0.022,  -(hw-0.002)),
+      new THREE.Vector2(ri,        -(hw+0.004))
+    ];
+    g.add(mk(new THREE.LatheGeometry(tp,52),mT,0,0,0));
+    g.add(mk(new THREE.CylinderGeometry(ri-0.002,ri-0.002,tw+0.006,44),mR,0,0,0));
+    g.add(mk(new THREE.CylinderGeometry(ri-0.004,ri-0.004,0.026,44),mR,0,fY,0));
+    g.add(mk(new THREE.CylinderGeometry(0.065,0.065,tw+0.032,16),mG,0,0,0));
     for(var i=0;i<5;i++){
       var pv=new THREE.Group();
       pv.rotation.y=i*2*PI/5; pv.position.y=fY;
-      var sp=new THREE.Mesh(new THREE.BoxGeometry(0.258,0.022,0.018),mR);
-      sp.position.x=0.129; pv.add(sp); g.add(pv);
+      var sp=new THREE.Mesh(new THREE.BoxGeometry(ri-0.044,0.020,0.020),mR);
+      sp.position.x=(ri-0.044)/2; pv.add(sp); g.add(pv);
     }
     g.rotation.x=PI/2; g.position.set(x,-0.22,z); car.add(g);
   }

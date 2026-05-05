@@ -1,0 +1,40 @@
+version: 2
+
+sources:
+  - name: f1_raw
+    schema: main
+    tables:
+      - name: results
+      - name: races
+      - name: drivers
+      - name: constructors
+      - name: pit_stops
+      - name: qualifying
+      - name: constructor_standings
+      - name: driver_standings
+
+models:
+  - name: stg_results
+    columns:
+      - name: race_id
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: constructor_id
+        tests: [not_null]
+      - name: points
+        tests: [not_null]
+
+  - name: stg_races
+    columns:
+      - name: race_id
+        tests: [unique, not_null]
+      - name: season
+        tests: [not_null]
+
+  - name: stg_drivers
+    columns:
+      - name: driver_id
+        tests: [unique, not_null]
+      - name: driver_name
+        tests: [not_null]

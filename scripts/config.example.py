@@ -15,13 +15,19 @@ TEAM_CONFIG = {
 }
 
 # --- Database ---
-# Option 1: SQLite (default, no setup required)
+# Option 1: DuckDB (recommended — OLAP-optimized, no server required)
 DB_CONFIG = {
-    "type": "sqlite",
-    "filename": "f1_analytics.db",
+    "type": "duckdb",
+    "filename": "f1_analytics.duckdb",
 }
 
-# Option 2: MySQL
+# Option 2: SQLite (lightweight, no dependencies)
+# DB_CONFIG = {
+#     "type": "sqlite",
+#     "filename": "f1_analytics.db",
+# }
+
+# Option 3: MySQL
 # DB_CONFIG = {
 #     "type": "mysql",
 #     "host": "localhost",
