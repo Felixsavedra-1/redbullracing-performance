@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from sqlalchemy import text
@@ -69,7 +70,7 @@ h1 span.accent{color:#1E41FF}
 .stat-card:hover{background:#0a0a0a}
 .stat-val{font-size:1.35rem;font-weight:700;color:#fff;letter-spacing:.06em}
 .stat-lbl{font-size:.52rem;color:#555;letter-spacing:.20em;margin-top:4px;text-transform:uppercase}
-.car-viewer{padding:32px 0 0;display:flex;justify-content:center;border-bottom:1px solid #0f0f0f;background:radial-gradient(ellipse at 50% 60%,#090912 0%,#000 70%)}
+.car-viewer{padding:32px 0 0;display:flex;justify-content:center;border-bottom:1px solid #0f0f0f;background:radial-gradient(ellipse at 50% 60%,#090912 0%,#000 70%);cursor:pointer}
 #f1car{display:block;width:100%;height:440px}
 .charts{padding:40px;display:grid;grid-template-columns:1fr;gap:40px}
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
@@ -83,6 +84,62 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
 @media(max-width:480px){h1{font-size:1.3rem}.stats-row{grid-template-columns:1fr}.charts{padding:24px}}
 .logo-bar{display:flex;justify-content:center;padding:28px 0 16px}
 .logo-img{height:81px;display:block;filter:invert(1) hue-rotate(180deg)}
+#game-overlay{display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column}
+#game-overlay.active{display:flex}
+#game-canvas{flex:1;width:100%;display:block;outline:none}
+#hud{display:flex;flex-direction:column;padding:0;font-family:'Courier New',monospace;font-size:13px;color:#fff;border-top:1px solid #1E41FF;flex-shrink:0;position:relative}
+#hud-main{display:flex;align-items:center;gap:10px;padding:6px 14px;background:#000}
+#hud-sectors{display:flex;gap:16px;align-items:center;padding:2px 14px 4px;font-size:11px;background:#000;border-top:1px solid #111}
+.hud-pos{color:#1E41FF;font-weight:700;font-size:17px;min-width:28px}
+.hud-lap{color:#ccc;min-width:72px}
+.hud-timer{color:#fff;min-width:80px;font-weight:700}
+.hud-speed{color:#888;min-width:70px}
+.hud-gear-wrap{display:flex;flex-direction:column;align-items:center;min-width:52px}
+.hud-gear{font-size:26px;font-weight:900;color:#fff;line-height:1;transition:color .05s}
+.hud-gear.flash{color:#ff4400}
+.hud-rpm-bar{width:48px;height:5px;background:#111;border-radius:2px;margin-top:2px}
+.hud-rpm-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#1E41FF 0%,#00ff44 65%,#ff4400 100%);width:0%;transition:width .04s}
+.hud-drs{color:#333;border:1px solid #333;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.12em;transition:color .15s,border-color .15s,text-shadow .15s}
+.hud-drs.on{color:#00ff88;border-color:#00ff88;text-shadow:0 0 8px #00ff88}
+.hud-tires{display:flex;align-items:center;gap:4px}
+.hud-tire-label{color:#555;font-size:10px;min-width:8px}
+.hud-tire-wrap{width:52px;height:8px;background:#1a1a1a;border-radius:3px;overflow:hidden;border:1px solid #222}
+.hud-tire-bar{height:100%;width:100%;border-radius:3px;transition:width .1s,background .3s}
+.hud-tire-temp{width:7px;height:7px;border-radius:50%;background:#555;transition:background .4s}
+.hud-s1,.hud-s2,.hud-s3{color:#666;min-width:88px;font-size:11px}
+.hud-s1.purple,.hud-s2.purple,.hud-s3.purple{color:#cc00ff;font-weight:700}
+.hud-s1.green,.hud-s2.green,.hud-s3.green{color:#00ff44;font-weight:700}
+.hud-s1.yellow,.hud-s2.yellow,.hud-s3.yellow{color:#ffdd00}
+.hud-delta{color:#888;min-width:80px;font-size:11px}
+.hud-delta.green{color:#00ff44}
+.hud-delta.red{color:#ff4400}
+.hud-msg{flex:1;text-align:center;color:#444;font-size:10px;letter-spacing:.10em}
+.hud-close{margin-left:auto;background:none;border:1px solid #CC0000;color:#CC0000;font-family:'Courier New',monospace;cursor:pointer;padding:3px 10px;font-size:12px;letter-spacing:.08em}
+.hud-close:hover{background:#CC0000;color:#000}
+#hud-minimap{position:absolute;bottom:8px;right:12px;border:1px solid #1E41FF;background:rgba(0,0,0,.75);border-radius:4px;pointer-events:none}
+#hud-wheel{position:absolute;bottom:10px;right:182px;pointer-events:none}
+#podium-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,.90);flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;color:#fff}
+#podium-overlay.active{display:flex}
+#podium-overlay h2{font-size:1.4rem;letter-spacing:.25em;color:#1E41FF;margin-bottom:24px;text-transform:uppercase}
+#podium-table{border-collapse:collapse;font-size:.85rem}
+#podium-table td{padding:6px 20px;border-bottom:1px solid #1a1a1a}
+#podium-table td:first-child{color:#555;text-align:right}
+#podium-table td:nth-child(2){color:#fff;font-weight:700}
+#podium-table td:last-child{color:#888;text-align:right}
+.podium-p1 td{color:#ffd700 !important}
+.podium-btn{margin-top:28px;background:none;border:1px solid #1E41FF;color:#1E41FF;font-family:'Courier New',monospace;cursor:pointer;padding:7px 22px;letter-spacing:.12em;font-size:.8rem}
+.podium-btn:hover{background:#1E41FF;color:#000}
+#pause-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,.82);flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;color:#fff}
+#pause-overlay.active{display:flex}
+#pause-overlay h2{font-size:1.8rem;letter-spacing:.35em;color:#1E41FF;text-transform:uppercase;margin-bottom:14px}
+#pause-overlay p{color:#555;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase}
+#lights-bar{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:20001;gap:10px;padding:10px 18px;background:rgba(0,0,0,.9);border:1px solid #330000;border-radius:8px;pointer-events:none}
+#lights-bar.active{display:flex}
+.light-bulb{width:30px;height:30px;border-radius:50%;background:#1a0000;border:2px solid #440000;transition:background .06s,box-shadow .06s}
+.light-bulb.lit{background:#ff2200;border-color:#ff5500;box-shadow:0 0 14px #ff2200,0 0 32px #880000}
+#go-flash{display:none;position:absolute;inset:0;background:rgba(255,255,255,.88);z-index:20002;pointer-events:none}
+#grid-msg{display:none;position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:20001;color:#fff;font-family:'Courier New',monospace;font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;text-align:center;text-shadow:0 0 8px #1E41FF;pointer-events:none}
+#grid-msg.active{display:block}
 </style>
 </head>
 <body>
@@ -96,20 +153,88 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
 <div class="car-viewer">
   <canvas id="f1car"></canvas>
 </div>
+<div id="game-overlay">
+  <canvas id="game-canvas" tabindex="0"></canvas>
+  <div id="hud">
+    <div id="hud-main">
+      <span class="hud-pos">P4</span>
+      <span class="hud-lap">LAP 1/3</span>
+      <span class="hud-timer">0:00.000</span>
+      <span class="hud-speed">0 km/h</span>
+      <div class="hud-gear-wrap">
+        <span class="hud-gear">N</span>
+        <div class="hud-rpm-bar"><div class="hud-rpm-fill" id="rpm-fill"></div></div>
+      </div>
+      <span class="hud-drs">DRS</span>
+      <div class="hud-tires">
+        <span class="hud-tire-label">F</span>
+        <div class="hud-tire-wrap"><div class="hud-tire-bar" id="tire-f"></div></div>
+        <div class="hud-tire-temp" id="temp-f"></div>
+        <span class="hud-tire-label">R</span>
+        <div class="hud-tire-wrap"><div class="hud-tire-bar" id="tire-r"></div></div>
+        <div class="hud-tire-temp" id="temp-r"></div>
+      </div>
+      <span class="hud-msg"></span>
+      <button class="hud-close">&#x2715; ESC</button>
+    </div>
+    <div id="hud-sectors">
+      <span class="hud-s1" id="hud-s1">S1 ---.---</span>
+      <span class="hud-s2" id="hud-s2">S2 ---.---</span>
+      <span class="hud-s3" id="hud-s3">S3 ---.---</span>
+      <span class="hud-delta" id="hud-delta">&#916; ---</span>
+      <span class="hud-msg" style="flex:1;font-size:10px;color:#444;letter-spacing:.10em">WASD/ARROWS · SHIFT=DRS · P=PIT · C=CAM · G=AUTO/MAN · Z/X=SHIFT · ESC=PAUSE</span>
+    </div>
+    <canvas id="hud-minimap" width="160" height="160"></canvas>
+    <svg id="hud-wheel" width="52" height="52" viewBox="-26 -26 52 52">
+      <circle cx="0" cy="0" r="22" fill="none" stroke="#333" stroke-width="3"/>
+      <line x1="-14" y1="0" x2="14" y2="0" stroke="#555" stroke-width="1.5"/>
+      <line x1="0" y1="-14" x2="0" y2="14" stroke="#555" stroke-width="1.5"/>
+      <g id="hud-wheel-ind">
+        <line x1="-18" y1="0" x2="18" y2="0" stroke="#1E41FF" stroke-width="3" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </div>
+  <div id="lights-bar">
+    <div class="light-bulb" id="lb0"></div>
+    <div class="light-bulb" id="lb1"></div>
+    <div class="light-bulb" id="lb2"></div>
+    <div class="light-bulb" id="lb3"></div>
+    <div class="light-bulb" id="lb4"></div>
+  </div>
+  <div id="go-flash"></div>
+  <div id="grid-msg">PREPARE TO RACE &nbsp;·&nbsp; HOLD THROTTLE TO REV</div>
+  <div id="podium-overlay">
+    <h2>&#x1F3C6; Race Complete</h2>
+    <table id="podium-table"></table>
+    <button class="podium-btn" id="podium-close">RETURN TO DASHBOARD</button>
+  </div>
+  <div id="pause-overlay">
+    <h2>PAUSED</h2>
+    <p>ESC TO RESUME &nbsp;&#xB7;&nbsp; Q TO QUIT</p>
+  </div>
+</div>
 <div class="charts">
   <div class="chart-section">
-    <div class="chart-label">Championship · Season Progress</div>
+    <div class="chart-label">Championship · Points Trajectory</div>
     PLACEHOLDER_C1
   </div>
   <div class="chart-row">
     <div class="chart-section">
-      <div class="chart-label">Race Results · Finish Positions</div>
+      <div class="chart-label">Finish Positions · Season</div>
       PLACEHOLDER_C2
     </div>
     <div class="chart-section">
-      <div class="chart-label">Pace · Grid vs Finish</div>
+      <div class="chart-label">Driver Delta · Points Gap</div>
       PLACEHOLDER_C3
     </div>
+  </div>
+  <div class="chart-section">
+    <div class="chart-label">Performance Matrix · All Seasons</div>
+    PLACEHOLDER_C4
+  </div>
+  <div class="chart-section">
+    <div class="chart-label">Pace · Grid vs Finish</div>
+    PLACEHOLDER_C5
   </div>
 </div>
 <footer>
@@ -382,6 +507,12 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
   scene.add(car); car.rotation.y=PI/6;
   car.traverse(function(o){if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
 
+  // Expose car builder for the mini-game script
+  window._f1Mats={mNav:mNav,mRed:mRed,mGold:mGold,mC:mC,mT:mT,mR:mR,mG:mG,mB:mB};
+  window._f1Helpers={mk:mk,bx:bx,cy:cy,bar:bar,el:el,wing:wing,tube3:tube3,addWheel:addWheel,PI:PI};
+  // Expose showcase objects so the mini-game can raycast "click the car"
+  window._f1Showcase={canvas:c,renderer:renderer,camera:cam,car:car};
+
   function animate(){requestAnimationFrame(animate);car.rotation.y+=0.004;renderer.render(scene,cam);}
   animate();
   window.addEventListener('resize',function(){
@@ -390,6 +521,567 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
   });
 })();
 </script>
+<script>
+(function(){
+'use strict';
+
+/* ===================== DOM ===================== */
+var overlay=document.getElementById('game-overlay');
+var gameCanvas=document.getElementById('game-canvas');
+var podiumOvl=document.getElementById('podium-overlay');
+var podiumTable=document.getElementById('podium-table');
+var pauseOvl=document.getElementById('pause-overlay');
+var lightsBarEl=document.getElementById('lights-bar');
+var goFlashEl=document.getElementById('go-flash');
+var gridMsgEl=document.getElementById('grid-msg');
+var hudPos=document.querySelector('.hud-pos');
+var hudLap=document.querySelector('.hud-lap');
+var hudTimer=document.querySelector('.hud-timer');
+var hudSpeed=document.querySelector('.hud-speed');
+var hudGear=document.querySelector('.hud-gear');
+var rpmFill=document.getElementById('rpm-fill');
+var hudDrs=document.querySelector('.hud-drs');
+var tireF=document.getElementById('tire-f');
+var tireR=document.getElementById('tire-r');
+var tempF=document.getElementById('temp-f');
+var tempR=document.getElementById('temp-r');
+var hudS1=document.getElementById('hud-s1');
+var hudS2=document.getElementById('hud-s2');
+var hudS3=document.getElementById('hud-s3');
+var minimapCanvas=document.getElementById('hud-minimap');
+var minimapCtx=minimapCanvas?minimapCanvas.getContext('2d'):null;
+var wheelInd=document.getElementById('hud-wheel-ind');
+var hudClose=document.querySelector('.hud-close');
+var podiumClose=document.getElementById('podium-close');
+
+/* ===================== CONSTANTS ===================== */
+var SEGS=600,TW=12,CURB=1.2,BH=1.4;
+var MAX_SPD=30,ENG=12000,BRK=18000,DRAG=0.35,CAR_MASS=800;
+var RIDE_H=0.59,LAPS=3;
+var AI_COLORS=[0xC0C0C0,0xDC0000,0xFF8000];
+var AI_NAMES=['VERSTAPPEN','PEREZ','HAMILTON','LECLERC'];
+
+/* ===================== TRACK ===================== */
+var trackPts=[
+  new THREE.Vector3( 120, 0,   0),new THREE.Vector3(  80, 0,  -2),
+  new THREE.Vector3(  45, 0,  -4),new THREE.Vector3(  15, 0,   5),
+  new THREE.Vector3(  22, 0,  22),
+  new THREE.Vector3(  30,-2,  42),new THREE.Vector3(  18,-7,  60),
+  new THREE.Vector3(   0,-12, 72),
+  new THREE.Vector3( -20,-6,  60),new THREE.Vector3( -45, 0,  48),
+  new THREE.Vector3( -70, 8,  35),new THREE.Vector3(-100,16,  20),
+  new THREE.Vector3(-125,20,   5),new THREE.Vector3(-140,20, -10),
+  new THREE.Vector3(-130,20, -25),new THREE.Vector3(-115,18, -40),
+  new THREE.Vector3( -90,15, -60),new THREE.Vector3( -70,12, -75),
+  new THREE.Vector3( -50, 9,-100),new THREE.Vector3( -30, 7,-115),
+  new THREE.Vector3( -10, 7,-105),new THREE.Vector3(   5, 7, -90),
+  new THREE.Vector3(  15, 7, -75),new THREE.Vector3(  18, 6, -58),
+  new THREE.Vector3(  20, 5, -42),
+  new THREE.Vector3(  28, 4, -28),new THREE.Vector3(  40, 3, -15),
+  new THREE.Vector3(  58, 2,  -5),
+  new THREE.Vector3(  78, 1,  -8),new THREE.Vector3(  95, 1, -15),
+  new THREE.Vector3( 110, 0, -25),new THREE.Vector3( 125, 0, -15),
+  new THREE.Vector3( 135, 0,  -5),
+  new THREE.Vector3( 142, 0,   3),new THREE.Vector3( 138, 0,  10),
+  new THREE.Vector3( 130, 0,   5)
+];
+var trackCurve=new THREE.CatmullRomCurve3(trackPts,true,'catmullrom',0.5);
+var wpAll=trackCurve.getSpacedPoints(SEGS);
+var waypoints=wpAll.slice(0,SEGS);
+var N=waypoints.length;
+
+function wpDir(i){
+  var a=waypoints[(i+1)%N],b=waypoints[((i-1)+N)%N];
+  var dx=a.x-b.x,dz=a.z-b.z,len=Math.sqrt(dx*dx+dz*dz)||1;
+  return {x:dx/len,z:dz/len};
+}
+function wpPerp(i){var d=wpDir(i);return {x:d.z,z:-d.x};}
+
+function closestWP(x,z,hint){
+  var best=hint||0,bd=1e9,start=((best-20)+N*2)%N;
+  for(var ii=0;ii<40;ii++){
+    var idx=(start+ii)%N,wp=waypoints[idx];
+    var dd=(wp.x-x)*(wp.x-x)+(wp.z-z)*(wp.z-z);
+    if(dd<bd){bd=dd;best=idx;}
+  }
+  return best;
+}
+
+/* ===================== THREE.JS SETUP ===================== */
+if(!gameCanvas||typeof THREE==='undefined') return;
+var renderer=new THREE.WebGLRenderer({canvas:gameCanvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.0;
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87c8f8);
+scene.fog=new THREE.FogExp2(0x87c8f8,0.003);
+var gameCam=new THREE.PerspectiveCamera(72,1,0.1,2000);
+scene.add(gameCam);
+
+function resizeCam(){
+  var W=gameCanvas.clientWidth||900,CH=gameCanvas.clientHeight||600;
+  renderer.setSize(W,CH,false);
+  gameCam.aspect=W/CH;gameCam.updateProjectionMatrix();
+}
+window.addEventListener('resize',resizeCam);resizeCam();
+
+/* ===================== LIGHTING ===================== */
+scene.add(new THREE.HemisphereLight(0xd8ecff,0x2d4a1e,0.8));
+var sun=new THREE.DirectionalLight(0xfff8f0,1.3);
+sun.position.set(80,120,60);sun.castShadow=true;
+sun.shadow.mapSize.width=sun.shadow.mapSize.height=1024;
+sun.shadow.camera.near=1;sun.shadow.camera.far=600;
+sun.shadow.camera.left=-250;sun.shadow.camera.right=250;
+sun.shadow.camera.top=250;sun.shadow.camera.bottom=-250;
+scene.add(sun);
+
+/* ===================== WORLD BUILD ===================== */
+(function buildWorld(){
+  var i,b,wp,p,hw;
+  /* Road */
+  var rPos=[],rIdx=[];
+  for(i=0;i<N;i++){
+    wp=waypoints[i];p=wpPerp(i);hw=TW*0.5;
+    rPos.push(wp.x+p.x*hw,wp.y+0.06,wp.z+p.z*hw,
+              wp.x-p.x*hw,wp.y+0.06,wp.z-p.z*hw);
+    if(i<N-1){b=i*2;rIdx.push(b,b+2,b+1,b+1,b+2,b+3);}
+  }
+  b=(N-1)*2;rIdx.push(b,0,b+1,b+1,0,1);
+  var rGeo=new THREE.BufferGeometry();
+  rGeo.setAttribute('position',new THREE.Float32BufferAttribute(rPos,3));
+  rGeo.setIndex(rIdx);rGeo.computeVertexNormals();
+  var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.9}));
+  road.receiveShadow=true;scene.add(road);
+
+  /* Kerbs */
+  var kPos=[],kIdx=[];
+  for(i=0;i<N;i++){
+    wp=waypoints[i];p=wpPerp(i);hw=TW*0.5;
+    kPos.push(wp.x+p.x*(hw+CURB),wp.y+0.07,wp.z+p.z*(hw+CURB),
+              wp.x+p.x*hw,        wp.y+0.07,wp.z+p.z*hw,
+              wp.x-p.x*hw,        wp.y+0.07,wp.z-p.z*hw,
+              wp.x-p.x*(hw+CURB), wp.y+0.07,wp.z-p.z*(hw+CURB));
+    if(i<N-1){
+      b=i*4;
+      kIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);
+    }
+  }
+  var kGeo=new THREE.BufferGeometry();
+  kGeo.setAttribute('position',new THREE.Float32BufferAttribute(kPos,3));
+  kGeo.setIndex(kIdx);kGeo.computeVertexNormals();
+  scene.add(new THREE.Mesh(kGeo,new THREE.MeshStandardMaterial({color:0xcc2200,roughness:0.8})));
+
+  /* Armco barriers */
+  var baPos=[],baIdx=[];
+  hw=TW*0.5+CURB+0.3;
+  for(i=0;i<N;i++){
+    wp=waypoints[i];p=wpPerp(i);
+    baPos.push(wp.x+p.x*hw,wp.y,    wp.z+p.z*hw,
+               wp.x+p.x*hw,wp.y+BH, wp.z+p.z*hw,
+               wp.x-p.x*hw,wp.y,    wp.z-p.z*hw,
+               wp.x-p.x*hw,wp.y+BH, wp.z-p.z*hw);
+    if(i<N-1){
+      b=i*4;
+      baIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);
+    }
+  }
+  var baGeo=new THREE.BufferGeometry();
+  baGeo.setAttribute('position',new THREE.Float32BufferAttribute(baPos,3));
+  baGeo.setIndex(baIdx);baGeo.computeVertexNormals();
+  scene.add(new THREE.Mesh(baGeo,new THREE.MeshStandardMaterial({color:0xdddddd,roughness:0.5,metalness:0.15})));
+
+  /* Terrain */
+  var TS=4,TER=340,cx=0,cz=-20;
+  var cols=Math.floor(TER/TS)+1,rows=cols;
+  var gPos2=new Float32Array(cols*rows*3),gIdx2=[];
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      var vx=cx-TER/2+c*TS,vz=cz-TER/2+r*TS;
+      var vi=r*cols+c,bestD=1e9,bestY=0;
+      for(var k=0;k<N;k+=3){
+        var wk=waypoints[k],ddx=wk.x-vx,ddz=wk.z-vz,dd2=ddx*ddx+ddz*ddz;
+        if(dd2<bestD){bestD=dd2;bestY=wk.y;}
+      }
+      var falloff=Math.exp(-bestD/3600);
+      gPos2[vi*3]=vx;gPos2[vi*3+1]=bestY*falloff-0.8;gPos2[vi*3+2]=vz;
+      if(r<rows-1&&c<cols-1){gIdx2.push(vi,vi+cols,vi+1,vi+1,vi+cols,vi+cols+1);}
+    }
+  }
+  var tGeo=new THREE.BufferGeometry();
+  tGeo.setAttribute('position',new THREE.Float32BufferAttribute(gPos2,3));
+  tGeo.setIndex(gIdx2);tGeo.computeVertexNormals();
+  scene.add(new THREE.Mesh(tGeo,new THREE.MeshStandardMaterial({color:0x3d7a2a,roughness:1.0})));
+})();
+
+/* ===================== CAR BUILDER ===================== */
+function buildCar(bodyColor){
+  var g=new THREE.Group();
+  var mB=new THREE.MeshStandardMaterial({color:bodyColor,roughness:0.3,metalness:0.1});
+  var mK=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.9});
+  var mW=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.95});
+  var body=new THREE.Mesh(new THREE.BoxGeometry(3.8,0.22,1.5),mB);g.add(body);
+  var nose=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.26,1.1,8),mB);
+  nose.rotation.z=Math.PI/2;nose.position.set(2.45,0,0);g.add(nose);
+  var ck=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.38,0.85),mK);
+  ck.position.set(0.15,0.3,0);g.add(ck);
+  var rw=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.48,1.55),mB);
+  rw.position.set(-2.0,0.28,0);g.add(rw);
+  var rp=new THREE.Mesh(new THREE.BoxGeometry(0.48,0.055,1.55),mB);
+  rp.position.set(-2.0,0.52,0);g.add(rp);
+  var fw=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.055,2.1),mB);
+  fw.position.set(2.2,-0.08,0);g.add(fw);
+  [[1.3,-0.21,-0.93],[1.3,-0.21,0.93],[-1.3,-0.21,-0.93],[-1.3,-0.21,0.93]].forEach(function(p){
+    var wh=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.27,16),mW);
+    wh.rotation.z=Math.PI/2;wh.position.set(p[0],p[1],p[2]);g.add(wh);
+  });
+  return g;
+}
+
+/* ===================== GAME STATE ===================== */
+var gameState='IDLE',paused=false,raceTime=0,animRunning=false;
+var playerGrp=null,aiGrps=[];
+var camSmooth=new THREE.Vector3(),camVel=new THREE.Vector3();
+var cockpitMode=false;
+
+var P={x:0,z:0,y:0,heading:0,speed:0,yawRate:0,tIdx:0,lap:1,
+  sector:0,sectorStart:0,lapStart:0,s1:0,s2:0,s3:0,
+  bestS1:Infinity,bestS2:Infinity,bestS3:Infinity,
+  rpmVal:0,gear:1,drs:false,_drsKey:false,
+  tireWear:1.0,tireTempF:0.3,tireTempR:0.3,_lapGuard:false};
+
+var AI=[
+  {tIdx:N-4, latOff: 1.8,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
+  {tIdx:N-8, latOff:-1.8,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
+  {tIdx:N-12,latOff: 1.8,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true}
+];
+
+var keys={};
+document.addEventListener('keydown',function(e){
+  keys[e.code]=true;
+  if(e.code==='Escape'&&gameState!=='IDLE'){
+    if(gameState==='FINISHED'){closeGame();return;}
+    paused=!paused;
+    if(pauseOvl) pauseOvl.className=paused?'active':'';
+  }
+  if(e.code==='KeyQ'&&paused) closeGame();
+  if(e.code==='KeyC') cockpitMode=!cockpitMode;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].indexOf(e.code)>=0&&gameState!=='IDLE') e.preventDefault();
+});
+document.addEventListener('keyup',function(e){keys[e.code]=false;});
+
+/* ===================== SPAWN ===================== */
+function spawnPos(ti,lat){
+  var idx=((ti%N)+N)%N;
+  var wp=waypoints[idx],p=wpPerp(idx),d=wpDir(idx);
+  return {x:wp.x+p.x*lat,z:wp.z+p.z*lat,y:wp.y,heading:Math.atan2(d.x,d.z)};
+}
+
+function initRace(){
+  if(playerGrp){scene.remove(playerGrp);playerGrp=null;}
+  aiGrps.forEach(function(gr){scene.remove(gr);});aiGrps=[];
+  playerGrp=buildCar(0x1E41FF);scene.add(playerGrp);
+  var sp=spawnPos(0,0);
+  P.x=sp.x;P.z=sp.z;P.y=sp.y;P.heading=sp.heading;
+  P.speed=0;P.yawRate=0;P.tIdx=0;P.lap=1;P.rpmVal=0;P.gear=1;
+  P.drs=false;P._drsKey=false;P.tireWear=1;P.tireTempF=0.3;P.tireTempR=0.3;
+  P.sector=0;P.sectorStart=0;P.lapStart=0;P.s1=0;P.s2=0;P.s3=0;
+  P.bestS1=Infinity;P.bestS2=Infinity;P.bestS3=Infinity;P._lapGuard=false;
+  AI.forEach(function(ai,i){
+    var ag=buildCar(AI_COLORS[i]);scene.add(ag);aiGrps.push(ag);
+    var as=spawnPos(ai.tIdx,ai.latOff);
+    ai.x=as.x;ai.z=as.z;ai.y=as.y;ai.heading=as.heading;
+    ai.speed=0;ai.yawRate=0;ai.lap=1;ai._inStart=false;ai._skipFirst=true;
+    ag.position.set(ai.x,ai.y+RIDE_H,ai.z);ag.rotation.y=ai.heading-Math.PI/2;
+  });
+  playerGrp.position.set(P.x,P.y+RIDE_H,P.z);playerGrp.rotation.y=P.heading-Math.PI/2;
+  var d0=wpDir(0);
+  gameCam.position.set(P.x-d0.x*28,P.y+13,P.z-d0.z*28);
+  camSmooth.copy(gameCam.position);camVel.set(0,0,0);
+  gameCam.lookAt(new THREE.Vector3(P.x+d0.x*8,P.y+0.5,P.z+d0.z*8));
+  gameCam.fov=80;gameCam.updateProjectionMatrix();
+}
+
+/* ===================== COUNTDOWN ===================== */
+var lightEls=[
+  document.getElementById('lb0'),document.getElementById('lb1'),
+  document.getElementById('lb2'),document.getElementById('lb3'),
+  document.getElementById('lb4')
+];
+
+function startCountdown(){
+  gameState='COUNTDOWN';raceTime=0;
+  if(lightsBarEl) lightsBarEl.className='active';
+  if(gridMsgEl) gridMsgEl.className='active';
+  lightEls.forEach(function(l){if(l) l.className='light-bulb';});
+  for(var li=0;li<5;li++){
+    (function(idx){
+      setTimeout(function(){if(lightEls[idx]) lightEls[idx].className='light-bulb lit';},idx*750);
+    })(li);
+  }
+  setTimeout(function(){
+    lightEls.forEach(function(l){if(l) l.className='light-bulb';});
+    if(lightsBarEl) lightsBarEl.className='';
+    if(gridMsgEl) gridMsgEl.className='';
+    gameState='RACING';raceTime=0;P.lapStart=0;P.sectorStart=0;
+    if(goFlashEl){goFlashEl.style.display='block';setTimeout(function(){goFlashEl.style.display='none';},180);}
+  },5*750+400);
+}
+
+/* ===================== PLAYER PHYSICS ===================== */
+function updatePlayer(dt){
+  var thr=(keys['ArrowUp']||keys['KeyW'])?1:0;
+  var brk=(keys['ArrowDown']||keys['KeyS'])?1:0;
+  var sl=(keys['ArrowLeft']||keys['KeyA'])?1:0;
+  var sr=(keys['ArrowRight']||keys['KeyD'])?1:0;
+  var si=sr-sl;
+  if(keys['ShiftLeft']||keys['ShiftRight']){if(!P._drsKey){P.drs=!P.drs;P._drsKey=true;}}
+  else{P._drsKey=false;}
+  if(hudDrs) hudDrs.className='hud-drs'+(P.drs?' on':'');
+  if(gameState==='COUNTDOWN'){
+    P.rpmVal=thr?Math.min(P.rpmVal+dt*3,1):Math.max(P.rpmVal-dt*4,0);
+    return;
+  }
+  if(gameState!=='RACING') return;
+  var maxSpd=P.drs?MAX_SPD*1.08:MAX_SPD;
+  var acc=(thr*ENG-brk*BRK-DRAG*P.speed*P.speed)/CAR_MASS;
+  P.speed=Math.max(0,Math.min(P.speed+acc*dt,maxSpd));
+  var ms=Math.PI/5*(1-0.6*P.speed/MAX_SPD);
+  var ty=si*ms*Math.min(P.speed/5,1);
+  P.yawRate+=(ty-P.yawRate)*Math.min(dt*6,1);P.yawRate*=Math.max(0,1-dt*7.5);
+  P.heading+=P.yawRate*P.speed*0.6*dt;
+  P.x+=Math.sin(P.heading)*P.speed*dt;
+  P.z+=Math.cos(P.heading)*P.speed*dt;
+  P.tIdx=closestWP(P.x,P.z,P.tIdx);
+  P.y=waypoints[P.tIdx].y;
+  var GB=[0,0.12,0.25,0.38,0.54,0.70,0.86,1.0];
+  var rpm=P.speed/maxSpd;P.gear=7;
+  for(var gi=1;gi<GB.length-1;gi++){if(rpm<GB[gi+1]){P.gear=gi;break;}}
+  var gLo=GB[Math.max(P.gear-1,0)],gHi=GB[P.gear];
+  P.rpmVal=gHi>gLo?Math.max(0,Math.min(1,(rpm-gLo)/(gHi-gLo))):0;
+  var slp=Math.abs(P.yawRate)*P.speed;
+  P.tireWear=Math.max(0.02,P.tireWear-slp*dt*0.00004);
+  P.tireTempF=Math.min(1,Math.max(0.1,P.tireTempF+(thr*0.3+slp*0.08)*dt*0.08-dt*0.02));
+  P.tireTempR=Math.min(1,Math.max(0.1,P.tireTempR+(thr*0.5+brk*0.3)*dt*0.08-dt*0.02));
+  var s1i=Math.floor(N/3),s2i=Math.floor(2*N/3);
+  if(P.sector===0&&P.tIdx>=s1i&&P.tIdx<s1i+15){
+    P.s1=raceTime-P.sectorStart;P.sector=1;P.sectorStart=raceTime;
+    setSec(hudS1,'hud-s1',P.s1,P.bestS1);if(P.s1<P.bestS1) P.bestS1=P.s1;
+  }
+  if(P.sector===1&&P.tIdx>=s2i&&P.tIdx<s2i+15){
+    P.s2=raceTime-P.sectorStart;P.sector=2;P.sectorStart=raceTime;
+    setSec(hudS2,'hud-s2',P.s2,P.bestS2);if(P.s2<P.bestS2) P.bestS2=P.s2;
+  }
+  if(P.sector===2&&P.tIdx<15&&!P._lapGuard){
+    P._lapGuard=true;
+    P.s3=raceTime-P.sectorStart;
+    setSec(hudS3,'hud-s3',P.s3,P.bestS3);if(P.s3<P.bestS3) P.bestS3=P.s3;
+    P.lap++;P.sector=0;P.sectorStart=raceTime;P.lapStart=raceTime;
+    if(P.lap>LAPS){P.lap=LAPS;gameState='FINISHED';showPodium();}
+  }
+  if(P.tIdx>=20) P._lapGuard=false;
+}
+
+function setSec(el,cls,t,best){
+  if(!el) return;
+  el.className=cls+(t>0&&t<best?' purple':' yellow');
+  el.textContent=(cls==='hud-s1'?'S1 ':cls==='hud-s2'?'S2 ':'S3 ')+(t>0?t.toFixed(3):'---.---');
+}
+
+/* ===================== AI ===================== */
+function updateAI(ai,dt){
+  if(gameState!=='RACING') return;
+  var tgt=waypoints[(ai.tIdx+8)%N];
+  var dx=tgt.x-ai.x,dz=tgt.z-ai.z;
+  var th=Math.atan2(dx,dz),dh=th-ai.heading;
+  while(dh>Math.PI) dh-=2*Math.PI;while(dh<-Math.PI) dh+=2*Math.PI;
+  ai.yawRate+=(dh*1.2-ai.yawRate*0.08)*Math.min(dt*5,1);ai.yawRate*=Math.max(0,1-dt*7.5);
+  ai.heading+=ai.yawRate*ai.speed*0.6*dt;
+  var corner=Math.min(Math.abs(dh)/0.8,1);
+  var tspd=MAX_SPD*(0.63+0.37*(1-corner))*0.92;
+  ai.speed=Math.max(0,Math.min(ai.speed+((tspd>ai.speed?8000:-14000)/CAR_MASS)*dt,MAX_SPD*0.92));
+  ai.x+=Math.sin(ai.heading)*ai.speed*dt;
+  ai.z+=Math.cos(ai.heading)*ai.speed*dt;
+  ai.tIdx=closestWP(ai.x,ai.z,ai.tIdx);
+  ai.y=waypoints[ai.tIdx].y;
+  if(ai.tIdx<12&&!ai._inStart){
+    ai._inStart=true;
+    if(ai._skipFirst){ai._skipFirst=false;}
+    else{ai.lap++;if(ai.lap>LAPS) ai.lap=LAPS;}
+  }
+  if(ai.tIdx>=20) ai._inStart=false;
+}
+
+/* ===================== CAMERA ===================== */
+function updateCamera(dt){
+  var spd=P.speed;
+  if(gameState==='COUNTDOWN'){
+    var d0=wpDir(0),wy0=waypoints[0].y;
+    gameCam.position.set(P.x-d0.x*28,wy0+13,P.z-d0.z*28);
+    gameCam.lookAt(new THREE.Vector3(P.x+d0.x*8,wy0+0.5,P.z+d0.z*8));
+    gameCam.fov=80;gameCam.updateProjectionMatrix();
+    camSmooth.copy(gameCam.position);camVel.set(0,0,0);return;
+  }
+  if(gameState!=='RACING'&&gameState!=='FINISHED') return;
+  if(cockpitMode){
+    var dc=wpDir(P.tIdx);
+    gameCam.position.set(P.x+dc.x*0.3,P.y+RIDE_H+0.55,P.z+dc.z*0.3);
+    gameCam.rotation.set(0,P.heading+Math.PI,0);
+    gameCam.fov=92;gameCam.updateProjectionMatrix();return;
+  }
+  var dist=14+(spd/MAX_SPD)*8,ht=4+(spd/MAX_SPD)*2;
+  var fx=Math.sin(P.heading),fz=Math.cos(P.heading);
+  var tgt=new THREE.Vector3(P.x-fx*dist,P.y+RIDE_H+ht,P.z-fz*dist);
+  var om=9,ze=0.88,c2=2*ze*om,kk=om*om;
+  camVel.x+=(tgt.x-camSmooth.x)*kk*dt-camVel.x*c2*dt;
+  camVel.y+=(tgt.y-camSmooth.y)*kk*dt-camVel.y*c2*dt;
+  camVel.z+=(tgt.z-camSmooth.z)*kk*dt-camVel.z*c2*dt;
+  camSmooth.x+=camVel.x*dt;camSmooth.y+=camVel.y*dt;camSmooth.z+=camVel.z*dt;
+  gameCam.position.copy(camSmooth);
+  gameCam.lookAt(new THREE.Vector3(P.x+fx*20,P.y+RIDE_H+0.5,P.z+fz*20));
+  gameCam.fov=P.drs?82:72+(spd/90)*6;gameCam.updateProjectionMatrix();
+}
+
+/* ===================== HUD ===================== */
+function fmt(t){
+  var m=Math.floor(t/60),s=Math.floor(t%60),ms=Math.floor((t%1)*1000);
+  return m+':'+(s<10?'0':'')+s+'.'+(ms<100?(ms<10?'00':'0'):'')+ms;
+}
+
+function getPos(){
+  var all=[{n:'P',lap:P.lap,ti:P.tIdx}];
+  AI.forEach(function(ai,i){all.push({n:'A'+i,lap:ai.lap,ti:ai.tIdx});});
+  all.sort(function(a,b){return b.lap!==a.lap?b.lap-a.lap:b.ti-a.ti;});
+  var pp=0;all.forEach(function(e,i){if(e.n==='P') pp=i;});return pp;
+}
+
+function updateHUD(){
+  if(hudPos) hudPos.textContent='P'+(getPos()+1);
+  if(hudLap) hudLap.textContent='LAP '+P.lap+'/'+LAPS;
+  if(hudTimer) hudTimer.textContent=fmt(gameState==='RACING'?raceTime-P.lapStart:0);
+  if(hudSpeed) hudSpeed.textContent=((P.speed*3.6)|0)+' km/h';
+  if(hudGear) hudGear.textContent=P.speed<0.5?'N':P.gear;
+  if(rpmFill) rpmFill.style.width=(P.rpmVal*100)+'%';
+  var tw=P.tireWear;
+  var tireColor=tw>0.5?'#00ff44':tw>0.2?'#ffdd00':'#ff4400';
+  if(tireF){tireF.style.width=(tw*100)+'%';tireF.style.background=tireColor;}
+  if(tireR){tireR.style.width=(tw*100)+'%';tireR.style.background=tireColor;}
+  function tc(t2){return t2>0.7?'#ff4400':t2>0.4?'#ffdd00':'#1E41FF';}
+  if(tempF) tempF.style.background=tc(P.tireTempF);
+  if(tempR) tempR.style.background=tc(P.tireTempR);
+  if(wheelInd) wheelInd.setAttribute('transform','rotate('+(P.yawRate*20*180/Math.PI)+')');
+  drawMinimap();
+}
+
+var mmB=null;
+function drawMinimap(){
+  if(!minimapCtx) return;
+  if(!mmB){
+    var mnx=Infinity,mxx=-Infinity,mnz=Infinity,mxz=-Infinity;
+    for(var i=0;i<N;i++){
+      mnx=Math.min(mnx,waypoints[i].x);mxx=Math.max(mxx,waypoints[i].x);
+      mnz=Math.min(mnz,waypoints[i].z);mxz=Math.max(mxz,waypoints[i].z);
+    }
+    mmB={mnx:mnx,mxx:mxx,mnz:mnz,mxz:mxz};
+  }
+  var mw=160,mh=160,bb=mmB;
+  var sc=Math.min((mw-16)/(bb.mxx-bb.mnx),(mh-16)/(bb.mxz-bb.mnz));
+  var ox=(mw-(bb.mxx-bb.mnx)*sc)/2,oz=(mh-(bb.mxz-bb.mnz)*sc)/2;
+  function wx(x){return ox+(x-bb.mnx)*sc;}
+  function wz2(z){return oz+(z-bb.mnz)*sc;}
+  minimapCtx.clearRect(0,0,mw,mh);
+  minimapCtx.strokeStyle='#333';minimapCtx.lineWidth=3;minimapCtx.beginPath();
+  for(var j=0;j<N;j+=2){
+    var ww=waypoints[j];
+    if(j===0) minimapCtx.moveTo(wx(ww.x),wz2(ww.z));
+    else minimapCtx.lineTo(wx(ww.x),wz2(ww.z));
+  }
+  minimapCtx.closePath();minimapCtx.stroke();
+  minimapCtx.fillStyle='#1E41FF';minimapCtx.beginPath();
+  minimapCtx.arc(wx(P.x),wz2(P.z),5,0,Math.PI*2);minimapCtx.fill();
+  var ac=['#C0C0C0','#DC0000','#FF8000'];
+  AI.forEach(function(ai,i){
+    minimapCtx.fillStyle=ac[i];minimapCtx.beginPath();
+    minimapCtx.arc(wx(ai.x),wz2(ai.z),3,0,Math.PI*2);minimapCtx.fill();
+  });
+}
+
+/* ===================== PODIUM ===================== */
+function showPodium(){
+  var all=[{n:AI_NAMES[0],lap:P.lap,ti:P.tIdx}];
+  AI.forEach(function(ai,i){all.push({n:AI_NAMES[i+1],lap:ai.lap,ti:ai.tIdx});});
+  all.sort(function(a,b){return b.lap!==a.lap?b.lap-a.lap:b.ti-a.ti;});
+  var rows='',medals=['1ST','2ND','3RD','4TH'];
+  all.forEach(function(e,i){
+    rows+='<tr'+(i===0?' class="podium-p1"':'')+'><td>'+medals[i]+'</td><td>'+e.n+'</td><td>LAP '+e.lap+'</td></tr>';
+  });
+  if(podiumTable) podiumTable.innerHTML=rows;
+  if(podiumOvl) podiumOvl.className='active';
+}
+
+/* ===================== OPEN / CLOSE ===================== */
+function openGame(){
+  if(!overlay) return;
+  overlay.className='active';
+  gameCanvas.focus();resizeCam();
+  initRace();startCountdown();
+  if(!animRunning){animRunning=true;requestAnimationFrame(loop);}
+}
+
+function closeGame(){
+  overlay.className='';
+  if(podiumOvl) podiumOvl.className='';
+  if(pauseOvl) pauseOvl.className='';
+  if(lightsBarEl) lightsBarEl.className='';
+  if(gridMsgEl) gridMsgEl.className='';
+  gameState='IDLE';paused=false;animRunning=false;
+}
+
+(function(){
+  var sc=document.getElementById('f1car');
+  if(sc){
+    sc.style.cursor='pointer';
+    sc.addEventListener('click',function(){if(gameState==='IDLE') openGame();});
+  }
+  var v=document.querySelector('.car-viewer');
+  if(v){
+    v.style.position='relative';
+    var hint=document.createElement('div');
+    hint.style.cssText='position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:.55rem;color:#444;letter-spacing:.25em;text-transform:uppercase;pointer-events:none';
+    hint.textContent='CLICK TO RACE';
+    v.appendChild(hint);
+  }
+})();
+
+if(podiumClose) podiumClose.addEventListener('click',closeGame);
+if(hudClose) hudClose.addEventListener('click',closeGame);
+
+/* ===================== GAME LOOP ===================== */
+var prevTs=0;
+function loop(ts){
+  if(!animRunning) return;
+  requestAnimationFrame(loop);
+  if(paused) return;
+  var dt=Math.min((ts-prevTs)/1000,0.05);prevTs=ts;
+  if(dt<=0) return;
+  if(gameState==='RACING') raceTime+=dt;
+  updatePlayer(dt);
+  AI.forEach(function(ai){updateAI(ai,dt);});
+  if(playerGrp){playerGrp.position.set(P.x,P.y+RIDE_H,P.z);playerGrp.rotation.y=P.heading-Math.PI/2;}
+  AI.forEach(function(ai,i){
+    if(aiGrps[i]){aiGrps[i].position.set(ai.x,ai.y+RIDE_H,ai.z);aiGrps[i].rotation.y=ai.heading-Math.PI/2;}
+  });
+  updateCamera(dt);
+  updateHUD();
+  renderer.render(scene,gameCam);
+}
+
+})();
+</script>
+
 </body>
 </html>
 """
@@ -400,15 +1092,16 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
 
 def _axis_2d(title: str = "") -> dict:
     return dict(
-        title=dict(text=title, font=dict(color="#888888", family=_FONT, size=10)),
-        gridcolor=_GRID,
-        zerolinecolor=_GRID,
-        tickfont=dict(color=_TICK, family=_FONT, size=10),
-        linecolor=_ACCENT,
-        linewidth=2,
-        showline=True,
+        title=dict(text=title, font=dict(color="#555555", family=_FONT, size=9)),
+        gridcolor="#111111",
+        zerolinecolor="#222222",
+        tickfont=dict(color=_TICK, family=_FONT, size=9),
         showgrid=True,
-        mirror=False,
+        showspikes=True,
+        spikecolor="#1E41FF",
+        spikethickness=1,
+        spikedash="solid",
+        spikemode="across",
     )
 
 
@@ -417,7 +1110,7 @@ def _layout_2d(title: str, xaxis_title: str = "", yaxis_title: str = "",
     return go.Layout(
         title=dict(
             text=title,
-            font=dict(color="#ffffff", family=_FONT, size=14),
+            font=dict(color="#ffffff", family=_FONT, size=13),
             x=0,
             xanchor="left",
             pad=dict(t=4, l=0),
@@ -427,23 +1120,31 @@ def _layout_2d(title: str, xaxis_title: str = "", yaxis_title: str = "",
         xaxis=_axis_2d(xaxis_title),
         yaxis=_axis_2d(yaxis_title),
         font=dict(family=_FONT, color="#ffffff"),
-        margin=dict(l=52, r=16, t=56, b=48),
+        margin=dict(l=52, r=24, t=56, b=48),
         height=height,
         showlegend=True,
         legend=dict(
             font=dict(family=_FONT, color="#888888", size=10),
             bgcolor="rgba(0,0,0,0)",
-            bordercolor=_ACCENT,
+            bordercolor="#222222",
             borderwidth=1,
         ),
         hovermode=hovermode,
+        hoverdistance=80,
+        spikedistance=400,
         hoverlabel=dict(
-            bgcolor="#000000",
-            bordercolor=_ACCENT,
+            bgcolor="#0a0a0a",
+            bordercolor="#1E41FF",
             font=dict(family=_FONT, size=11, color="#ffffff"),
             namelength=-1,
         ),
     )
+
+
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 # --------------------------------------------------------------------------- #
@@ -498,10 +1199,10 @@ def _grid_finish_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 
 def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
-    """Championship points per round — latest season, one line per driver."""
+    """Championship points per round — latest season. Area fills + win markers."""
     if traj_df.empty:
         return go.Figure(layout=_layout_2d(
-            "CHAMPIONSHIP TRAJECTORY", xaxis_title="ROUND", yaxis_title="POINTS", height=440,
+            "CHAMPIONSHIP TRAJECTORY", xaxis_title="ROUND", yaxis_title="POINTS", height=460,
         ))
 
     latest = int(traj_df["year"].max())
@@ -510,41 +1211,72 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
         f"CHAMPIONSHIP TRAJECTORY · {latest}",
         xaxis_title="ROUND",
         yaxis_title="POINTS",
-        height=440,
+        height=460,
     )
     fig = go.Figure(layout=layout)
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
+        fill_color = _hex_to_rgba(color if color != "#FFFFFF" else "#888888", 0.10)
+        surname = driver.split()[-1]
+
         fig.add_trace(go.Scatter(
             x=g["round"], y=g["points"],
             mode="lines+markers",
-            name=driver.split()[-1],
-            line=dict(color=color, width=2.5),
-            marker=dict(size=5, color=color, line=dict(color="#000000", width=1)),
-            hovertemplate="<b>%{fullData.name}</b>  %{y} pts<extra></extra>",
+            name=surname,
+            line=dict(color=color, width=3, shape="spline"),
+            marker=dict(size=6, color=color, line=dict(color="#000000", width=1)),
+            fill="tozeroy",
+            fillcolor=fill_color,
+            hovertemplate=f"<b>{surname}</b>  %{{y}} pts<extra></extra>",
         ))
+
+        wins = g[g["position"] == 1]
+        if not wins.empty:
+            fig.add_trace(go.Scatter(
+                x=wins["round"], y=wins["points"],
+                mode="markers",
+                name=f"{surname} win",
+                marker=dict(
+                    symbol="star-diamond", size=12,
+                    color="#FFD700",
+                    line=dict(color="#000000", width=1),
+                ),
+                showlegend=False,
+                hovertemplate=f"<b>{surname}</b>  WIN  %{{y}} pts<extra></extra>",
+            ))
+
+        last = g.sort_values("round").iloc[-1]
+        fig.add_annotation(
+            x=last["round"], y=last["points"],
+            text=f" {int(last['points'])}",
+            font=dict(color=color, family=_FONT, size=10),
+            showarrow=False, xanchor="left",
+        )
+
     return fig
 
 
-def chart_race_positions_2d(traj_df: pd.DataFrame) -> go.Figure:
-    """Race finish positions per round — latest season, one trace per driver.
-    Y axis is inverted so P1 sits at the top."""
+def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
+    """Bump chart of race finish positions — latest season. Thick spline lines, P1 zone shaded."""
     if traj_df.empty:
-        layout = _layout_2d("RACE POSITIONS", xaxis_title="ROUND", yaxis_title="FINISH", height=400)
+        layout = _layout_2d("FINISH POSITIONS", xaxis_title="ROUND", yaxis_title="FINISH", height=420)
         layout.yaxis.update(autorange="reversed", dtick=5)
         return go.Figure(layout=layout)
 
     latest = int(traj_df["year"].max())
     df = traj_df[(traj_df["year"] == latest) & (traj_df["position"] < 999)].sort_values("round")
     layout = _layout_2d(
-        f"RACE POSITIONS · {latest}",
+        f"FINISH POSITIONS · {latest}",
         xaxis_title="ROUND",
         yaxis_title="FINISH",
-        height=400,
+        height=420,
     )
     layout.yaxis.update(autorange="reversed", dtick=5)
     fig = go.Figure(layout=layout)
+
+    fig.add_hrect(y0=0.5, y1=1.5, fillcolor="rgba(255,215,0,0.04)", layer="below", line_width=0)
+    fig.add_hrect(y0=0.5, y1=3.5, fillcolor="rgba(255,255,255,0.02)", layer="below", line_width=0)
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
@@ -552,39 +1284,172 @@ def chart_race_positions_2d(traj_df: pd.DataFrame) -> go.Figure:
             x=g["round"], y=g["position"],
             mode="lines+markers",
             name=driver.split()[-1],
-            line=dict(color=color, width=1.8),
-            marker=dict(size=6, color=color, line=dict(color="#000000", width=1)),
+            line=dict(color=color, width=4, shape="spline"),
+            marker=dict(size=9, color=color, line=dict(color="#000000", width=1.5)),
             hovertemplate="<b>%{fullData.name}</b>  P%{y}<extra></extra>",
         ))
     return fig
 
 
-def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
-    """Grid position vs finish position scatter — all seasons combined.
-    Points below the diagonal gained positions; above lost them."""
+def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
+    """Points gap between the two drivers — latest season. Filled area above/below zero."""
     layout = _layout_2d(
-        "GRID vs FINISH · ALL SEASONS",
-        xaxis_title="GRID",
-        yaxis_title="FINISH",
-        height=400,
+        "POINTS GAP · DRIVERS",
+        xaxis_title="ROUND",
+        yaxis_title="GAP (PTS)",
+        height=420,
+        hovermode="x unified",
+    )
+    fig = go.Figure(layout=layout)
+
+    if traj_df.empty:
+        return fig
+
+    latest = int(traj_df["year"].max())
+    df = traj_df[traj_df["year"] == latest].sort_values("round")
+    drivers = df["driver"].unique()
+    if len(drivers) < 2:
+        return fig
+
+    pivot = df.pivot_table(index="round", columns="driver", values="points", aggfunc="last").ffill()
+    d_a, d_b = drivers[0], drivers[1]
+    if d_a not in pivot.columns or d_b not in pivot.columns:
+        return fig
+
+    rounds = pivot.index.tolist()
+    gap = (pivot[d_a] - pivot[d_b]).tolist()
+    color_a = _driver_color(d_a, 0)
+    color_b = _driver_color(d_b, 1)
+
+    fig.add_hline(y=0, line=dict(color="#333333", width=1, dash="dot"))
+
+    pos_gap = [g if g >= 0 else 0 for g in gap]
+    neg_gap = [g if g < 0 else 0 for g in gap]
+
+    fig.add_trace(go.Scatter(
+        x=rounds, y=pos_gap,
+        mode="none", fill="tozeroy",
+        fillcolor=_hex_to_rgba(color_a if color_a != "#FFFFFF" else "#888888", 0.18),
+        name=d_a.split()[-1], showlegend=False, hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=rounds, y=neg_gap,
+        mode="none", fill="tozeroy",
+        fillcolor=_hex_to_rgba(color_b if color_b != "#FFFFFF" else "#888888", 0.18),
+        name=d_b.split()[-1], showlegend=False, hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=rounds, y=gap,
+        mode="lines+markers",
+        name=f"{d_a.split()[-1]} vs {d_b.split()[-1]}",
+        line=dict(color="#ffffff", width=2, shape="spline"),
+        marker=dict(size=5, color="#ffffff"),
+        hovertemplate="%{y:+d} pts<extra></extra>",
+    ))
+
+    fig.add_annotation(
+        x=0.01, y=0.96, xref="paper", yref="paper",
+        text=d_a.split()[-1], font=dict(color=color_a, family=_FONT, size=9),
+        showarrow=False, xanchor="left",
+    )
+    fig.add_annotation(
+        x=0.01, y=0.06, xref="paper", yref="paper",
+        text=d_b.split()[-1], font=dict(color=color_b, family=_FONT, size=9),
+        showarrow=False, xanchor="left",
+    )
+    return fig
+
+
+def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
+    """Performance matrix — finish position per driver per round, all seasons as color cells."""
+    layout = _layout_2d(
+        "PERFORMANCE MATRIX · ALL SEASONS",
+        xaxis_title="ROUND",
+        height=260,
+        hovermode="closest",
+    )
+    fig = go.Figure(layout=layout)
+    layout.yaxis.update(showgrid=False)
+
+    if traj_df.empty:
+        return fig
+
+    df = traj_df[traj_df["position"] < 999].copy()
+    df["pos_clip"] = df["position"].clip(upper=20)
+    df["label"] = df["position"].apply(lambda p: "DNF" if p >= 999 else f"P{int(p)}")
+    df["yr_round"] = df["year"].astype(str) + "·R" + df["round"].astype(str).str.zfill(2)
+
+    cols = sorted(df["yr_round"].unique())
+    rows = sorted(df["driver"].unique())
+
+    z = [[None] * len(cols) for _ in rows]
+    text = [[""] * len(cols) for _ in rows]
+
+    col_idx = {c: i for i, c in enumerate(cols)}
+    row_idx = {r: i for i, r in enumerate(rows)}
+
+    for _, row in df.iterrows():
+        ri = row_idx[row["driver"]]
+        ci = col_idx[row["yr_round"]]
+        z[ri][ci] = float(row["pos_clip"])
+        text[ri][ci] = row["label"]
+
+    colorscale = [
+        [0.00, "#FFD700"],
+        [0.10, "#1E41FF"],
+        [0.40, "#555555"],
+        [0.75, "#CC0000"],
+        [1.00, "#1a0000"],
+    ]
+
+    fig.add_trace(go.Heatmap(
+        z=z, x=cols, y=rows,
+        text=text, texttemplate="%{text}",
+        colorscale=colorscale,
+        zmin=1, zmax=20,
+        showscale=False,
+        xgap=2, ygap=2,
+        textfont=dict(family=_FONT, size=8, color="#ffffff"),
+        hovertemplate="<b>%{y}</b>  %{x}<br>%{text}<extra></extra>",
+    ))
+
+    fig.update_layout(margin=dict(l=100, r=24, t=56, b=80))
+    fig.update_xaxes(tickfont=dict(size=7), tickangle=90)
+    return fig
+
+
+def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
+    """Grid vs finish scatter with per-driver OLS regression lines — all seasons."""
+    layout = _layout_2d(
+        "PACE · GRID vs FINISH · ALL SEASONS",
+        xaxis_title="GRID POSITION",
+        yaxis_title="FINISH POSITION",
+        height=440,
         hovermode="closest",
     )
     fig = go.Figure(layout=layout)
     if df.empty:
         return fig
 
-    mx = max(df["grid"].max(), df["finish"].max()) + 1
+    mx = int(max(df["grid"].max(), df["finish"].max())) + 1
     fig.add_trace(go.Scatter(
         x=[1, mx], y=[1, mx],
         mode="lines",
-        name="no change",
-        line=dict(color="#444444", width=1, dash="dot"),
+        line=dict(color="#333333", width=1.5, dash="dash"),
         showlegend=False,
         hoverinfo="skip",
     ))
 
+    years = sorted(df["year"].unique())
+    year_norm = {y: i / max(len(years) - 1, 1) for i, y in enumerate(years)}
+
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
+        point_colors = [
+            _hex_to_rgba(color if color != "#FFFFFF" else "#888888",
+                         0.4 + 0.55 * year_norm[y])
+            for y in g["year"]
+        ]
         delta = g["grid"] - g["finish"]
         fig.add_trace(go.Scatter(
             x=g["grid"], y=g["finish"],
@@ -592,16 +1457,28 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
             name=driver.split()[-1],
             customdata=list(zip(g["year"], delta)),
             marker=dict(
-                size=6, color=color, opacity=0.80,
+                size=7, color=point_colors,
                 line=dict(color="#000000", width=0.5),
             ),
             hovertemplate=(
                 "<b>%{fullData.name}</b>  %{customdata[0]}<br>"
                 "Grid P%{x} → Finish P%{y}<br>"
-                "%{customdata[1]:+d} positions"
-                "<extra></extra>"
+                "%{customdata[1]:+d} positions<extra></extra>"
             ),
         ))
+
+        if len(g) >= 3:
+            m, b = np.polyfit(g["grid"], g["finish"], 1)
+            x_r = np.linspace(g["grid"].min(), g["grid"].max(), 40)
+            fig.add_trace(go.Scatter(
+                x=x_r, y=m * x_r + b,
+                mode="lines",
+                line=dict(color=color if color != "#FFFFFF" else "#888888",
+                           width=1.5, dash="dot"),
+                showlegend=False,
+                hoverinfo="skip",
+            ))
+
     return fig
 
 
@@ -622,13 +1499,17 @@ def generate_dashboard(
     gf = _grid_finish_df(engine, team_refs)
 
     fig1 = chart_championship_2d(traj)
-    fig2 = chart_race_positions_2d(traj)
-    fig3 = chart_grid_finish_2d(gf)
+    fig2 = chart_positions_bump_2d(traj)
+    fig3 = chart_points_gap_2d(traj)
+    fig4 = chart_heatmap_2d(traj)
+    fig5 = chart_grid_finish_2d(gf)
 
     _cfg = {"displayModeBar": "hover", "scrollZoom": False}
     div1 = fig1.to_html(full_html=False, include_plotlyjs="cdn",  config=_cfg)
     div2 = fig2.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
     div3 = fig3.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div4 = fig4.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div5 = fig5.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
 
     years = sorted(traj["year"].unique()) if not traj.empty else []
     year_range = f"{years[0]}–{years[-1]}" if years else ""
@@ -663,6 +1544,8 @@ def generate_dashboard(
         .replace("PLACEHOLDER_C1",       div1)
         .replace("PLACEHOLDER_C2",       div2)
         .replace("PLACEHOLDER_C3",       div3)
+        .replace("PLACEHOLDER_C4",       div4)
+        .replace("PLACEHOLDER_C5",       div5)
         .replace("PLACEHOLDER_TS",       ts)
     )
 
