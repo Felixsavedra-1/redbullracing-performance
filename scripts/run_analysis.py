@@ -43,6 +43,15 @@ def _out(name: str, export: bool) -> str | None:
     return os.path.join(_EXPORTS, f"{name}.png") if export else None
 
 
+def _close(fig: plt.Figure | None, name: str, export: bool) -> None:
+    if fig:
+        plt.close(fig)
+        if export:
+            logger.info("  → %s", _out(name, True))
+    elif export:
+        logger.warning("%s chart: no data to plot", name)
+
+
 def run(export: bool = False) -> None:
     if export:
         os.makedirs(_EXPORTS, exist_ok=True)
@@ -52,22 +61,12 @@ def run(export: bool = False) -> None:
     logger.info("Championship progression...")
     traj = championship_trajectory(engine)
     fig = chart_championship(traj, _out("championship", export), TEAM_NAME, TEAM_COLORS)
-    if fig:
-        plt.close(fig)
-        if export:
-            logger.info("  → %s", _out("championship", export))
-    elif export:
-        logger.warning("championship chart: no data to plot")
+    _close(fig, "championship", export)
 
     logger.info("Teammate head-to-head...")
     delta = teammate_delta(engine)
     fig = teammate_delta_chart(delta, _out("teammate_delta", export), TEAM_COLORS)
-    if fig:
-        plt.close(fig)
-        if export:
-            logger.info("  → %s", _out("teammate_delta", export))
-    elif export:
-        logger.warning("teammate_delta chart: no data to plot")
+    _close(fig, "teammate_delta", export)
     if not delta.empty:
         headers = ["Pair", "Δ mean", "CI 95%", "n", "p"]
         rows = [
@@ -101,22 +100,12 @@ def run(export: bool = False) -> None:
     logger.info("Pit stop efficiency...")
     pit = pit_stop_efficiency(engine)
     fig = pit_stops_chart(pit, _out("pit_stop_efficiency", export), TEAM_COLORS)
-    if fig:
-        plt.close(fig)
-        if export:
-            logger.info("  → %s", _out("pit_stop_efficiency", export))
-    elif export:
-        logger.warning("pit_stop_efficiency chart: no data to plot")
+    _close(fig, "pit_stop_efficiency", export)
 
     logger.info("DNF rate model...")
     dnf = dnf_rate_model(engine)
     fig = reliability_chart(dnf, _out("reliability", export), TEAM_COLORS)
-    if fig:
-        plt.close(fig)
-        if export:
-            logger.info("  → %s", _out("reliability", export))
-    elif export:
-        logger.warning("reliability chart: no data to plot")
+    _close(fig, "reliability", export)
     if not dnf.empty:
         headers = ["Driver", "Races", "DNFs", "Rate", "CI 95%"]
         rows = [

@@ -53,6 +53,14 @@ _RC: dict = {
 matplotlib.rcParams.update(_RC)
 
 
+def _primary(colors: dict | None) -> str:
+    return (colors or {}).get("primary", "#1E41FF")
+
+
+def _accent(colors: dict | None) -> str:
+    return (colors or {}).get("accent", "#FF1800")
+
+
 def _driver_colors(names: list[str], primary: str) -> dict[str, str]:
     ordered = sorted(names, key=lambda n: (0 if "Verstappen" in n else 1, n))
     palette = [primary] + [c for c in _PALETTE if c != primary]
@@ -83,8 +91,7 @@ def championship(
 ) -> plt.Figure | None:
     if df.empty:
         return None
-    colors = colors or {}
-    primary = colors.get("primary", "#1E41FF")
+    primary = _primary(colors)
 
     years = sorted(df["year"].unique())
     ncols = min(3, len(years))
@@ -126,9 +133,8 @@ def teammate_delta_chart(
 ) -> plt.Figure | None:
     if df.empty:
         return None
-    colors = colors or {}
-    primary = colors.get("primary", "#1E41FF")
-    accent  = colors.get("accent",  "#FF1800")
+    primary = _primary(colors)
+    accent  = _accent(colors)
 
     n_pairs = len(df)
     fig, ax = plt.subplots(figsize=(9, max(3.5, n_pairs * 0.9)))
@@ -169,8 +175,7 @@ def qualifying_regression(
 ) -> plt.Figure | None:
     if df.empty:
         return None
-    colors = colors or {}
-    primary = colors.get("primary", "#1E41FF")
+    primary = _primary(colors)
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
@@ -213,8 +218,7 @@ def pit_stops_chart(
 ) -> plt.Figure | None:
     if df.empty:
         return None
-    colors = colors or {}
-    primary = colors.get("primary", "#1E41FF")
+    primary = _primary(colors)
 
     fig, ax = plt.subplots(figsize=(max(7, len(df) * 0.9), 5))
 
@@ -247,8 +251,7 @@ def reliability_chart(
 ) -> plt.Figure | None:
     if df.empty:
         return None
-    colors = colors or {}
-    primary = colors.get("primary", "#1E41FF")
+    primary = _primary(colors)
 
     fig, ax = plt.subplots(figsize=(8, max(3.5, len(df) * 0.65)))
 

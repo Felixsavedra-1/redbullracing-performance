@@ -23,9 +23,23 @@ OUTPUT_PATH = os.path.join(REPO_ROOT, "docs", "dashboard.gif")
 VIEWPORT_W = 1400
 VIEWPORT_H = 900
 INIT_WAIT_S = 2.5
-FRAMES = 30
 FRAME_INTERVAL_MS = 120
 COLORS = 128
+
+# Three-phase capture: rotating car → scroll → charts view
+_FRAMES_CAR = 14
+_FRAMES_SCROLL = 12
+_FRAMES_CHARTS = 14
+_SCROLL_PX = 70  # pixels scrolled per frame; 12 × 70 = 840px total
+
+
+def _shot(page) -> Image.Image:
+    data = page.screenshot(type="png")
+    return (
+        Image.open(io.BytesIO(data))
+        .convert("RGB")
+        .quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT)
+    )
 
 
 def _capture_frames(page) -> list[Image.Image]:
@@ -33,10 +47,18 @@ def _capture_frames(page) -> list[Image.Image]:
     time.sleep(INIT_WAIT_S)
 
     frames = []
-    for _ in range(FRAMES):
-        data = page.screenshot(type="png")
-        img = Image.open(io.BytesIO(data)).convert("RGB")
-        frames.append(img.quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT))
+
+    for _ in range(_FRAMES_CAR):
+        frames.append(_shot(page))
+        time.sleep(FRAME_INTERVAL_MS / 1000)
+
+    for _ in range(_FRAMES_SCROLL):
+        page.evaluate(f"window.scrollBy(0, {_SCROLL_PX})")
+        frames.append(_shot(page))
+        time.sleep(FRAME_INTERVAL_MS / 1000)
+
+    for _ in range(_FRAMES_CHARTS):
+        frames.append(_shot(page))
         time.sleep(FRAME_INTERVAL_MS / 1000)
 
     return frames
@@ -48,13 +70,13 @@ def main() -> None:
         print("       run: python scripts/run_analysis.py --export")
         sys.exit(1)
 
-    url = f"file://{HTML_PATH}"
-    print(f"Capturing {FRAMES} frames from {HTML_PATH}...")
+    total = _FRAMES_CAR + _FRAMES_SCROLL + _FRAMES_CHARTS
+    print(f"Capturing {total} frames from {HTML_PATH}...")
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
-        page.goto(url)
+        page.goto(f"file://{HTML_PATH}")
         frames = _capture_frames(page)
         browser.close()
 
