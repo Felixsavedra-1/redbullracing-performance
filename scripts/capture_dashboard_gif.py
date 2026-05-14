@@ -3,8 +3,6 @@ Capture a scrolling GIF of the dashboard.
 Usage: python scripts/capture_dashboard_gif.py
 Output: docs/dashboard.gif
 """
-import math
-import os
 import sys
 from pathlib import Path
 from io import BytesIO
