@@ -1,97 +1,121 @@
-"""Capture a looping GIF of data/exports/dashboard.html using Playwright + Pillow.
-
-Usage:
-    python scripts/capture_dashboard_gif.py
-
+"""
+Capture a scrolling GIF of the dashboard.
+Usage: python scripts/capture_dashboard_gif.py
 Output: docs/dashboard.gif
 """
-
-import io
+import math
 import os
 import sys
-import time
+from pathlib import Path
+from io import BytesIO
 
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, ".."))
+REPO = Path(__file__).parent.parent
+HTML_PATH = REPO / "data" / "exports" / "dashboard.html"
+OUT_PATH = REPO / "docs" / "dashboard.gif"
 
-HTML_PATH = os.path.join(REPO_ROOT, "data", "exports", "dashboard.html")
-OUTPUT_PATH = os.path.join(REPO_ROOT, "docs", "dashboard.gif")
+VIEWPORT_W = 1440
+VIEWPORT_H = 860
 
-VIEWPORT_W = 1400
-VIEWPORT_H = 900
-INIT_WAIT_S = 2.5
-FRAME_INTERVAL_MS = 120
-COLORS = 128
+# (scroll_y_fraction, hold_frames) — hold longer at key visual sections
+SCROLL_WAYPOINTS = [
+    (0.000, 6),   # status bar + header
+    (0.030, 4),   # stats row
+    (0.100, 4),   # car viewer
+    (0.200, 4),   # chart start
+    (0.280, 6),   # championship trajectory
+    (0.400, 4),   # positions + points gap row
+    (0.540, 6),   # performance matrix heatmap
+    (0.680, 6),   # grid vs finish scatter
+    (0.840, 7),   # telemetry panels
+    (1.000, 6),   # footer
+]
 
-# Three-phase capture: rotating car → scroll → charts view
-_FRAMES_CAR = 14
-_FRAMES_SCROLL = 12
-_FRAMES_CHARTS = 14
-_SCROLL_PX = 70  # pixels scrolled per frame; 12 × 70 = 840px total
-
-
-def _shot(page) -> Image.Image:
-    data = page.screenshot(type="png")
-    return (
-        Image.open(io.BytesIO(data))
-        .convert("RGB")
-        .quantize(colors=COLORS, method=Image.Quantize.MEDIANCUT)
-    )
+INTERP_STEPS = 5   # frames between waypoints
+FRAME_MS = 70      # ms per frame (~14 fps)
 
 
-def _capture_frames(page) -> list[Image.Image]:
-    page.wait_for_load_state("networkidle")
-    time.sleep(INIT_WAIT_S)
-
-    frames = []
-
-    for _ in range(_FRAMES_CAR):
-        frames.append(_shot(page))
-        time.sleep(FRAME_INTERVAL_MS / 1000)
-
-    for _ in range(_FRAMES_SCROLL):
-        page.evaluate(f"window.scrollBy(0, {_SCROLL_PX})")
-        frames.append(_shot(page))
-        time.sleep(FRAME_INTERVAL_MS / 1000)
-
-    for _ in range(_FRAMES_CHARTS):
-        frames.append(_shot(page))
-        time.sleep(FRAME_INTERVAL_MS / 1000)
-
-    return frames
+def eased(t: float) -> float:
+    return t * t * (3 - 2 * t)
 
 
-def main() -> None:
-    if not os.path.exists(HTML_PATH):
-        print(f"error: dashboard not found at {HTML_PATH}")
-        print("       run: python scripts/run_analysis.py --export")
+def build_scroll_sequence():
+    positions = []
+    for i in range(len(SCROLL_WAYPOINTS) - 1):
+        y0, hold0 = SCROLL_WAYPOINTS[i]
+        y1, _     = SCROLL_WAYPOINTS[i + 1]
+        positions.extend([y0] * hold0)
+        for step in range(1, INTERP_STEPS + 1):
+            t = eased(step / INTERP_STEPS)
+            positions.append(y0 + (y1 - y0) * t)
+    y_last, hold_last = SCROLL_WAYPOINTS[-1]
+    positions.extend([y_last] * hold_last)
+    return positions
+
+
+def main():
+    if not HTML_PATH.exists():
+        print(f"ERROR: {HTML_PATH} not found. Run: python scripts/run_analysis.py --export")
         sys.exit(1)
 
-    total = _FRAMES_CAR + _FRAMES_SCROLL + _FRAMES_CHARTS
-    print(f"Capturing {total} frames from {HTML_PATH}...")
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    url = HTML_PATH.as_uri()
+
+    print(f"Launching browser → {url}")
+    frames_pil = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
-        page.goto(f"file://{HTML_PATH}")
-        frames = _capture_frames(page)
+
+        page.goto(url, wait_until="networkidle", timeout=30000)
+        # Wait for Three.js + Space Mono font
+        page.wait_for_timeout(2500)
+
+        page_h = page.evaluate("document.documentElement.scrollHeight")
+        max_scroll = max(page_h - VIEWPORT_H, 1)
+        print(f"Page height: {page_h}px  max_scroll: {max_scroll}px")
+
+        scroll_seq = build_scroll_sequence()
+        total = len(scroll_seq)
+
+        for idx, frac in enumerate(scroll_seq):
+            scroll_y = int(frac * max_scroll)
+            page.evaluate(f"window.scrollTo(0, {scroll_y})")
+            page.wait_for_timeout(18)
+
+            png_bytes = page.screenshot(type="png")
+            img = Image.open(BytesIO(png_bytes)).convert("RGB")
+
+            # Downsample to 900px wide to balance quality and file size
+            target_w = 900
+            scale = target_w / img.width
+            new_h = int(img.height * scale)
+            img = img.resize((target_w, new_h), Image.LANCZOS)
+
+            # Quantize to 72 colours — sufficient for dark UI palette
+            img_q = img.quantize(colors=72, method=Image.Quantize.MEDIANCUT, dither=0)
+            frames_pil.append(img_q)
+
+            if (idx + 1) % 10 == 0 or idx == total - 1:
+                print(f"  Captured {idx + 1}/{total} frames (scroll={scroll_y}px)")
+
         browser.close()
 
-    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-    frames[0].save(
-        OUTPUT_PATH,
+    print(f"Assembling GIF → {OUT_PATH}")
+    frames_pil[0].save(
+        OUT_PATH,
+        format="GIF",
         save_all=True,
-        append_images=frames[1:],
+        append_images=frames_pil[1:],
+        duration=FRAME_MS,
         loop=0,
-        duration=FRAME_INTERVAL_MS,
         optimize=True,
     )
-
-    size_mb = os.path.getsize(OUTPUT_PATH) / 1_000_000
-    print(f"  → {OUTPUT_PATH}  ({size_mb:.1f} MB)")
+    size_mb = OUT_PATH.stat().st_size / 1_048_576
+    print(f"Done. {len(frames_pil)} frames · {size_mb:.1f} MB → {OUT_PATH}")
 
 
 if __name__ == "__main__":

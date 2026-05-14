@@ -14,7 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from analytics import _ref_params
+from analytics import _ref_params, pit_stop_efficiency, dnf_rate_model, sector_deltas
 
 logger = logging.getLogger("f1_analytics")
 
@@ -22,11 +22,18 @@ _LOGO_PATH = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "redbullracinglogo.jpg")
 )
 
-_BG   = "#000000"
-_FONT = "Courier New, monospace"
-_GRID = "#1e1e1e"
-_TICK = "#888888"
-_ACCENT = "#FFFFFF"
+_BG         = "#030F1A"
+_BG_CARD    = "#040E18"
+_BG_HOVER   = "#071828"
+_GRID       = "#0A2035"
+_ZERO_LINE  = "#0F3050"
+_TICK       = "#4A7FA5"
+_FONT_COLOR = "#E0F2FE"
+_FONT       = "'Space Mono', 'Courier New', monospace"
+_ACCENT     = "#00D4FF"
+_ACCENT_DIM = "#007BA8"
+_STATUS_OK  = "#00FF87"
+_SPIKE      = "#00D4FF"
 
 _DRIVER_COLORS = {
     "Verstappen": "#1E41FF",  # blue
@@ -54,99 +61,137 @@ _HTML_TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <title>PLACEHOLDER_TITLE · F1 Performance Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
+:root{--bg:#030F1A;--bg-card:#040E18;--bg-hover:#071828;--accent:#00D4FF;--accent-d:#007BA8;--text:#E0F2FE;--dim:#4A7FA5;--ok:#00FF87;--border:#0A2035;--font:'Space Mono','Courier New',monospace}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:'Courier New',monospace;min-height:100vh}
-header{padding:36px 40px 28px;border-bottom:2px solid #CC0000;background:linear-gradient(180deg,#050505 0%,#000 100%)}
-.hd-team{font-size:.55rem;letter-spacing:.30em;color:#1E41FF;text-transform:uppercase;margin-bottom:6px}
+body{background:#030F1A;background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,.012) 2px,rgba(0,212,255,.012) 4px);color:#E0F2FE;font-family:'Space Mono','Courier New',monospace;min-height:100vh}
+.status-bar{display:flex;align-items:center;gap:24px;padding:6px 40px;background:rgba(3,15,26,.97);border-bottom:1px solid #007BA8;font-size:.50rem;letter-spacing:.20em;text-transform:uppercase;color:#4A7FA5;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#00FF87;animation:blink 2s step-end infinite;flex-shrink:0}
+.sb-label{color:#00D4FF}
+.sb-val{color:#E0F2FE}
+.sb-sep{color:#007BA8}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+header{padding:36px 40px 28px;border-bottom:2px solid #007BA8;background:linear-gradient(180deg,#050F1A 0%,#030F1A 100%)}
+.hd-team{font-size:.55rem;letter-spacing:.30em;color:#00D4FF;text-transform:uppercase;margin-bottom:6px}
 h1{font-size:1.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;line-height:1.1}
-h1 span.accent{color:#1E41FF}
-.sub{color:#555;font-size:.65rem;letter-spacing:.18em;margin-top:10px;text-transform:uppercase}
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #111}
-.stat-card{padding:18px 24px;border-right:1px solid #111;transition:background .2s}
+h1 span.accent{color:#00D4FF}
+.sub{color:#4A7FA5;font-size:.65rem;letter-spacing:.18em;margin-top:10px;text-transform:uppercase}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #0A2035}
+.stat-card{padding:20px 24px;border-right:1px solid #0A2035;transition:background .2s;position:relative}
 .stat-card:last-child{border-right:none}
-.stat-card:hover{background:#0a0a0a}
-.stat-val{font-size:1.35rem;font-weight:700;color:#fff;letter-spacing:.06em}
-.stat-lbl{font-size:.52rem;color:#555;letter-spacing:.20em;margin-top:4px;text-transform:uppercase}
-.car-viewer{padding:32px 0 0;display:flex;justify-content:center;border-bottom:1px solid #0f0f0f;background:radial-gradient(ellipse at 50% 60%,#090912 0%,#000 70%);cursor:pointer}
+.stat-card:hover{background:#071828}
+.stat-card::before,.stat-card::after{content:'';position:absolute;width:8px;height:8px;border-color:#007BA8;border-style:solid}
+.stat-card::before{top:6px;left:6px;border-width:1px 0 0 1px}
+.stat-card::after{bottom:6px;right:6px;border-width:0 1px 1px 0}
+.stat-top{display:flex;align-items:baseline;gap:4px}
+.stat-val{font-size:1.6rem;font-weight:700;color:#E0F2FE;letter-spacing:.04em;line-height:1}
+.stat-unit{font-size:.52rem;color:#4A7FA5;letter-spacing:.14em;text-transform:uppercase;align-self:flex-end;margin-bottom:2px}
+.stat-lbl{font-size:.48rem;color:#4A7FA5;letter-spacing:.20em;margin-top:6px;text-transform:uppercase}
+.stat-status{display:flex;align-items:center;gap:6px;margin-top:5px}
+.stat-dot{width:5px;height:5px;border-radius:50%;background:#00FF87;animation:blink 2s step-end infinite}
+.stat-ok-text{font-size:.42rem;color:#00FF87;letter-spacing:.16em;text-transform:uppercase}
+.car-viewer{padding:32px 0 0;display:flex;justify-content:center;border-bottom:1px solid #0A2035;background:radial-gradient(ellipse at 50% 60%,#040D1A 0%,#030F1A 70%);cursor:pointer;position:relative}
+.car-viewer::before{content:'RB20 \00B7 LIVE RENDER';position:absolute;top:10px;left:20px;font-size:.48rem;letter-spacing:.28em;color:#007BA8;text-transform:uppercase;font-family:'Space Mono','Courier New',monospace}
 #f1car{display:block;width:100%;height:440px}
 .charts{padding:40px;display:grid;grid-template-columns:1fr;gap:40px}
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
-.chart-section{border-top:1px solid #1a1a1a;padding-top:20px}
-.chart-label{font-size:.60rem;letter-spacing:.25em;color:#1E41FF;text-transform:uppercase;margin-bottom:12px}
-footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:space-between;align-items:center}
-.ft-left{font-size:.52rem;color:#333;letter-spacing:.15em;text-transform:uppercase}
-.ft-right{font-size:.52rem;color:#333;letter-spacing:.10em}
-.ft-right span{color:#1E41FF}
-@media(max-width:860px){.chart-row{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}}
+.chart-section{border-top:1px solid #0A2035;padding-top:20px;position:relative}
+.chart-section[data-section]::before{content:attr(data-section);position:absolute;top:-9px;left:0;font-size:.40rem;letter-spacing:.25em;color:#007BA8;background:#030F1A;padding-right:8px;font-family:'Space Mono','Courier New',monospace}
+.chart-section::after{content:'';position:absolute;top:-1px;right:0;width:12px;height:12px;border-top:1px solid #00D4FF;border-right:1px solid #00D4FF}
+.chart-label{font-size:.60rem;letter-spacing:.25em;color:#00D4FF;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.chart-label::before{content:'//';color:#007BA8;letter-spacing:0}
+.telemetry-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;padding-top:16px}
+.telem-panel{border:1px solid #0A2035;padding:16px 18px;position:relative;background:#040E18}
+.telem-panel::before,.telem-panel::after{content:'';position:absolute;width:10px;height:10px;border-color:#00D4FF;border-style:solid}
+.telem-panel::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.telem-panel::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.telem-label{font-size:.48rem;letter-spacing:.25em;color:#00D4FF;text-transform:uppercase;margin-bottom:10px;font-family:'Space Mono','Courier New',monospace}
+footer{padding:20px 40px;border-top:1px solid #0A2035;display:flex;justify-content:space-between;align-items:center}
+.ft-left{font-size:.52rem;color:#4A7FA5;letter-spacing:.15em;text-transform:uppercase}
+.ft-right{font-size:.52rem;color:#4A7FA5;letter-spacing:.10em}
+.ft-right span{color:#00D4FF}
+@media(max-width:860px){.chart-row{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}.telemetry-row{grid-template-columns:1fr}}
 @media(max-width:480px){h1{font-size:1.3rem}.stats-row{grid-template-columns:1fr}.charts{padding:24px}}
 .logo-bar{display:flex;justify-content:center;padding:28px 0 16px}
 .logo-img{height:81px;display:block;filter:invert(1) hue-rotate(180deg)}
-#game-overlay{display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column}
-#game-overlay.active{display:flex}
-#game-canvas{flex:1;width:100%;display:block;outline:none}
-#hud{display:flex;flex-direction:column;padding:0;font-family:'Courier New',monospace;font-size:13px;color:#fff;border-top:1px solid #1E41FF;flex-shrink:0;position:relative}
-#hud-main{display:flex;align-items:center;gap:10px;padding:6px 14px;background:#000}
-#hud-sectors{display:flex;gap:16px;align-items:center;padding:2px 14px 4px;font-size:11px;background:#000;border-top:1px solid #111}
-.hud-pos{color:#1E41FF;font-weight:700;font-size:17px;min-width:28px}
-.hud-lap{color:#ccc;min-width:72px}
-.hud-timer{color:#fff;min-width:80px;font-weight:700}
-.hud-speed{color:#888;min-width:70px}
+#game-overlay{display:none;position:fixed;inset:0;z-index:9999;background:#000}
+#game-overlay.active{display:grid;grid-template-rows:1fr auto}
+#game-canvas{width:100%;height:100%;display:block;outline:none;min-height:0}
+#hud{display:flex;flex-direction:column;padding:0;font-family:'Space Mono','Courier New',monospace;font-size:13px;color:#E0F2FE;border-top:1px solid #00D4FF;flex-shrink:0;position:relative}
+#hud-main{display:flex;align-items:center;gap:10px;padding:6px 14px;background:#030F1A}
+#hud-sectors{display:flex;gap:16px;align-items:center;padding:2px 14px 4px;font-size:11px;background:#030F1A;border-top:1px solid #0A2035}
+.hud-pos{color:#00D4FF;font-weight:700;font-size:17px;min-width:28px}
+.hud-lap{color:#4A7FA5;min-width:72px}
+.hud-timer{color:#E0F2FE;min-width:80px;font-weight:700}
+.hud-speed{color:#4A7FA5;min-width:70px}
 .hud-gear-wrap{display:flex;flex-direction:column;align-items:center;min-width:52px}
-.hud-gear{font-size:26px;font-weight:900;color:#fff;line-height:1;transition:color .05s}
+.hud-gear{font-size:26px;font-weight:900;color:#E0F2FE;line-height:1;transition:color .05s}
 .hud-gear.flash{color:#ff4400}
-.hud-rpm-bar{width:48px;height:5px;background:#111;border-radius:2px;margin-top:2px}
-.hud-rpm-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#1E41FF 0%,#00ff44 65%,#ff4400 100%);width:0%;transition:width .04s}
-.hud-drs{color:#333;border:1px solid #333;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.12em;transition:color .15s,border-color .15s,text-shadow .15s}
-.hud-drs.on{color:#00ff88;border-color:#00ff88;text-shadow:0 0 8px #00ff88}
+.hud-rpm-bar{width:48px;height:5px;background:#0A2035;border-radius:2px;margin-top:2px}
+.hud-rpm-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#00D4FF 0%,#00FF87 65%,#ff4400 100%);width:0%;transition:width .04s}
+.hud-drs{color:#0A2035;border:1px solid #0A2035;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.12em;transition:color .15s,border-color .15s,text-shadow .15s}
+.hud-drs.on{color:#00FF87;border-color:#00FF87;text-shadow:0 0 8px #00FF87}
 .hud-tires{display:flex;align-items:center;gap:4px}
-.hud-tire-label{color:#555;font-size:10px;min-width:8px}
-.hud-tire-wrap{width:52px;height:8px;background:#1a1a1a;border-radius:3px;overflow:hidden;border:1px solid #222}
+.hud-tire-label{color:#4A7FA5;font-size:10px;min-width:8px}
+.hud-tire-wrap{width:52px;height:8px;background:#0A2035;border-radius:3px;overflow:hidden;border:1px solid #0F3050}
 .hud-tire-bar{height:100%;width:100%;border-radius:3px;transition:width .1s,background .3s}
-.hud-tire-temp{width:7px;height:7px;border-radius:50%;background:#555;transition:background .4s}
-.hud-s1,.hud-s2,.hud-s3{color:#666;min-width:88px;font-size:11px}
+.hud-tire-temp{width:7px;height:7px;border-radius:50%;background:#4A7FA5;transition:background .4s}
+.hud-s1,.hud-s2,.hud-s3{color:#4A7FA5;min-width:88px;font-size:11px}
 .hud-s1.purple,.hud-s2.purple,.hud-s3.purple{color:#cc00ff;font-weight:700}
-.hud-s1.green,.hud-s2.green,.hud-s3.green{color:#00ff44;font-weight:700}
+.hud-s1.green,.hud-s2.green,.hud-s3.green{color:#00FF87;font-weight:700}
 .hud-s1.yellow,.hud-s2.yellow,.hud-s3.yellow{color:#ffdd00}
-.hud-delta{color:#888;min-width:80px;font-size:11px}
-.hud-delta.green{color:#00ff44}
+.hud-delta{color:#4A7FA5;min-width:80px;font-size:11px}
+.hud-delta.green{color:#00FF87}
 .hud-delta.red{color:#ff4400}
-.hud-msg{flex:1;text-align:center;color:#444;font-size:10px;letter-spacing:.10em}
-.hud-close{margin-left:auto;background:none;border:1px solid #CC0000;color:#CC0000;font-family:'Courier New',monospace;cursor:pointer;padding:3px 10px;font-size:12px;letter-spacing:.08em}
+.hud-msg{flex:1;text-align:center;color:#0A2035;font-size:10px;letter-spacing:.10em}
+.hud-close{margin-left:auto;background:none;border:1px solid #CC0000;color:#CC0000;font-family:'Space Mono','Courier New',monospace;cursor:pointer;padding:3px 10px;font-size:12px;letter-spacing:.08em}
 .hud-close:hover{background:#CC0000;color:#000}
-#hud-minimap{position:absolute;bottom:8px;right:12px;border:1px solid #1E41FF;background:rgba(0,0,0,.75);border-radius:4px;pointer-events:none}
+#hud-minimap{position:absolute;bottom:8px;right:12px;border:1px solid #00D4FF;background:rgba(3,15,26,.80);border-radius:4px;pointer-events:none}
 #hud-wheel{position:absolute;bottom:10px;right:182px;pointer-events:none}
-#podium-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,.90);flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;color:#fff}
+#podium-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(3,15,26,.93);flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono','Courier New',monospace;color:#E0F2FE}
 #podium-overlay.active{display:flex}
-#podium-overlay h2{font-size:1.4rem;letter-spacing:.25em;color:#1E41FF;margin-bottom:24px;text-transform:uppercase}
+#podium-overlay h2{font-size:1.4rem;letter-spacing:.25em;color:#00D4FF;margin-bottom:24px;text-transform:uppercase}
 #podium-table{border-collapse:collapse;font-size:.85rem}
-#podium-table td{padding:6px 20px;border-bottom:1px solid #1a1a1a}
-#podium-table td:first-child{color:#555;text-align:right}
-#podium-table td:nth-child(2){color:#fff;font-weight:700}
-#podium-table td:last-child{color:#888;text-align:right}
+#podium-table td{padding:6px 20px;border-bottom:1px solid #0A2035}
+#podium-table td:first-child{color:#4A7FA5;text-align:right}
+#podium-table td:nth-child(2){color:#E0F2FE;font-weight:700}
+#podium-table td:last-child{color:#4A7FA5;text-align:right}
 .podium-p1 td{color:#ffd700 !important}
-.podium-btn{margin-top:28px;background:none;border:1px solid #1E41FF;color:#1E41FF;font-family:'Courier New',monospace;cursor:pointer;padding:7px 22px;letter-spacing:.12em;font-size:.8rem}
-.podium-btn:hover{background:#1E41FF;color:#000}
-#pause-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(0,0,0,.82);flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;color:#fff}
+.podium-btn{margin-top:28px;background:none;border:1px solid #00D4FF;color:#00D4FF;font-family:'Space Mono','Courier New',monospace;cursor:pointer;padding:7px 22px;letter-spacing:.12em;font-size:.8rem}
+.podium-btn:hover{background:#00D4FF;color:#030F1A}
+#pause-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(3,15,26,.85);flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono','Courier New',monospace;color:#E0F2FE}
 #pause-overlay.active{display:flex}
-#pause-overlay h2{font-size:1.8rem;letter-spacing:.35em;color:#1E41FF;text-transform:uppercase;margin-bottom:14px}
-#pause-overlay p{color:#555;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase}
-#lights-bar{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:20001;gap:10px;padding:10px 18px;background:rgba(0,0,0,.9);border:1px solid #330000;border-radius:8px;pointer-events:none}
+#pause-overlay h2{font-size:1.8rem;letter-spacing:.35em;color:#00D4FF;text-transform:uppercase;margin-bottom:14px}
+#pause-overlay p{color:#4A7FA5;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase}
+#lights-bar{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:20001;gap:10px;padding:10px 18px;background:rgba(3,15,26,.92);border:1px solid #330000;border-radius:8px;pointer-events:none}
 #lights-bar.active{display:flex}
 .light-bulb{width:30px;height:30px;border-radius:50%;background:#1a0000;border:2px solid #440000;transition:background .06s,box-shadow .06s}
 .light-bulb.lit{background:#ff2200;border-color:#ff5500;box-shadow:0 0 14px #ff2200,0 0 32px #880000}
 #go-flash{display:none;position:absolute;inset:0;background:rgba(255,255,255,.88);z-index:20002;pointer-events:none}
-#grid-msg{display:none;position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:20001;color:#fff;font-family:'Courier New',monospace;font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;text-align:center;text-shadow:0 0 8px #1E41FF;pointer-events:none}
+#grid-msg{display:none;position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:20001;color:#E0F2FE;font-family:'Space Mono','Courier New',monospace;font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;text-align:center;text-shadow:0 0 8px #00D4FF;pointer-events:none}
 #grid-msg.active{display:block}
 </style>
 </head>
 <body>
+<div class="status-bar">
+  <div class="sb-dot"></div>
+  <span><span class="sb-label">SYSTEM</span>&nbsp;<span class="sb-val">NOMINAL</span></span>
+  <span class="sb-sep">&middot;</span>
+  <span><span class="sb-label">MET</span>&nbsp;<span class="sb-val" id="met-clock">T+00:00:00</span></span>
+  <span class="sb-sep">&middot;</span>
+  <span><span class="sb-label">DRIVERS</span>&nbsp;<span class="sb-val">PLACEHOLDER_DRIVER_COUNT</span></span>
+  <span class="sb-sep">&middot;</span>
+  <span><span class="sb-label">DATA</span>&nbsp;<span class="sb-val">PLACEHOLDER_TS</span></span>
+</div>
 <div class="logo-bar">PLACEHOLDER_LOGO</div>
 <header>
   <div class="hd-team">Oracle Red Bull Racing</div>
-  <h1>Red Bull F1 Analytics</h1>
+  <h1>Red Bull <span class="accent">F1</span> Analytics</h1>
   <p class="sub">PLACEHOLDER_SUBTITLE</p>
 </header>
 <div class="stats-row">PLACEHOLDER_STATS</div>
@@ -190,7 +235,7 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
       <line x1="-14" y1="0" x2="14" y2="0" stroke="#555" stroke-width="1.5"/>
       <line x1="0" y1="-14" x2="0" y2="14" stroke="#555" stroke-width="1.5"/>
       <g id="hud-wheel-ind">
-        <line x1="-18" y1="0" x2="18" y2="0" stroke="#1E41FF" stroke-width="3" stroke-linecap="round"/>
+        <line x1="-18" y1="0" x2="18" y2="0" stroke="#00D4FF" stroke-width="3" stroke-linecap="round"/>
       </g>
     </svg>
   </div>
@@ -214,32 +259,49 @@ footer{padding:20px 40px;border-top:1px solid #111;display:flex;justify-content:
   </div>
 </div>
 <div class="charts">
-  <div class="chart-section">
-    <div class="chart-label">Championship · Points Trajectory</div>
+  <div class="chart-section" data-section="SYS&middot;01">
+    <div class="chart-label">Championship &middot; Points Trajectory</div>
     PLACEHOLDER_C1
   </div>
   <div class="chart-row">
-    <div class="chart-section">
-      <div class="chart-label">Finish Positions · Season</div>
+    <div class="chart-section" data-section="SYS&middot;02">
+      <div class="chart-label">Finish Positions &middot; Season</div>
       PLACEHOLDER_C2
     </div>
-    <div class="chart-section">
-      <div class="chart-label">Driver Delta · Points Gap</div>
+    <div class="chart-section" data-section="SYS&middot;03">
+      <div class="chart-label">Driver Delta &middot; Points Gap</div>
       PLACEHOLDER_C3
     </div>
   </div>
-  <div class="chart-section">
-    <div class="chart-label">Performance Matrix · All Seasons</div>
+  <div class="chart-section" data-section="SYS&middot;04">
+    <div class="chart-label">Performance Matrix &middot; All Seasons</div>
     PLACEHOLDER_C4
   </div>
-  <div class="chart-section">
-    <div class="chart-label">Pace · Grid vs Finish</div>
+  <div class="chart-section" data-section="SYS&middot;05">
+    <div class="chart-label">Pace &middot; Grid vs Finish</div>
     PLACEHOLDER_C5
+  </div>
+  <div class="chart-section" data-section="SYS&middot;06">
+    <div class="chart-label">Telemetry &middot; Advanced Analytics</div>
+    <div class="telemetry-row">
+      <div class="telem-panel">
+        <div class="telem-label">Pit Stop Efficiency &middot; Z-Score</div>
+        PLACEHOLDER_C6
+      </div>
+      <div class="telem-panel">
+        <div class="telem-label">Reliability Model &middot; DNF Rate</div>
+        PLACEHOLDER_C7
+      </div>
+      <div class="telem-panel">
+        <div class="telem-label">Sector Delta &middot; Green-Flag Laps</div>
+        PLACEHOLDER_C8
+      </div>
+    </div>
   </div>
 </div>
 <footer>
-  <div class="ft-left">Oracle Red Bull Racing · Performance Analytics</div>
-  <div class="ft-right">Generated PLACEHOLDER_TS &nbsp;·&nbsp; <span>Oracle Red Bull Racing</span></div>
+  <div class="ft-left">Oracle Red Bull Racing &middot; Performance Analytics</div>
+  <div class="ft-right">Generated <span>PLACEHOLDER_TS</span> &nbsp;&middot;&nbsp; Oracle Red Bull Racing</div>
 </footer>
 <script>
 (function(){
@@ -563,30 +625,18 @@ var AI_NAMES=['VERSTAPPEN','PEREZ','HAMILTON','LECLERC'];
 
 /* ===================== TRACK ===================== */
 var trackPts=[
-  new THREE.Vector3( 130, 0,   5),
-  new THREE.Vector3(  80, 0,   5),
-  new THREE.Vector3(  40, 0,   5),
-  new THREE.Vector3(  12, 0,  -8),
-  new THREE.Vector3(  -2, 0, -35),
-  new THREE.Vector3( -10, 0, -58),
-  new THREE.Vector3( -45, 0, -68),
-  new THREE.Vector3( -85, 0, -72),
-  new THREE.Vector3(-115, 0, -65),
-  new THREE.Vector3(-138, 0, -40),
-  new THREE.Vector3(-145, 0, -10),
-  new THREE.Vector3(-138, 0,  18),
-  new THREE.Vector3(-120, 1,  38),
-  new THREE.Vector3( -95, 2,  58),
-  new THREE.Vector3( -65, 3,  72),
-  new THREE.Vector3( -30, 3,  80),
-  new THREE.Vector3(   5, 3,  80),
-  new THREE.Vector3(  35, 3,  72),
-  new THREE.Vector3(  60, 2,  60),
-  new THREE.Vector3(  72, 2,  42),
-  new THREE.Vector3(  65, 1,  22),
-  new THREE.Vector3(  88, 0,  12),
-  new THREE.Vector3( 108, 0,   8),
-  new THREE.Vector3( 122, 0,   5)
+  new THREE.Vector3(-120, 0,  80),
+  new THREE.Vector3(   0, 0,  80),
+  new THREE.Vector3( 100, 0,  80),
+  new THREE.Vector3( 130, 0,  40),
+  new THREE.Vector3( 130, 0, -40),
+  new THREE.Vector3( 100, 0, -80),
+  new THREE.Vector3(  40, 0, -90),
+  new THREE.Vector3(   0, 0,-105),
+  new THREE.Vector3( -50, 0, -75),
+  new THREE.Vector3(-100, 0, -80),
+  new THREE.Vector3(-130, 0, -40),
+  new THREE.Vector3(-130, 0,  40),
 ];
 var trackCurve=new THREE.CatmullRomCurve3(trackPts,true,'catmullrom',0.5);
 var wpAll=trackCurve.getSpacedPoints(SEGS);
@@ -651,13 +701,13 @@ scene.add(sun);
     wp=waypoints[i];p=wpPerp(i);hw=TW*0.5;
     rPos.push(wp.x+p.x*hw,wp.y+0.06,wp.z+p.z*hw,
               wp.x-p.x*hw,wp.y+0.06,wp.z-p.z*hw);
-    if(i<N-1){b=i*2;rIdx.push(b,b+2,b+1,b+1,b+2,b+3);}
+    if(i<N-1){b=i*2;rIdx.push(b,b+1,b+2,b+2,b+1,b+3);}
   }
-  b=(N-1)*2;rIdx.push(b,0,b+1,b+1,0,1);
+  b=(N-1)*2;rIdx.push(b,b+1,0,0,b+1,1);
   var rGeo=new THREE.BufferGeometry();
   rGeo.setAttribute('position',new THREE.Float32BufferAttribute(rPos,3));
   rGeo.setIndex(rIdx);rGeo.computeVertexNormals();
-  var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.9}));
+  var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x787878,roughness:0.85,metalness:0.0}));
   road.receiveShadow=true;scene.add(road);
 
   /* Kerbs */
@@ -670,7 +720,7 @@ scene.add(sun);
               wp.x-p.x*(hw+CURB), wp.y+0.07,wp.z-p.z*(hw+CURB));
     if(i<N-1){
       b=i*4;
-      kIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);
+      kIdx.push(b,b+1,b+4,b+4,b+1,b+5,b+2,b+3,b+6,b+6,b+3,b+7);
     }
   }
   var kGeo=new THREE.BufferGeometry();
@@ -683,10 +733,15 @@ scene.add(sun);
   hw=TW*0.5+CURB+0.3;
   for(i=0;i<N;i++){
     wp=waypoints[i];p=wpPerp(i);
-    baPos.push(wp.x+p.x*hw,wp.y,    wp.z+p.z*hw,
-               wp.x+p.x*hw,wp.y+BH, wp.z+p.z*hw,
-               wp.x-p.x*hw,wp.y,    wp.z-p.z*hw,
-               wp.x-p.x*hw,wp.y+BH, wp.z-p.z*hw);
+    var dA=wpDir(i),dB=wpDir((i+2)%N);
+    var cross=dA.x*dB.z-dA.z*dB.x;
+    var inFrac=Math.max(0.72,1-Math.abs(cross)*1.8);
+    var leftHw =cross>0?hw*inFrac:hw;
+    var rightHw=cross<0?hw*inFrac:hw;
+    baPos.push(wp.x+p.x*leftHw, wp.y,    wp.z+p.z*leftHw,
+               wp.x+p.x*leftHw, wp.y+BH, wp.z+p.z*leftHw,
+               wp.x-p.x*rightHw,wp.y,    wp.z-p.z*rightHw,
+               wp.x-p.x*rightHw,wp.y+BH, wp.z-p.z*rightHw);
     if(i<N-1){
       b=i*4;
       baIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);
@@ -697,16 +752,21 @@ scene.add(sun);
   baGeo.setIndex(baIdx);baGeo.computeVertexNormals();
   scene.add(new THREE.Mesh(baGeo,new THREE.MeshStandardMaterial({color:0xe0e0e0,roughness:0.3,metalness:0.45})));
 
-  /* Armco red stripe */
+  /* Armco red stripe — curvature-aware offset matches armco */
   var strPos=[],strIdx=[];
-  hw=TW*0.5+CURB+0.3;
   var sY=BH*0.58,sH=0.28;
   for(i=0;i<N;i++){
     wp=waypoints[i];p=wpPerp(i);
-    strPos.push(wp.x+p.x*hw,wp.y+sY,      wp.z+p.z*hw,
-                wp.x+p.x*hw,wp.y+sY+sH,   wp.z+p.z*hw,
-                wp.x-p.x*hw,wp.y+sY,      wp.z-p.z*hw,
-                wp.x-p.x*hw,wp.y+sY+sH,   wp.z-p.z*hw);
+    var dAS=wpDir(i),dBS=wpDir((i+2)%N);
+    var crossS=dAS.x*dBS.z-dAS.z*dBS.x;
+    var inFracS=Math.max(0.72,1-Math.abs(crossS)*1.8);
+    var strHw=TW*0.5+CURB+0.3;
+    var leftStrHw =crossS>0?strHw*inFracS:strHw;
+    var rightStrHw=crossS<0?strHw*inFracS:strHw;
+    strPos.push(wp.x+p.x*leftStrHw, wp.y+sY,    wp.z+p.z*leftStrHw,
+                wp.x+p.x*leftStrHw, wp.y+sY+sH, wp.z+p.z*leftStrHw,
+                wp.x-p.x*rightStrHw,wp.y+sY,    wp.z-p.z*rightStrHw,
+                wp.x-p.x*rightStrHw,wp.y+sY+sH, wp.z-p.z*rightStrHw);
     if(i<N-1){b=i*4;strIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);}
   }
   var strGeo=new THREE.BufferGeometry();
@@ -745,9 +805,9 @@ scene.add(sun);
   var mLeaf=new THREE.MeshStandardMaterial({color:0x1a5c0a,roughness:1});
   for(var ti=0;ti<N;ti+=10){
     var twp=waypoints[ti],tp=wpPerp(ti);
-    var offs=TW*0.5+CURB+5;
+    var offs=TW*0.5+CURB+9;
     [1,-1].forEach(function(s){
-      var jitter=(ti%20===0?3:ti%30===0?-2:1);
+      var jitter=(ti%20===0?4:ti%30===0?2:1);
       var ox=twp.x+tp.x*s*(offs+jitter),oz=twp.z+tp.z*s*(offs+jitter);
       var trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,3.5,7),mTrunk);
       trunk.position.set(ox,twp.y+1.75,oz);scene.add(trunk);
@@ -759,7 +819,7 @@ scene.add(sun);
   /* Grandstands on main straight */
   var mConc=new THREE.MeshStandardMaterial({color:0xc8c8b8,roughness:0.85});
   var mSeat=new THREE.MeshStandardMaterial({color:0x1E41FF,roughness:0.8});
-  [[80,0,-28],[80,0,36]].forEach(function(s){
+  [[-10,0,107],[-10,0,53]].forEach(function(s){
     var base=new THREE.Mesh(new THREE.BoxGeometry(55,2,10),mConc);
     base.position.set(s[0],s[1]+1,s[2]);scene.add(base);
     var tier=new THREE.Mesh(new THREE.BoxGeometry(55,3.5,6),mConc);
@@ -768,15 +828,22 @@ scene.add(sun);
     seats.position.set(s[0],s[1]+6.1,s[2]+(s[2]<0?3.5:-3.5));scene.add(seats);
   });
 
-  /* Tire stacks at hairpin */
+  /* Tire stacks at hairpin outer wall — dynamically positioned from spline */
   var mTireW=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9});
   var mTireR=new THREE.MeshStandardMaterial({color:0xcc0000,roughness:0.9});
-  [-3,-1.5,0,1.5,3].forEach(function(oz){
-    [mTireW,mTireR,mTireW].forEach(function(mt,ti2){
-      var tc=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.9,12),mt);
-      tc.position.set(-148,ti2*0.9+0.45,oz);scene.add(tc);
+  (function(){
+    var hpIdx=490;
+    var hpP=wpPerp(hpIdx);
+    var stackOff=TW*0.5+CURB+3.5;
+    [-2,-0.7,0.7,2].forEach(function(along){
+      var aWp=waypoints[(hpIdx+Math.round(along*8)+N)%N];
+      [mTireW,mTireR,mTireW].forEach(function(mt,ti2){
+        var tc=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.9,12),mt);
+        tc.position.set(aWp.x+hpP.x*stackOff,aWp.y+ti2*0.9+0.45,aWp.z+hpP.z*stackOff);
+        scene.add(tc);
+      });
     });
-  });
+  })();
 })();
 
 /* ===================== CAR BUILDER ===================== */
@@ -880,9 +947,9 @@ var P={x:0,z:0,y:0,heading:0,speed:0,yawRate:0,tIdx:0,lap:1,
   tireWear:1.0,tireTempF:0.3,tireTempR:0.3,_lapGuard:false};
 
 var AI=[
-  {tIdx:N-4, latOff: 1.8, spdFac:0.94,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
-  {tIdx:N-8, latOff:-1.8, spdFac:0.86,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
-  {tIdx:N-12,latOff: 1.8, spdFac:0.78,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true}
+  {tIdx:N-4, latOff: 1.8, spdFac:0.98,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
+  {tIdx:N-8, latOff:-1.8, spdFac:0.95,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true},
+  {tIdx:N-12,latOff: 1.8, spdFac:0.91,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true}
 ];
 
 var keys={};
@@ -1024,15 +1091,15 @@ function setSec(el,cls,t,best){
 /* ===================== AI ===================== */
 function updateAI(ai,dt){
   if(gameState!=='RACING') return;
-  var tgt=waypoints[(ai.tIdx+8)%N];
+  var tgt=waypoints[(ai.tIdx+14)%N];
   var dx=tgt.x-ai.x,dz=tgt.z-ai.z;
   var th=Math.atan2(dx,dz),dh=th-ai.heading;
   while(dh>Math.PI) dh-=2*Math.PI;while(dh<-Math.PI) dh+=2*Math.PI;
-  ai.yawRate+=(dh*1.2-ai.yawRate*0.08)*Math.min(dt*5,1);ai.yawRate*=Math.max(0,1-dt*7.5);
+  ai.yawRate+=(dh*1.8-ai.yawRate*0.08)*Math.min(dt*5,1);ai.yawRate*=Math.max(0,1-dt*7.5);
   ai.heading+=ai.yawRate*ai.speed*0.6*dt;
   var corner=Math.min(Math.abs(dh)/0.8,1);
-  var tspd=MAX_SPD*(0.63+0.37*(1-corner))*ai.spdFac;
-  ai.speed=Math.max(0,Math.min(ai.speed+((tspd>ai.speed?8000:-14000)/CAR_MASS)*dt,MAX_SPD*0.92));
+  var tspd=MAX_SPD*(0.72+0.28*(1-corner))*ai.spdFac;
+  ai.speed=Math.max(0,Math.min(ai.speed+((tspd>ai.speed?10500:-18000)/CAR_MASS)*dt,MAX_SPD*0.98));
   ai.x+=Math.sin(ai.heading)*ai.speed*dt;
   ai.z+=Math.cos(ai.heading)*ai.speed*dt;
   ai.tIdx=closestWP(ai.x,ai.z,ai.tIdx);
@@ -1213,6 +1280,16 @@ function loop(ts){
 }
 
 })();
+(function(){
+  var s0=Date.now();
+  function tick(){
+    var s=Math.floor((Date.now()-s0)/1000);
+    var el=document.getElementById('met-clock');
+    if(el) el.textContent='T+'+[Math.floor(s/3600),Math.floor(s%3600/60),s%60]
+      .map(function(v){return String(v).padStart(2,'0')}).join(':');
+  }
+  tick(); setInterval(tick,1000);
+})();
 </script>
 
 </body>
@@ -1225,13 +1302,13 @@ function loop(ts){
 
 def _axis_2d(title: str = "") -> dict:
     return dict(
-        title=dict(text=title, font=dict(color="#555555", family=_FONT, size=9)),
-        gridcolor="#111111",
-        zerolinecolor="#222222",
+        title=dict(text=title, font=dict(color=_TICK, family=_FONT, size=9)),
+        gridcolor=_GRID,
+        zerolinecolor=_ZERO_LINE,
         tickfont=dict(color=_TICK, family=_FONT, size=9),
         showgrid=True,
         showspikes=True,
-        spikecolor="#1E41FF",
+        spikecolor=_SPIKE,
         spikethickness=1,
         spikedash="solid",
         spikemode="across",
@@ -1243,7 +1320,7 @@ def _layout_2d(title: str, xaxis_title: str = "", yaxis_title: str = "",
     return go.Layout(
         title=dict(
             text=title,
-            font=dict(color="#ffffff", family=_FONT, size=13),
+            font=dict(color=_FONT_COLOR, family=_FONT, size=13),
             x=0,
             xanchor="left",
             pad=dict(t=4, l=0),
@@ -1252,23 +1329,23 @@ def _layout_2d(title: str, xaxis_title: str = "", yaxis_title: str = "",
         plot_bgcolor=_BG,
         xaxis=_axis_2d(xaxis_title),
         yaxis=_axis_2d(yaxis_title),
-        font=dict(family=_FONT, color="#ffffff"),
+        font=dict(family=_FONT, color=_FONT_COLOR),
         margin=dict(l=52, r=24, t=56, b=48),
         height=height,
         showlegend=True,
         legend=dict(
-            font=dict(family=_FONT, color="#888888", size=10),
-            bgcolor="rgba(0,0,0,0)",
-            bordercolor="#222222",
+            font=dict(family=_FONT, color=_TICK, size=10),
+            bgcolor="rgba(3,15,26,0)",
+            bordercolor=_GRID,
             borderwidth=1,
         ),
         hovermode=hovermode,
         hoverdistance=80,
         spikedistance=400,
         hoverlabel=dict(
-            bgcolor="#0a0a0a",
-            bordercolor="#1E41FF",
-            font=dict(family=_FONT, size=11, color="#ffffff"),
+            bgcolor=_BG_HOVER,
+            bordercolor=_ACCENT,
+            font=dict(family=_FONT, size=11, color=_FONT_COLOR),
             namelength=-1,
         ),
     )
@@ -1358,7 +1435,7 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
             mode="lines+markers",
             name=surname,
             line=dict(color=color, width=3, shape="spline"),
-            marker=dict(size=6, color=color, line=dict(color="#000000", width=1)),
+            marker=dict(size=6, color=color, line=dict(color="#030F1A", width=1)),
             fill="tozeroy",
             fillcolor=fill_color,
             hovertemplate=f"<b>{surname}</b>  %{{y}} pts<extra></extra>",
@@ -1373,7 +1450,7 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
                 marker=dict(
                     symbol="star-diamond", size=12,
                     color="#FFD700",
-                    line=dict(color="#000000", width=1),
+                    line=dict(color="#030F1A", width=1),
                 ),
                 showlegend=False,
                 hovertemplate=f"<b>{surname}</b>  WIN  %{{y}} pts<extra></extra>",
@@ -1418,7 +1495,7 @@ def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
             mode="lines+markers",
             name=driver.split()[-1],
             line=dict(color=color, width=4, shape="spline"),
-            marker=dict(size=9, color=color, line=dict(color="#000000", width=1.5)),
+            marker=dict(size=9, color=color, line=dict(color="#030F1A", width=1.5)),
             hovertemplate="<b>%{fullData.name}</b>  P%{y}<extra></extra>",
         ))
     return fig
@@ -1454,7 +1531,7 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
     color_a = _driver_color(d_a, 0)
     color_b = _driver_color(d_b, 1)
 
-    fig.add_hline(y=0, line=dict(color="#333333", width=1, dash="dot"))
+    fig.add_hline(y=0, line=dict(color=_GRID, width=1, dash="dot"))
 
     pos_gap = [g if g >= 0 else 0 for g in gap]
     neg_gap = [g if g < 0 else 0 for g in gap]
@@ -1528,11 +1605,11 @@ def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
         text[ri][ci] = row["label"]
 
     colorscale = [
-        [0.00, "#FFD700"],
+        [0.00, "#00D4FF"],
         [0.10, "#1E41FF"],
-        [0.40, "#555555"],
-        [0.75, "#CC0000"],
-        [1.00, "#1a0000"],
+        [0.40, "#0A2035"],
+        [0.75, "#8B0000"],
+        [1.00, "#4A0000"],
     ]
 
     fig.add_trace(go.Heatmap(
@@ -1568,7 +1645,7 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
     fig.add_trace(go.Scatter(
         x=[1, mx], y=[1, mx],
         mode="lines",
-        line=dict(color="#333333", width=1.5, dash="dash"),
+        line=dict(color=_ZERO_LINE, width=1.5, dash="dash"),
         showlegend=False,
         hoverinfo="skip",
     ))
@@ -1591,7 +1668,7 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
             customdata=list(zip(g["year"], delta)),
             marker=dict(
                 size=7, color=point_colors,
-                line=dict(color="#000000", width=0.5),
+                line=dict(color="#030F1A", width=0.5),
             ),
             hovertemplate=(
                 "<b>%{fullData.name}</b>  %{customdata[0]}<br>"
@@ -1619,6 +1696,111 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
 
 
 # --------------------------------------------------------------------------- #
+#  Telemetry chart builders                                                     #
+# --------------------------------------------------------------------------- #
+
+def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
+    """Pit stop efficiency — z-score horizontal bar per driver."""
+    layout = _layout_2d(
+        "PIT STOP EFFICIENCY · Z-SCORE",
+        xaxis_title="Z-SCORE (σ)",
+        height=280,
+        hovermode="closest",
+    )
+    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    fig = go.Figure(layout=layout)
+    if df.empty:
+        return fig
+
+    colors = [_ACCENT if z <= 0 else "#FF4400" for z in df["mean_z"]]
+    fig.add_trace(go.Bar(
+        x=df["mean_z"],
+        y=df["driver"].apply(lambda d: d.split()[-1]),
+        orientation="h",
+        marker=dict(color=colors),
+        error_x=dict(type="data", array=df["std_z"].fillna(0), visible=True,
+                     color=_TICK, thickness=1.5, width=4),
+        customdata=df["n_stops"],
+        hovertemplate="<b>%{y}</b>  z=%{x:.3f}σ  (n=%{customdata} stops)<extra></extra>",
+    ))
+    fig.add_vline(x=0, line=dict(color=_TICK, width=1, dash="dot"))
+    return fig
+
+
+def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
+    """DNF rate per driver — dot plot with asymmetric Poisson CI."""
+    layout = _layout_2d(
+        "RELIABILITY MODEL · DNF RATE",
+        xaxis_title="DNF RATE",
+        height=280,
+        hovermode="closest",
+    )
+    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    layout.xaxis.update(tickformat=".0%")
+    fig = go.Figure(layout=layout)
+    if df.empty:
+        return fig
+
+    surnames = df["driver"].apply(lambda d: d.split()[-1])
+    err_upper = (df["ci_upper"] - df["rate"]).clip(lower=0)
+    err_lower = (df["rate"] - df["ci_lower"]).clip(lower=0)
+
+    fig.add_trace(go.Scatter(
+        x=df["rate"],
+        y=surnames,
+        mode="markers",
+        marker=dict(size=10, color="#FF4400", line=dict(color="#030F1A", width=1)),
+        error_x=dict(
+            type="data", symmetric=False,
+            array=err_upper.tolist(),
+            arrayminus=err_lower.tolist(),
+            visible=True, color=_TICK, thickness=1.5, width=4,
+        ),
+        customdata=list(zip(df["ci_lower"], df["ci_upper"], df["races"])),
+        hovertemplate=(
+            "<b>%{y}</b>  Rate: %{x:.1%}<br>"
+            "95% CI [%{customdata[0]:.1%}, %{customdata[1]:.1%}]<br>"
+            "n=%{customdata[2]} races<extra></extra>"
+        ),
+    ))
+    return fig
+
+
+def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
+    """Mean sector times per driver — grouped horizontal bar (S1/S2/S3)."""
+    layout = _layout_2d(
+        "SECTOR DELTA · MEAN TIME (s)",
+        xaxis_title="TIME (s)",
+        height=280,
+        hovermode="closest",
+    )
+    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    layout.update(barmode="group")
+    fig = go.Figure(layout=layout)
+    if df.empty:
+        return fig
+
+    surnames = df["driver"].apply(lambda d: d.split()[-1])
+    for col, label, color in [
+        ("s1_mean", "S1", _ACCENT),
+        ("s2_mean", "S2", _FONT_COLOR),
+        ("s3_mean", "S3", "#FFD700"),
+    ]:
+        if col not in df.columns:
+            continue
+        fig.add_trace(go.Bar(
+            x=df[col],
+            y=surnames,
+            orientation="h",
+            name=label,
+            marker=dict(color=color, opacity=0.85),
+            customdata=df["n"],
+            hovertemplate=f"<b>%{{y}}</b>  {label}: %{{x:.3f}}s  (n=%{{customdata}} laps)<extra></extra>",
+        ))
+    return fig
+
+
+# --------------------------------------------------------------------------- #
 #  Dashboard generator                                                          #
 # --------------------------------------------------------------------------- #
 
@@ -1634,11 +1816,27 @@ def generate_dashboard(
 
     gf = _grid_finish_df(engine, team_refs)
 
+    try:
+        pit_df = pit_stop_efficiency(engine, team_refs)
+    except Exception:
+        pit_df = pd.DataFrame()
+    try:
+        dnf_df = dnf_rate_model(engine, team_refs)
+    except Exception:
+        dnf_df = pd.DataFrame()
+    try:
+        sec_df = sector_deltas(engine, team_refs)
+    except Exception:
+        sec_df = pd.DataFrame()
+
     fig1 = chart_championship_2d(traj)
     fig2 = chart_positions_bump_2d(traj)
     fig3 = chart_points_gap_2d(traj)
     fig4 = chart_heatmap_2d(traj)
     fig5 = chart_grid_finish_2d(gf)
+    fig6 = chart_pit_efficiency_2d(pit_df)
+    fig7 = chart_dnf_reliability_2d(dnf_df)
+    fig8 = chart_sector_delta_2d(sec_df)
 
     _cfg = {"displayModeBar": "hover", "scrollZoom": False}
     div1 = fig1.to_html(full_html=False, include_plotlyjs="cdn",  config=_cfg)
@@ -1646,6 +1844,9 @@ def generate_dashboard(
     div3 = fig3.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
     div4 = fig4.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
     div5 = fig5.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div6 = fig6.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div7 = fig7.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div8 = fig8.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
 
     years = sorted(traj["year"].unique()) if not traj.empty else []
     year_range = f"{years[0]}–{years[-1]}" if years else ""
@@ -1653,15 +1854,24 @@ def generate_dashboard(
 
     total_races = int(traj["round"].nunique()) if not traj.empty else "—"
     total_wins  = int((gf["finish"] == 1).sum()) if not gf.empty else "—"
+    driver_count = str(len(traj["driver"].unique())) if not traj.empty else "—"
+
+    def _stat(val: str, unit: str, lbl: str, ok_text: str) -> str:
+        return (
+            f'<div class="stat-card">'
+            f'<div class="stat-top"><div class="stat-val">{val}</div>'
+            f'<div class="stat-unit">{unit}</div></div>'
+            f'<div class="stat-lbl">{lbl}</div>'
+            f'<div class="stat-status"><div class="stat-dot"></div>'
+            f'<div class="stat-ok-text">{ok_text}</div></div>'
+            f'</div>'
+        )
+
     stat_html = (
-        f'<div class="stat-card"><div class="stat-val">{year_range or "—"}</div>'
-        f'<div class="stat-lbl">Seasons</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{total_races}</div>'
-        f'<div class="stat-lbl">Race Rounds Analyzed</div></div>'
-        f'<div class="stat-card"><div class="stat-val">{total_wins}</div>'
-        f'<div class="stat-lbl">Wins in Dataset</div></div>'
-        f'<div class="stat-card"><div class="stat-val">4</div>'
-        f'<div class="stat-lbl">Constructors Titles</div></div>'
+        _stat(year_range or "—", "YRS", "Data Coverage", "NOMINAL")
+        + _stat(str(total_races), "RND", "Race Rounds Analyzed", "LOADED")
+        + _stat(str(total_wins), "W", "Wins in Dataset", "CONFIRMED")
+        + _stat("4", "WCC", "Constructors Titles", "VERIFIED")
     )
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -1673,16 +1883,20 @@ def generate_dashboard(
 
     html = (
         _HTML_TEMPLATE
-        .replace("PLACEHOLDER_TITLE",    team_name)
-        .replace("PLACEHOLDER_SUBTITLE", subtitle)
-        .replace("PLACEHOLDER_LOGO",     logo_html)
-        .replace("PLACEHOLDER_STATS",    stat_html)
-        .replace("PLACEHOLDER_C1",       div1)
-        .replace("PLACEHOLDER_C2",       div2)
-        .replace("PLACEHOLDER_C3",       div3)
-        .replace("PLACEHOLDER_C4",       div4)
-        .replace("PLACEHOLDER_C5",       div5)
-        .replace("PLACEHOLDER_TS",       ts)
+        .replace("PLACEHOLDER_TITLE",        team_name)
+        .replace("PLACEHOLDER_SUBTITLE",     subtitle)
+        .replace("PLACEHOLDER_LOGO",         logo_html)
+        .replace("PLACEHOLDER_STATS",        stat_html)
+        .replace("PLACEHOLDER_C1",           div1)
+        .replace("PLACEHOLDER_C2",           div2)
+        .replace("PLACEHOLDER_C3",           div3)
+        .replace("PLACEHOLDER_C4",           div4)
+        .replace("PLACEHOLDER_C5",           div5)
+        .replace("PLACEHOLDER_C6",           div6)
+        .replace("PLACEHOLDER_C7",           div7)
+        .replace("PLACEHOLDER_C8",           div8)
+        .replace("PLACEHOLDER_DRIVER_COUNT", driver_count)
+        .replace("PLACEHOLDER_TS",           ts)
     )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
