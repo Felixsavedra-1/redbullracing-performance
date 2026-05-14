@@ -1,5 +1,4 @@
 import os
-import re
 import sys
 import argparse
 
@@ -23,8 +22,6 @@ except ImportError:
     DATA_PATHS = {"processed_data": "data/processed/"}
 
 logger = setup_logging()
-
-_REF_RE = re.compile(r'^[a-z0-9_]+$')
 
 _DEFAULT_QUERIES_FILE = os.path.normpath(
     os.path.join(SCRIPT_DIR, "..", "database", "queries", "analytical_queries.yaml")
@@ -79,11 +76,9 @@ def main() -> None:
 
     args = parser.parse_args()
     engine = create_db_connection()
-    params = {"cid": CONSTRUCTOR_ID}
-    for r in TEAM_REFS:
-        if not _REF_RE.match(r):
-            raise ValueError(f"Invalid team ref (must be lowercase alphanumeric/underscore): {r!r}")
-    team_refs_sql = ", ".join(f"'{r}'" for r in TEAM_REFS)
+    ref_placeholders = ", ".join(f":r{i}" for i in range(len(TEAM_REFS)))
+    ref_params = {f"r{i}": r for i, r in enumerate(TEAM_REFS)}
+    params = {"cid": CONSTRUCTOR_ID, **ref_params}
 
     _is_duckdb = (DB_CONFIG or {}).get("type") == "duckdb"
 
@@ -104,7 +99,7 @@ def main() -> None:
                 continue
 
             logger.info("Executing %s...", query_name)
-            resolved = query_text.replace("{team_refs}", team_refs_sql)
+            resolved = query_text.replace("{team_refs}", ref_placeholders)
             if _is_duckdb:
                 resolved = resolved.replace(
                     "GROUP_CONCAT(DISTINCT ", "STRING_AGG(DISTINCT "
@@ -118,7 +113,7 @@ def main() -> None:
                 headers = list(df.columns)
                 rows = df.values.tolist()
                 right_cols = {i for i, col in enumerate(df.columns) if pd.api.types.is_numeric_dtype(df[col])}
-                print(format_table(headers, rows, right_cols))
+                logger.info("\n%s", format_table(headers, rows, right_cols))
                 if args.export:
                     export_results(df, f"{query_name}_results.csv")
             else:

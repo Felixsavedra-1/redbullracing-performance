@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
 
@@ -8,12 +9,15 @@ import pandas as pd
 from scipy import stats
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from constants import TEAM_REFS
+
+_log = logging.getLogger(__name__)
 
 
 def _ref_params(refs: list[str]) -> tuple[str, dict]:
@@ -50,8 +54,12 @@ def teammate_delta(
       AND ra.position_order < 999
       AND rb.position_order < 999
     """
-    with engine.connect() as conn:
-        df = pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("teammate_delta: query failed — %s", exc)
+        return pd.DataFrame(columns=["driver_a", "driver_b", "mean_delta", "ci_lower", "ci_upper", "n", "p_value"])
 
     rows = []
     for (a, b), g in df.groupby(["driver_a", "driver_b"]):
@@ -97,8 +105,12 @@ def qualifying_race_ols(
       AND r.grid           > 0
       AND r.position_order < 999
     """
-    with engine.connect() as conn:
-        df = pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("qualifying_race_ols: query failed — %s", exc)
+        return {"slope": None, "intercept": None, "r2": None, "p_value": None, "n": 0}, pd.DataFrame(columns=["driver", "grid", "finish"])
 
     if len(df) < 2:
         empty_df = pd.DataFrame(columns=["driver", "grid", "finish"])
@@ -144,8 +156,12 @@ def pit_stop_efficiency(
     WHERE c.constructor_ref IN ({placeholders})
       AND p.milliseconds BETWEEN 15000 AND 60000
     """
-    with engine.connect() as conn:
-        df = pd.read_sql(text(sql), conn, params=params).dropna(subset=["z"])
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(sql), conn, params=params).dropna(subset=["z"])
+    except SQLAlchemyError as exc:
+        _log.warning("pit_stop_efficiency: query failed — %s", exc)
+        return pd.DataFrame(columns=["driver", "mean_z", "std_z", "n_stops"])
 
     agg = (
         df.groupby("driver")["z"]
@@ -175,8 +191,12 @@ def championship_trajectory(engine: Engine, team_refs: list[str] = TEAM_REFS) ->
     WHERE c.constructor_ref IN ({placeholders})
     ORDER BY da.driver_id, ra.year, ra.round
     """
-    with engine.connect() as conn:
-        return pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            return pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("championship_trajectory: query failed — %s", exc)
+        return pd.DataFrame()
 
 
 def dnf_rate_model(
@@ -203,8 +223,12 @@ def dnf_rate_model(
     GROUP BY r.driver_id, da.forename, da.surname
     HAVING races >= :min_races
     """
-    with engine.connect() as conn:
-        df = pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("dnf_rate_model: query failed — %s", exc)
+        return pd.DataFrame()
 
     dnfs = df["dnfs"].to_numpy(dtype=float)
     races = df["races"].to_numpy(dtype=float)
@@ -244,8 +268,12 @@ def tyre_degradation(
       AND l.tyre_life    > 1
       AND l.track_status = '1'
     """
-    with engine.connect() as conn:
-        df = pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("tyre_degradation: query failed — %s", exc)
+        return pd.DataFrame(columns=["driver", "compound", "deg_rate_s", "r2", "n"])
     if df.empty:
         return pd.DataFrame(columns=["driver", "compound", "deg_rate_s", "r2", "n"])
 

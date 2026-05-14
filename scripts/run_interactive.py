@@ -118,7 +118,7 @@ def _championship(engine) -> go.Figure | None:
         title="[01]  CHAMPIONSHIP POINTS PROGRESSION",
     )
     fig.update_traces(marker_symbol="circle-open", marker_size=6, line_width=1.8)
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1], font_family=_FONT))
+    fig.for_each_annotation(lambda a: a.update(text=(a.text or "").split("=")[-1], font_family=_FONT))
     fig.update_layout(**_layout(height=300 * nrows))
     return fig
 
@@ -264,7 +264,7 @@ def _tyre_strategy(engine) -> go.Figure | None:
     )
     fig.update_traces(marker_symbol="square", marker_size=5)
     fig.for_each_annotation(lambda a: a.update(
-        text=a.text.split("=")[-1][:20], font_family=_FONT, font_size=8,
+        text=(a.text or "").split("=")[-1][:20], font_family=_FONT, font_size=8,
     ))
     fig.update_layout(**_layout(height=max(260, n_drivers * 30) * nrows))
     return fig

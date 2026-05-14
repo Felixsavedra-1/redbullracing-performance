@@ -18,6 +18,7 @@ from collections import defaultdict
 
 import fastf1
 import pandas as pd
+import requests
 from sqlalchemy import create_engine, text
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -87,8 +88,8 @@ def _load_maps(
     driver_map: dict[str, int] = dict(zip(drivers["code"], drivers["driver_id"]))
 
     race_to_codes: dict[int, set[str]] = defaultdict(set)
-    for _, row in team_results.iterrows():
-        race_to_codes[int(row["race_id"])].add(row["code"])
+    for row in team_results.itertuples(index=False):
+        race_to_codes[int(row.race_id)].add(row.code)
 
     return races, driver_map, race_to_codes
 
@@ -144,8 +145,8 @@ def extract_all(
         ), {"y1": start_year, "y2": end_year})
 
     total = 0
-    for _, race in races.iterrows():
-        year, rnd, race_id = int(race["year"]), int(race["round"]), int(race["race_id"])
+    for race in races.itertuples(index=False):
+        year, rnd, race_id = int(race.year), int(race.round), int(race.race_id)
         team_codes = race_to_codes.get(race_id, set())
         if not team_codes:
             continue
@@ -160,8 +161,12 @@ def extract_all(
             df.to_sql("laps", engine, if_exists="append", index=False)
             total += len(df)
             _log.info("  %s R%02d — %s laps loaded.", year, rnd, len(df))
+        except requests.exceptions.RequestException as exc:
+            _log.warning("  %s R%02d — network error, skipped: %s.", year, rnd, exc)
+        except (KeyError, ValueError, TypeError) as exc:
+            _log.warning("  %s R%02d — data error, skipped: %s.", year, rnd, exc)
         except Exception as exc:
-            _log.warning("  %s R%02d — skipped (%s).", year, rnd, exc)
+            _log.warning("  %s R%02d — unexpected error, skipped: %s.", year, rnd, exc)
 
     _log.info("Telemetry extraction complete: %s total laps.", total)
     return total

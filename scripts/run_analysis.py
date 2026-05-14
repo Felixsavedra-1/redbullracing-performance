@@ -77,9 +77,9 @@ def run(export: bool = False) -> None:
                 str(r.n),
                 f"{r.p_value:.4f}",
             ]
-            for _, r in delta.iterrows()
+            for r in delta.itertuples(index=False)
         ]
-        print(format_table(headers, rows, {1, 2, 3}))
+        logger.info("\n%s", format_table(headers, rows, {1, 2, 3}))
 
     logger.info("Qualifying → race regression...")
     ols_stats, scatter = qualifying_race_ols(engine)
@@ -110,15 +110,15 @@ def run(export: bool = False) -> None:
         headers = ["Driver", "Races", "DNFs", "Rate", "CI 95%"]
         rows = [
             [
-                r["driver"].split()[-1],
-                str(int(r["races"])),
-                str(int(r["dnfs"])),
-                f"{r['rate']:.3f}",
-                f"[{r['ci_lower']:.3f}, {r['ci_upper']:.3f}]",
+                r.driver.split()[-1],
+                str(int(r.races)),
+                str(int(r.dnfs)),
+                f"{r.rate:.3f}",
+                f"[{r.ci_lower:.3f}, {r.ci_upper:.3f}]",
             ]
-            for _, r in dnf.iterrows()
+            for r in dnf.itertuples(index=False)
         ]
-        print(format_table(headers, rows, {1, 2, 3}))
+        logger.info("\n%s", format_table(headers, rows, {1, 2, 3}))
 
     if export:
         logger.info("Charts saved to %s/", _EXPORTS)

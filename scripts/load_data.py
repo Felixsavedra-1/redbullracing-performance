@@ -3,6 +3,7 @@ import os
 import sys
 import uuid
 from datetime import datetime, timezone
+from typing import NamedTuple
 
 import pandas as pd
 from sqlalchemy import create_engine, event, inspect as sa_inspect, text
@@ -15,6 +16,14 @@ from schema_contracts import validate_dataframe, SCHEMA_CONTRACTS
 from constants import CONSTRUCTOR_ID
 
 _log = logging.getLogger("f1_analytics")
+
+
+class TableSpec(NamedTuple):
+    table: str
+    csv: str
+    cols: list[str] | None
+    datetime_cols: list[str]
+    fillna_defaults: dict[str, str]
 
 try:
     from config import DB_CONFIG, DATA_PATHS
@@ -326,32 +335,31 @@ class F1DataLoader:
             self.logger.error("Error loading %s: %s", table_name, exc)
             raise
 
-    # Each spec: (table_name, csv_path, columns_to_keep, datetime_cols, fillna_defaults)
-    # csv_path is relative to processed_path unless prefixed with "raw:"
+    # csv path is relative to processed_path unless prefixed with "raw:"
     _TABLE_SPECS = [
-        ("seasons",               "raw:seasons.csv",                 None,  [], {}),
-        ("circuits",              "circuits_clean.csv",              None,  [], {}),
-        ("constructors",          "raw:constructors.csv",            None,  [], {}),
-        ("drivers",               "drivers_clean.csv",               None,  ["dob"], {}),
-        ("races",                 "races_clean.csv",
+        TableSpec("seasons",               "raw:seasons.csv",                 None,  [], {}),
+        TableSpec("circuits",              "circuits_clean.csv",              None,  [], {}),
+        TableSpec("constructors",          "raw:constructors.csv",            None,  [], {}),
+        TableSpec("drivers",               "drivers_clean.csv",               None,  ["dob"], {}),
+        TableSpec("races",                 "races_clean.csv",
             ["race_id", "year", "round", "circuit_id", "race_name", "race_date", "race_time", "url"],
             ["race_date"], {"race_time": "00:00:00"}),
-        ("results",               "results_clean.csv",
+        TableSpec("results",               "results_clean.csv",
             ["race_id", "driver_id", "constructor_id", "number", "grid", "position",
              "position_text", "position_order", "points", "laps", "time_result",
              "milliseconds", "fastest_lap", "fastest_lap_rank", "fastest_lap_time",
              "fastest_lap_speed", "status"],
             [], {}),
-        ("qualifying",            "qualifying_clean.csv",
+        TableSpec("qualifying",            "qualifying_clean.csv",
             ["race_id", "driver_id", "constructor_id", "number", "position", "q1", "q2", "q3"],
             [], {}),
-        ("pit_stops",             "pit_stops_clean.csv",
+        TableSpec("pit_stops",             "pit_stops_clean.csv",
             ["race_id", "driver_id", "stop", "lap", "time_of_day", "duration", "milliseconds"],
             [], {"time_of_day": "00:00:00"}),
-        ("constructor_standings", "constructor_standings_clean.csv",
+        TableSpec("constructor_standings", "constructor_standings_clean.csv",
             ["race_id", "constructor_id", "points", "position", "position_text", "wins"],
             [], {}),
-        ("driver_standings",      "driver_standings_clean.csv",
+        TableSpec("driver_standings",      "driver_standings_clean.csv",
             ["race_id", "driver_id", "points", "position", "position_text", "wins"],
             [], {}),
     ]
@@ -371,34 +379,34 @@ class F1DataLoader:
             return df[df["driver_id"].isin(self._rb_driver_ids)].copy()
         return df
 
-    def _load_from_spec(self, table: str, csv_name: str, cols, datetime_cols, fillna_defaults) -> None:
-        if csv_name.startswith("raw:"):
-            path = os.path.join(self.raw_path, csv_name[4:])
+    def _load_from_spec(self, spec: TableSpec) -> None:
+        if spec.csv.startswith("raw:"):
+            path = os.path.join(self.raw_path, spec.csv[4:])
         else:
-            path = os.path.join(self.processed_path, csv_name)
+            path = os.path.join(self.processed_path, spec.csv)
 
         if not os.path.exists(path) or os.path.getsize(path) < 10:
-            self.logger.info("Skipping %s: file missing or empty.", table)
+            self.logger.info("Skipping %s: file missing or empty.", spec.table)
             return
 
         try:
             df = pd.read_csv(path)
         except pd.errors.EmptyDataError:
-            self.logger.warning("%s has no columns; skipping load.", csv_name)
+            self.logger.warning("%s has no columns; skipping load.", spec.csv)
             return
 
-        df = self._filter_team(df, table)
+        df = self._filter_team(df, spec.table)
 
-        for col in datetime_cols:
+        for col in spec.datetime_cols:
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col], errors="coerce")
-        for col, default in fillna_defaults.items():
+        for col, default in spec.fillna_defaults.items():
             if col in df.columns:
                 df[col] = df[col].fillna(default)
-        if cols:
-            df = df[[c for c in cols if c in df.columns]]
+        if spec.cols:
+            df = df[[c for c in spec.cols if c in df.columns]]
 
-        self._load_table(df, table)
+        self._load_table(df, spec.table)
 
     def load_all(self) -> None:
         self.logger.info("Starting data loading into database.")
@@ -406,8 +414,8 @@ class F1DataLoader:
 
         try:
             for spec in self._TABLE_SPECS:
-                self.logger.info("Loading %s...", spec[0])
-                self._load_from_spec(*spec)
+                self.logger.info("Loading %s...", spec.table)
+                self._load_from_spec(spec)
 
             self._record_run_end("success")
             self.logger.info("All data loaded successfully into database.")
