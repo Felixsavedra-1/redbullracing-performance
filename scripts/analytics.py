@@ -323,5 +323,9 @@ def sector_deltas(
     HAVING COUNT(*) >= :min_laps
     ORDER BY s1_mean + s2_mean + s3_mean
     """
-    with engine.connect() as conn:
-        return pd.read_sql(text(sql), conn, params=params)
+    try:
+        with engine.connect() as conn:
+            return pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("sector_deltas: query failed — %s", exc)
+        return pd.DataFrame(columns=["driver", "s1_mean", "s2_mean", "s3_mean", "n"])

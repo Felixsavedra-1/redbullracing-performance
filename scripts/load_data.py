@@ -404,6 +404,9 @@ class F1DataLoader:
             if col in df.columns:
                 df[col] = df[col].fillna(default)
         if spec.cols:
+            missing = [c for c in spec.cols if c not in df.columns]
+            if missing:
+                self.logger.warning("'%s' missing expected columns: %s", spec.table, missing)
             df = df[[c for c in spec.cols if c in df.columns]]
 
         self._load_table(df, spec.table)
