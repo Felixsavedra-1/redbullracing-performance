@@ -5,6 +5,7 @@ import sys
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
@@ -117,7 +118,7 @@ def run_quality_checks(
                         "expected": f"All years {start_year}-{end_year}",
                     }
                 )
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             failures.append(
                 {
                     "check": "missing_race_years",
@@ -143,7 +144,7 @@ def run_quality_checks(
                 unaccounted = [(r[0], r[1]) for r in rows if (r[0], r[1]) not in skipped]
                 if unaccounted:
                     failures.append({"check": check_name, "value": str(len(unaccounted)), "expected": "0"})
-            except Exception as exc:
+            except SQLAlchemyError as exc:
                 failures.append({"check": check_name, "value": f"error: {exc}", "expected": "query_success"})
 
         _check_missing_data(conn, "results",   "race_id", "races_missing_results",   "results")

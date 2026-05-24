@@ -62,7 +62,7 @@ def _accent(colors: dict | None) -> str:
 
 
 def _driver_colors(names: list[str], primary: str) -> dict[str, str]:
-    ordered = sorted(names, key=lambda n: (0 if "Verstappen" in n else 1, n))
+    ordered = sorted(names)
     palette = [primary] + [c for c in _PALETTE if c != primary]
     return {name: palette[i % len(palette)] for i, name in enumerate(ordered)}
 

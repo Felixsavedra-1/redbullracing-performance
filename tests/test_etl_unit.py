@@ -101,7 +101,7 @@ class TestDNFSentinel(unittest.TestCase):
                  "time_result", "milliseconds", "fastest_lap", "fastest_lap_rank",
                  "fastest_lap_time", "fastest_lap_speed", "status"],
                 [[202401, "max_verstappen", "red_bull", 33, 1,
-                  "", "R", 999, 0, 10, "", 0, 0, 0, "", "", "Engine"]],
+                  "", "R", DNF_POSITION_ORDER, 0, 10, "", 0, 0, 0, "", "", "Engine"]],
             )
             write_csv(os.path.join(tmp, "drivers.csv"),
                       ["driver_id", "driver_ref"], [[1, "max_verstappen"]])

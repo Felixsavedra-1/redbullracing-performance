@@ -119,7 +119,7 @@ def _print_driver_summary(engine) -> None:
         print(format_table(headers, rows, right_cols))
         print(f"{rule}\n")
     except Exception as e:
-        _log.debug("driver summary skipped: %s", e)
+        _log.warning("driver summary skipped: %s", e)
 
 
 def _normalize_year_range(start_year: int, end_year: int) -> tuple[int, int, bool]:
@@ -370,7 +370,7 @@ Examples:
         )
     except KeyboardInterrupt:
         logging.getLogger("f1_analytics").warning("Pipeline interrupted by user.")
-        sys.exit(1)
+        sys.exit(130)
     except Exception as exc:
         logger = setup_logging()
         logger.exception("Pipeline failed: %s", exc)

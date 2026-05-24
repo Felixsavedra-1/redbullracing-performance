@@ -128,7 +128,7 @@ footer{padding:20px 40px;border-top:1px solid #0A2035;display:flex;justify-conte
 .hud-pos{color:#00D4FF;font-weight:700;font-size:17px;min-width:28px}
 .hud-lap{color:#4A7FA5;min-width:72px}
 .hud-timer{color:#E0F2FE;min-width:80px;font-weight:700}
-.hud-speed{color:#4A7FA5;min-width:70px}
+.hud-speed{color:#E0F2FE;min-width:70px;font-weight:700}
 .hud-gear-wrap{display:flex;flex-direction:column;align-items:center;min-width:52px}
 .hud-gear{font-size:26px;font-weight:900;color:#E0F2FE;line-height:1;transition:color .05s}
 .hud-gear.flash{color:#ff4400}
@@ -140,7 +140,7 @@ footer{padding:20px 40px;border-top:1px solid #0A2035;display:flex;justify-conte
 .hud-tire-label{color:#4A7FA5;font-size:10px;min-width:8px}
 .hud-tire-wrap{width:52px;height:8px;background:#0A2035;border-radius:3px;overflow:hidden;border:1px solid #0F3050}
 .hud-tire-bar{height:100%;width:100%;border-radius:3px;transition:width .1s,background .3s}
-.hud-tire-temp{width:7px;height:7px;border-radius:50%;background:#4A7FA5;transition:background .4s}
+.hud-tire-temp{width:10px;height:10px;border-radius:50%;background:#4A7FA5;transition:background .4s;border:1px solid rgba(255,255,255,0.25)}
 .hud-s1,.hud-s2,.hud-s3{color:#4A7FA5;min-width:88px;font-size:11px}
 .hud-s1.purple,.hud-s2.purple,.hud-s3.purple{color:#cc00ff;font-weight:700}
 .hud-s1.green,.hud-s2.green,.hud-s3.green{color:#00FF87;font-weight:700}
@@ -617,7 +617,7 @@ var hudClose=document.querySelector('.hud-close');
 var podiumClose=document.getElementById('podium-close');
 
 /* ===================== CONSTANTS ===================== */
-var SEGS=900,TW=28,CURB=2.2,BH=3.2;
+var SEGS=900,TW=21,CURB=2.2,BH=3.2;
 var MAX_SPD=30,ENG=12000,BRK=18000,DRAG=0.35,CAR_MASS=800;
 var RIDE_H=0.59,LAPS=3;
 var AI_COLORS=[
@@ -644,20 +644,22 @@ var AI_TEAMS=[
 
 /* ===================== TRACK ===================== */
 var trackPts=[
-  new THREE.Vector3(-280, 0, 190),
-  new THREE.Vector3(   0, 0, 200),
-  new THREE.Vector3( 240, 0, 190),
-  new THREE.Vector3( 310, 0,  90),
-  new THREE.Vector3( 320, 0,   0),
-  new THREE.Vector3( 290, 0,-110),
-  new THREE.Vector3( 220, 0,-210),
-  new THREE.Vector3(  80, 0,-270),
-  new THREE.Vector3(  20, 0,-290),
-  new THREE.Vector3( -50, 0,-270),
-  new THREE.Vector3(-160, 0,-240),
-  new THREE.Vector3(-260, 0,-160),
-  new THREE.Vector3(-310, 0, -60),
-  new THREE.Vector3(-280, 0,  80),
+  new THREE.Vector3(-290, 0,  55),
+  new THREE.Vector3( -80, 0,  40),
+  new THREE.Vector3( 130, 0,  25),
+  new THREE.Vector3( 230, 0,  15),
+  new THREE.Vector3( 310, 0,  20),
+  new THREE.Vector3( 345, 0,  90),
+  new THREE.Vector3( 315, 0, 190),
+  new THREE.Vector3( 230, 0, 275),
+  new THREE.Vector3( 110, 0, 345),
+  new THREE.Vector3(  30, 0, 305),
+  new THREE.Vector3( -60, 0, 355),
+  new THREE.Vector3(-160, 0, 315),
+  new THREE.Vector3(-270, 0, 245),
+  new THREE.Vector3(-355, 0, 145),
+  new THREE.Vector3(-385, 0,  75),
+  new THREE.Vector3(-340, 0,  55),
 ];
 var trackCurve=new THREE.CatmullRomCurve3(trackPts,true,'catmullrom',0.5);
 var wpAll=trackCurve.getSpacedPoints(SEGS);
@@ -665,15 +667,15 @@ var waypoints=wpAll.slice(0,SEGS);
 var N=waypoints.length;
 
 function wpDir(i){
-  var a=waypoints[(i+1)%N],b=waypoints[((i-1)+N)%N];
+  var a=waypoints[(i+3)%N],b=waypoints[((i-3)+N)%N];
   var dx=a.x-b.x,dz=a.z-b.z,len=Math.sqrt(dx*dx+dz*dz)||1;
   return {x:dx/len,z:dz/len};
 }
 function wpPerp(i){var d=wpDir(i);return {x:d.z,z:-d.x};}
 
 function closestWP(x,z,hint){
-  var best=hint||0,bd=1e9,start=((best-30)+N*2)%N;
-  for(var ii=0;ii<60;ii++){
+  var best=hint||0,bd=1e9,start=((best-50)+N*2)%N;
+  for(var ii=0;ii<100;ii++){
     var idx=(start+ii)%N,wp=waypoints[idx];
     var dd=(wp.x-x)*(wp.x-x)+(wp.z-z)*(wp.z-z);
     if(dd<bd){bd=dd;best=idx;}
@@ -753,27 +755,6 @@ fill.position.set(-120,60,-80);scene.add(fill);
   rGeo.setIndex(rIdx);rGeo.computeVertexNormals();
   var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.82,metalness:0.04}));
   road.receiveShadow=true;scene.add(road);
-  /* Racing line rubber deposits */
-  (function(){
-    var rlPos=[],rlIdx=[];
-    for(var rli=0;rli<N;rli++){
-      var rlwp=waypoints[rli],rlp=wpPerp(rli);
-      var dArl=wpDir(rli),dBrl=wpDir((rli+6)%N);
-      var rlCross=dArl.x*dBrl.z-dArl.z*dBrl.x;
-      var rlLat=Math.max(-TW*0.32,Math.min(TW*0.32,-rlCross*TW*0.30));
-      var cx=rlwp.x+rlp.x*rlLat,cz=rlwp.z+rlp.z*rlLat;
-      rlPos.push(cx+rlp.x*1.1,rlwp.y+0.065,cz+rlp.z*1.1,
-                 cx-rlp.x*1.1,rlwp.y+0.065,cz-rlp.z*1.1);
-      if(rli<N-1){var rb=rli*2;rlIdx.push(rb,rb+1,rb+2,rb+2,rb+1,rb+3);}
-    }
-    var rb2=(N-1)*2;rlIdx.push(rb2,rb2+1,0,0,rb2+1,1);
-    var rlGeo=new THREE.BufferGeometry();
-    rlGeo.setAttribute('position',new THREE.Float32BufferAttribute(rlPos,3));
-    rlGeo.setIndex(rlIdx);rlGeo.computeVertexNormals();
-    scene.add(new THREE.Mesh(rlGeo,new THREE.MeshStandardMaterial({
-      color:0x0c0c0c,roughness:0.97,metalness:0,transparent:true,opacity:0.68
-    })));
-  })();
   /* S/F line */
   (function(){
     var sfwp=waypoints[0],sfd=wpDir(0);
@@ -811,18 +792,13 @@ fill.position.set(-120,60,-80);scene.add(fill);
 
   /* Armco barriers */
   var baPos=[],baIdx=[];
-  hw=TW*0.5+CURB+0.3;
+  hw=TW*0.5+CURB;
   for(i=0;i<N;i++){
     wp=waypoints[i];p=wpPerp(i);
-    var dA=wpDir(i),dB=wpDir((i+2)%N);
-    var cross=dA.x*dB.z-dA.z*dB.x;
-    var inFrac=Math.max(0.72,1-Math.abs(cross)*1.8);
-    var leftHw =cross>0?hw*inFrac:hw;
-    var rightHw=cross<0?hw*inFrac:hw;
-    baPos.push(wp.x+p.x*leftHw, wp.y,    wp.z+p.z*leftHw,
-               wp.x+p.x*leftHw, wp.y+BH, wp.z+p.z*leftHw,
-               wp.x-p.x*rightHw,wp.y,    wp.z-p.z*rightHw,
-               wp.x-p.x*rightHw,wp.y+BH, wp.z-p.z*rightHw);
+    baPos.push(wp.x+p.x*hw,wp.y,    wp.z+p.z*hw,
+               wp.x+p.x*hw,wp.y+BH, wp.z+p.z*hw,
+               wp.x-p.x*hw,wp.y,    wp.z-p.z*hw,
+               wp.x-p.x*hw,wp.y+BH, wp.z-p.z*hw);
     if(i<N-1){
       b=i*4;
       baIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);
@@ -835,19 +811,13 @@ fill.position.set(-120,60,-80);scene.add(fill);
 
   /* Armco red stripe — curvature-aware offset matches armco */
   var strPos=[],strIdx=[];
-  var sY=BH*0.58,sH=0.28;
+  var sY=BH*0.58,sH=0.28,strHw=TW*0.5+CURB;
   for(i=0;i<N;i++){
     wp=waypoints[i];p=wpPerp(i);
-    var dAS=wpDir(i),dBS=wpDir((i+2)%N);
-    var crossS=dAS.x*dBS.z-dAS.z*dBS.x;
-    var inFracS=Math.max(0.72,1-Math.abs(crossS)*1.8);
-    var strHw=TW*0.5+CURB+0.3;
-    var leftStrHw =crossS>0?strHw*inFracS:strHw;
-    var rightStrHw=crossS<0?strHw*inFracS:strHw;
-    strPos.push(wp.x+p.x*leftStrHw, wp.y+sY,    wp.z+p.z*leftStrHw,
-                wp.x+p.x*leftStrHw, wp.y+sY+sH, wp.z+p.z*leftStrHw,
-                wp.x-p.x*rightStrHw,wp.y+sY,    wp.z-p.z*rightStrHw,
-                wp.x-p.x*rightStrHw,wp.y+sY+sH, wp.z-p.z*rightStrHw);
+    strPos.push(wp.x+p.x*strHw,wp.y+sY,    wp.z+p.z*strHw,
+                wp.x+p.x*strHw,wp.y+sY+sH, wp.z+p.z*strHw,
+                wp.x-p.x*strHw,wp.y+sY,    wp.z-p.z*strHw,
+                wp.x-p.x*strHw,wp.y+sY+sH, wp.z-p.z*strHw);
     if(i<N-1){b=i*4;strIdx.push(b,b+4,b+1,b+1,b+4,b+5,b+2,b+6,b+3,b+3,b+6,b+7);}
   }
   var strGeo=new THREE.BufferGeometry();
@@ -1324,18 +1294,25 @@ var cockpitMode=false;
 
 var P={x:0,z:0,y:0,heading:0,speed:0,yawRate:0,tIdx:0,lap:1,
   sector:0,sectorStart:0,lapStart:0,s1:0,s2:0,s3:0,
-  bestS1:Infinity,bestS2:Infinity,bestS3:Infinity,
+  bestS1:Infinity,bestS2:Infinity,bestS3:Infinity,bestLap:Infinity,
   rpmVal:0,gear:1,drs:false,_drsKey:false,
   tireWear:1.0,tireTempF:0.3,tireTempR:0.3,_lapGuard:false};
 
 var AI=(function(){
   var a=[];
+  // 5 distinct lane positions, wide enough that TW*0.16 same-lane detection doesn't bleed across lanes
+  var LANES=[-TW*0.36,-TW*0.18,0,TW*0.18,TW*0.36];
   for(var i=0;i<19;i++){
-    var bl=((i%5)-2)*3.5;
-    a.push({tIdx:N-(i+1)*4,latOff:(i%2===0?2.0:-2.0),spdFac:1.05-i*0.008,
-            _randFac:(Math.random()-0.5)*0.018,
+    var bl=LANES[i%5];
+    // Unique apex depth per car: 0.42–0.74, deterministic so fast cars stay consistent
+    var apxD=0.42+((i*3)%7)*0.090+Math.random()*0.03;
+    var aggr=0.75+Math.random()*0.50;
+    a.push({tIdx:40+(i+1)*14,latOff:(i%2===0?2.0:-2.0),spdFac:1.45-i*0.028,
+            _randFac:Math.random()*0.025,apexD:apxD,_aggr:aggr,_ovSide:(i%2===0)?1:-1,
+            _ovTgt:bl,_ovTimer:0.0,finishTime:Infinity,
             x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true,
-            _latTarget:0,_baseLat:bl});
+            _stuckTimer:0,
+            _latTarget:bl,_baseLat:bl});
   }
   return a;
 })();
@@ -1388,23 +1365,23 @@ function initRace(){
   aiGrps.forEach(function(gr){scene.remove(gr);});aiGrps=[];
   aiLabels.forEach(function(sl){scene.remove(sl);});aiLabels=[];
   playerGrp=buildCar(0x1E4D9B,0xCC1E1E);scene.add(playerGrp);
-  var sp=spawnPos(N-84,-2.0);
+  var sp=spawnPos(40,-2.0);
   P.x=sp.x;P.z=sp.z;P.y=sp.y;P.heading=sp.heading;
-  P.speed=0;P.yawRate=0;P.tIdx=N-84;P.lap=1;P.rpmVal=0;P.gear=1;
+  P.speed=0;P.yawRate=0;P.tIdx=40;P.lap=1;P.rpmVal=0;P.gear=1;
   P.drs=false;P._drsKey=false;P.tireWear=1;P.tireTempF=0.3;P.tireTempR=0.3;
   P.sector=0;P.sectorStart=0;P.lapStart=0;P.s1=0;P.s2=0;P.s3=0;
-  P.bestS1=Infinity;P.bestS2=Infinity;P.bestS3=Infinity;P._lapGuard=false;P.finishTime=Infinity;
+  P.bestS1=Infinity;P.bestS2=Infinity;P.bestS3=Infinity;P.bestLap=Infinity;P._lapGuard=false;P.finishTime=Infinity;
   AI.forEach(function(ai,i){
     var ag=buildCar(AI_COLORS[i],AI_ACCENTS[i]);scene.add(ag);aiGrps.push(ag);
     var lbl=makeLabel(AI_NAMES[i+1],AI_TEAMS[i],AI_COLORS[i],AI_ACCENTS[i]);scene.add(lbl);aiLabels.push(lbl);
-    var as=spawnPos(ai.tIdx,ai.latOff);
+    var as=spawnPos(ai.tIdx,ai._baseLat);
     ai.x=as.x;ai.z=as.z;ai.y=as.y;ai.heading=as.heading;
     ai.speed=0;ai.yawRate=0;ai.lap=1;ai._inStart=false;ai._skipFirst=true;ai.finishTime=Infinity;
     ag.position.set(ai.x,ai.y+RIDE_H,ai.z);ag.rotation.y=ai.heading-Math.PI/2;
     lbl.position.set(ai.x,ai.y+RIDE_H+3.2,ai.z);
   });
   playerGrp.position.set(P.x,P.y+RIDE_H,P.z);playerGrp.rotation.y=P.heading-Math.PI/2;
-  var d0=wpDir(N-84);
+  var d0=wpDir(P.tIdx);
   gameCam.position.set(P.x-d0.x*28,P.y+13,P.z-d0.z*28);
   camSmooth.copy(gameCam.position);camVel.set(0,0,0);
   gameCam.lookAt(new THREE.Vector3(P.x+d0.x*8,P.y+0.5,P.z+d0.z*8));
@@ -1490,6 +1467,7 @@ function updatePlayer(dt){
     P._lapGuard=true;
     P.s3=raceTime-P.sectorStart;
     setSec(hudS3,'hud-s3',P.s3,P.bestS3);if(P.s3<P.bestS3) P.bestS3=P.s3;
+    var lapT=P.s1+P.s2+P.s3;if(lapT>0&&lapT<P.bestLap) P.bestLap=lapT;
     P.lap++;P.sector=0;P.sectorStart=raceTime;P.lapStart=raceTime;
     if(P.lap>LAPS){P.lap=LAPS;P.finishTime=raceTime;gameState='FINISHED';showPodium();}
   }
@@ -1507,85 +1485,117 @@ function updateAI(ai,dt){
   if(gameState!=='RACING') return;
   var maxSpd=MAX_SPD*(ai.spdFac+ai._randFac);
 
-  // Rubber-band: top 3 AI cars get a speed boost proportional to player's gap ahead
-  var aiIdx=AI.indexOf(ai);
-  if(aiIdx<3){
-    var pAbs=P.lap*N+P.tIdx,aAbs=ai.lap*N+ai.tIdx;
-    var ahead=pAbs-aAbs;
-    if(ahead>0){
-      var boost=Math.min(ahead/(N*1.5),0.14);
-      maxSpd=Math.min(maxSpd*(1+boost),MAX_SPD*1.14);
-    }
-  }
-
-  // Curvature scan — also capture corner turn direction (cross-product sign)
+  // Curvature scan: max curvature over 5–55 wp for speed; nearest significant turn within 35 wp for apex direction
   var curvature=0,turnSign=0;
-  for(var k=4;k<=30;k++){
+  for(var k=5;k<=55;k+=5){
     var dA=wpDir((ai.tIdx+k)%N),dB=wpDir((ai.tIdx+k+5)%N);
-    var cross=dA.x*dB.z-dA.z*dB.x,cr=Math.abs(cross);
-    if(cr>curvature){curvature=cr;turnSign=cross>0?1:-1;}
+    var cr=dA.x*dB.z-dA.z*dB.x,absCr=Math.abs(cr);
+    if(absCr>curvature) curvature=absCr;
+    if(!turnSign&&k<=35&&absCr>0.018) turnSign=cr>0?1:-1;
   }
-  curvature=Math.min(1,curvature*3.2);
+  curvature=Math.min(1,curvature*5.5);
+  var onStraight=curvature<0.12;
 
-  // --- BLOCKER SCAN (before speed calc so slipstream logic can use it) ---
+  // Target speed: corner-limited with 58% reduction at max curvature, floored at 32%
+  var brkFac=0.48-(ai._aggr-1.0)*0.12;
+  var spdFloor=Math.max(0.34,0.42-ai._aggr*0.06);
+  var targetSpd=Math.max(maxSpd*spdFloor,maxSpd*(1-curvature*brkFac));
+  var launching=raceTime<2.5;
+
+  // Gap-proportional following: closing rate limited by gap size — never cascades to zero
+  var bp0=wpPerp(ai.tIdx),bw0=waypoints[ai.tIdx];
+  var myLat=ai._latTarget;
   var allCars=[P].concat(AI);
-  var minArcGap=999,blockLat=0,hasBlocker=false;
-  for(var j=0;j<allCars.length;j++){
-    var other=allCars[j];if(other===ai) continue;
-    var arcGap=((other.tIdx-ai.tIdx)+N)%N;
-    if(arcGap>=1&&arcGap<=40&&arcGap<minArcGap){
-      var op=wpPerp(other.tIdx),ow=waypoints[other.tIdx];
-      blockLat=(other.x-ow.x)*op.x+(other.z-ow.z)*op.z;
-      minArcGap=arcGap;hasBlocker=true;
+  var fwdCar=null,fwdGap=999;
+  if(!launching){
+    for(var j=0;j<allCars.length;j++){
+      var oth=allCars[j];if(oth===ai) continue;
+      var g=((oth.tIdx-ai.tIdx)+N)%N;
+      if(g<1||g>40) continue;
+      var othLat=oth._latTarget!==undefined?oth._latTarget:((oth.x-bw0.x)*bp0.x+(oth.z-bw0.z)*bp0.z);
+      if(Math.abs(myLat-othLat)<TW*0.24&&g<fwdGap){fwdGap=g;fwdCar=oth;}
+    }
+    if(fwdCar){
+      var closingSpd=ai.speed-fwdCar.speed;
+      if(closingSpd>0){
+        var allowedClose=Math.min(fwdGap*0.7,9.0);
+        if(closingSpd>allowedClose) targetSpd=Math.min(targetSpd,fwdCar.speed+allowedClose);
+      }
+    }
+    if(fwdCar&&fwdGap<40) ai._stuckTimer+=dt;
+    else ai._stuckTimer=Math.max(0,ai._stuckTimer-dt*1.4);
+  }
+  if(launching) targetSpd=maxSpd;
+
+  // Slipstream: +7% maxSpd when directly behind another car in the same lane
+  var slipBoost=1.0;
+  if(!launching){
+    for(var js=0;js<allCars.length;js++){
+      var oS=allCars[js];if(oS===ai) continue;
+      var gS=((oS.tIdx-ai.tIdx)+N)%N;
+      if(gS<1||gS>25) continue;
+      var oSLat=oS._latTarget!==undefined?oS._latTarget:((oS.x-bw0.x)*bp0.x+(oS.z-bw0.z)*bp0.z);
+      if(Math.abs(myLat-oSLat)<TW*0.22){slipBoost=1.10;break;}
     }
   }
+  maxSpd*=slipBoost;
 
-  // Slipstream burst: push harder on straights when close behind a car
-  var onStraight=curvature<0.15;
-  var engFac=(onStraight&&hasBlocker&&minArcGap<=8)?1.08:0.96;
-  var targetSpd=maxSpd*(1.0-curvature*0.42);
-  var force=targetSpd>ai.speed?ENG*engFac:-BRK;
+  // Accelerate / brake toward target speed
+  var force=targetSpd>ai.speed?ENG:-BRK;
   ai.speed=Math.max(0,Math.min(ai.speed+(force/CAR_MASS)*dt,maxSpd));
 
-  // --- LATERAL TARGET ---
-  var halfTW=TW*0.40;
-  var desiredLat;
-  if(curvature>0.25){
-    // Cut apex: left turn (turnSign=+1) → inside is left = negative offset
-    desiredLat=-turnSign*halfTW*0.70;
+  // Lateral target — committed-overtake state machine
+  var halfTW=TW*0.44;
+  var desiredLat=ai._baseLat;
+
+  if(raceTime<3.0){
+    // Formation: hold start lane
+    desiredLat=ai._baseLat;ai._ovTimer=0;
+
+  } else if(ai._ovTimer>0){
+    // COMMITTED OVERTAKE: hold _ovTgt until timer expires or gap opens
+    ai._ovTimer-=dt;
+    desiredLat=ai._ovTgt;
+    if(!fwdCar||fwdGap>55){ai._ovTimer=0;ai._baseLat=ai._ovTgt;}  // Lock new lane
+
+  } else if(curvature>0.22){
+    // CORNER: each car takes its own apex; only fall back if nose-to-tail
+    desiredLat=(fwdCar&&fwdGap<25)?ai._baseLat:-turnSign*halfTW*ai.apexD;
+
   } else {
-    desiredLat=ai._baseLat;
+    // STRAIGHT / GENTLE CURVE: follow or commit to overtake
+    if(fwdCar&&fwdGap<40){
+      var fwdLat=fwdCar._latTarget!==undefined?fwdCar._latTarget:((fwdCar.x-bw0.x)*bp0.x+(fwdCar.z-bw0.z)*bp0.z);
+      // Direction: go to whichever side we're already biased toward — prevents flip-flopping
+      var oDir=Math.abs(ai._latTarget)>halfTW*0.65?-Math.sign(ai._latTarget):ai._ovSide;
+      var oTgt=Math.max(-halfTW,Math.min(halfTW,fwdLat+oDir*TW*0.35));
+      // Faster cars force past; others only go if the gap is clear
+      var doOvertake=ai._stuckTimer>1.5||((fwdCar.spdFac!==undefined)&&(ai.spdFac-fwdCar.spdFac)>0.05);
+      if(!doOvertake){
+        doOvertake=true;
+        for(var kk=0;kk<allCars.length;kk++){
+          var ocb=allCars[kk];if(ocb===ai||ocb===fwdCar) continue;
+          var og2=((ocb.tIdx-ai.tIdx)+N)%N;
+          if(og2>22||(N-og2)>10) continue;  // Window: 10 wp behind to 22 wp ahead
+          var ocbLat=ocb._latTarget!==undefined?ocb._latTarget:((ocb.x-bw0.x)*bp0.x+(ocb.z-bw0.z)*bp0.z);
+          if(Math.abs(oTgt-ocbLat)<TW*0.20){doOvertake=false;break;}
+        }
+      }
+      if(doOvertake){ai._ovTgt=oTgt;ai._ovTimer=3.5;ai._ovSide*=-1;desiredLat=oTgt;}
+      else desiredLat=ai._baseLat;
+    } else {
+      desiredLat=ai._baseLat;
+    }
   }
+  desiredLat=Math.max(-halfTW,Math.min(halfTW,desiredLat));
+  ai._latTarget+=(desiredLat-ai._latTarget)*Math.min(dt*3.5,1);
+  ai._latTarget=Math.max(-halfTW,Math.min(halfTW,ai._latTarget));
 
-  // Defensive: block player if they are closing from behind on a straight
-  var behindGap=((ai.tIdx-P.tIdx)+N)%N;
-  if(behindGap>=1&&behindGap<=40&&onStraight){
-    var pPerp=wpPerp(P.tIdx),pWp=waypoints[P.tIdx];
-    var playerLat=(P.x-pWp.x)*pPerp.x+(P.z-pWp.z)*pPerp.z;
-    var defendUrg=Math.max(0,(40-behindGap)/40);
-    desiredLat=playerLat*defendUrg*0.75;
-  }
-
-  // Overtaking: find nearest car ahead; move to opposite lateral half (overrides defensive)
-  if(hasBlocker){
-    var urgency=(40-minArcGap)/40;
-    var side=blockLat===0?1:Math.sign(blockLat);
-    desiredLat=-side*halfTW*(0.5+urgency*0.5);
-  }
-
-  // Smooth lateral transition
-  ai._latTarget+=(desiredLat-ai._latTarget)*Math.min(dt*1.6,1);
-
-  // Steering: aim at lookahead waypoint plus lateral offset
-  var look=Math.max(6,Math.min(28,Math.round(20-curvature*14)));
-  var tgtIdx=(ai.tIdx+look)%N;
-  var tgtWp=waypoints[tgtIdx],tgtP=wpPerp(tgtIdx);
-  var targetX=tgtWp.x+tgtP.x*ai._latTarget;
-  var targetZ=tgtWp.z+tgtP.z*ai._latTarget;
-
-  var dx=targetX-ai.x,dz=targetZ-ai.z;
-  var targetH=Math.atan2(dx,dz);
-  var dh=targetH-ai.heading;
+  // Steer toward lookahead waypoint with lateral offset
+  var look=Math.max(12,Math.round(30-curvature*18));
+  var tI=(ai.tIdx+look)%N,tWp=waypoints[tI],tPp=wpPerp(tI);
+  var tx=tWp.x+tPp.x*ai._latTarget,tz=tWp.z+tPp.z*ai._latTarget;
+  var dh=Math.atan2(tx-ai.x,tz-ai.z)-ai.heading;
   while(dh>Math.PI) dh-=2*Math.PI;while(dh<-Math.PI) dh+=2*Math.PI;
   var maxTurn=Math.PI*1.6*dt;
   ai.heading+=Math.max(-maxTurn,Math.min(maxTurn,dh*dt*5.5));
@@ -1595,17 +1605,22 @@ function updateAI(ai,dt){
   ai.tIdx=closestWP(ai.x,ai.z,ai.tIdx);
   ai.y=waypoints[ai.tIdx].y;
 
-  var _abp=wpPerp(ai.tIdx),_awp=waypoints[ai.tIdx];
-  var _alat=(ai.x-_awp.x)*_abp.x+(ai.z-_awp.z)*_abp.z;
-  if(Math.abs(_alat)>TW*0.5+CURB){
-    var _as=_alat>0?1:-1;
-    ai.x=_awp.x+_abp.x*_as*(TW*0.5+CURB);
-    ai.z=_awp.z+_abp.z*_as*(TW*0.5+CURB);
-    ai.speed*=0.5;
+  // Track boundary clamp
+  var bp=wpPerp(ai.tIdx),bw=waypoints[ai.tIdx];
+  var lat=(ai.x-bw.x)*bp.x+(ai.z-bw.z)*bp.z;
+  if(Math.abs(lat)>TW*0.5+CURB){
+    var s=lat>0?1:-1;
+    ai.x=bw.x+bp.x*s*(TW*0.5+CURB);
+    ai.z=bw.z+bp.z*s*(TW*0.5+CURB);
+    ai.speed*=0.55;
+    ai._latTarget*=0.25;
+    ai._ovTimer=0;
   }
+
+  // Lap detection
   if(ai.tIdx<12&&!ai._inStart){
     ai._inStart=true;
-    if(ai._skipFirst){ai._skipFirst=false;}
+    if(ai._skipFirst) ai._skipFirst=false;
     else{ai.lap++;if(ai.lap>LAPS){ai.lap=LAPS;if(ai.finishTime===Infinity)ai.finishTime=raceTime;}}
   }
   if(ai.tIdx>=20) ai._inStart=false;
@@ -1629,15 +1644,24 @@ function resolveCollisions(){
         var nx,nz,pen;
         if(ovL<ovS){
           nx=projL>0?fx:-fx;nz=projL>0?fz:-fz;pen=ovL*0.5;
+          var dv=Math.max(0,a.speed-b.speed);
+          var imp=Math.min(dv*0.35,pen*5+dv*0.08);
+          a.speed=Math.max(0,a.speed-imp*0.65);
+          b.speed=Math.min(b.speed+imp*0.25,MAX_SPD*1.05);
         } else {
           nx=projS>0?sx:-sx;nz=projS>0?sz:-sz;pen=ovS*0.5;
           var bumpY=pen*0.08;
           if(a.yawRate!==undefined) a.yawRate+=(projS>0?bumpY:-bumpY);
           if(b.yawRate!==undefined) b.yawRate+=(projS>0?-bumpY:bumpY);
+          // Strong speed penalty on contact — proportional to penetration depth
+          var rub=Math.min(pen*0.6,0.45);
+          a.speed=Math.max(0,a.speed-rub);b.speed=Math.max(0,b.speed-rub);
+          // Force lateral targets to diverge so they don't keep colliding
+          var latPush=1.0,hTW=TW*0.44;
+          if(a._latTarget!==undefined){a._latTarget+=(projS>0?-latPush:latPush);a._latTarget=Math.max(-hTW,Math.min(hTW,a._latTarget));}
+          if(b._latTarget!==undefined){b._latTarget+=(projS>0?latPush:-latPush);b._latTarget=Math.max(-hTW,Math.min(hTW,b._latTarget));}
         }
         a.x-=nx*pen;a.z-=nz*pen;b.x+=nx*pen;b.z+=nz*pen;
-        var relV=Math.abs(a.speed-b.speed)*0.18;
-        a.speed=Math.max(0,a.speed-relV);b.speed=Math.max(0,b.speed-relV);
       }
     }
   }
@@ -1661,8 +1685,8 @@ function _initAudio(){
   // 8 harmonics, near-zero above the 4th. The 16-harmonic wave was generating
   // 640–6400 Hz content that the distortion then multiplied — the entire screech source.
   var eReal=new Float32Array(8),eImag=new Float32Array(8);
-  eImag[1]=1.00;eImag[2]=0.80;eImag[3]=0.50;eImag[4]=0.28;
-  eImag[5]=0.16;eImag[6]=0.09;eImag[7]=0.04;
+  eImag[1]=1.00;eImag[2]=0.92;eImag[3]=0.65;eImag[4]=0.38;
+  eImag[5]=0.14;eImag[6]=0.05;eImag[7]=0.02;
   var _exhaustWave=_AC.createPeriodicWave(eReal,eImag);
 
   _noiseBuffer=_AC.createBuffer(1,_AC.sampleRate,_AC.sampleRate);
@@ -1688,8 +1712,8 @@ function _initAudio(){
 
     // Parallel low-body: boost 100-160 Hz band to keep deep chest weight at all RPM.
     var bodyBPF=_AC.createBiquadFilter();
-    bodyBPF.type='bandpass';bodyBPF.frequency.value=120;bodyBPF.Q.value=1.2;
-    var bodyGain=_AC.createGain();bodyGain.gain.value=0.35;
+    bodyBPF.type='bandpass';bodyBPF.frequency.value=70;bodyBPF.Q.value=1.0;
+    var bodyGain=_AC.createGain();bodyGain.gain.value=0.60;
 
     // Mechanical texture: broadband noise at very low gain — Q=0.4 so it is diffuse, not tonal.
     var ns=_AC.createBufferSource();ns.buffer=_noiseBuffer;ns.loop=true;ns.start();
@@ -1796,8 +1820,8 @@ function _tickAudio(){
   var effRpm=Math.max(0,Math.min(1,_audioRpm+wobble));
 
   // Oscillator 80→300 Hz, LP 280→2500 Hz — wider sweep = dramatic tonal shift
-  var crankHz=80+effRpm*220;
-  var lpHz=280+effRpm*2220;
+  var crankHz=45+effRpm*155;
+  var lpHz=300+effRpm*1300;
   if(brk>0)  lpHz*=0.50;   // braking: very dark and muted
   else if(!thr) lpHz*=0.72; // coasting: slightly muffled
   _playerEng.exhaustOsc.frequency.setTargetAtTime(crankHz,now,0.02);
@@ -1835,8 +1859,9 @@ function _tickAudio(){
   // AI engines — distance-attenuated, same LP sweep range
   for(var i=0;i<AI.length;i++){
     var ai=AI[i],e=_aiEngs[i];if(!e) continue;
-    var aiCrank=80+(ai.speed/MAX_SPD)*220;
-    var aiLP=280+(ai.speed/MAX_SPD)*2220;
+    var aiNorm=Math.min(1,ai.speed/(MAX_SPD*(ai.spdFac||1.0)));
+    var aiCrank=45+aiNorm*155;
+    var aiLP=300+aiNorm*1300;
     e.exhaustOsc.frequency.setTargetAtTime(aiCrank,now,0.12);
     e.exhaustLP.frequency.setTargetAtTime(aiLP,now,0.15);
     var ddx=ai.x-P.x,ddz=ai.z-P.z;
@@ -1856,7 +1881,7 @@ function _stopAudio(){
 function updateCamera(dt){
   var spd=P.speed;
   if(gameState==='COUNTDOWN'){
-    var d0=wpDir(0),wy0=waypoints[0].y;
+    var d0=wpDir(P.tIdx),wy0=waypoints[P.tIdx].y;
     gameCam.position.set(P.x-d0.x*28,wy0+13,P.z-d0.z*28);
     gameCam.lookAt(new THREE.Vector3(P.x+d0.x*8,wy0+0.5,P.z+d0.z*8));
     gameCam.fov=80;gameCam.updateProjectionMatrix();
@@ -1910,6 +1935,30 @@ function updateHUD(){
   if(tempF) tempF.style.background=tc(P.tireTempF);
   if(tempR) tempR.style.background=tc(P.tireTempR);
   if(wheelInd) wheelInd.setAttribute('transform','rotate('+(P.yawRate*20*180/Math.PI)+')');
+  // Best lap display
+  var hudMsgEl=document.querySelector('#hud-main .hud-msg');
+  if(hudMsgEl){
+    if(P.bestLap<Infinity){hudMsgEl.textContent='BEST '+fmt(P.bestLap);hudMsgEl.style.color='#cc00ff';}
+    else{hudMsgEl.textContent='';hudMsgEl.style.color='';}
+  }
+  // Live gap to car ahead
+  var hudDeltaEl=document.getElementById('hud-delta');
+  if(hudDeltaEl&&gameState==='RACING'){
+    var myRank=getPos();
+    if(myRank===0){
+      hudDeltaEl.textContent='Δ LEADER';hudDeltaEl.className='hud-delta green';
+    } else {
+      var allCarsD=[{tIdx:P.tIdx,lap:P.lap,isP:true}].concat(AI.map(function(a){return {tIdx:a.tIdx,lap:a.lap,isP:false};}));
+      allCarsD.sort(function(a,b){if(a.lap!==b.lap)return b.lap-a.lap;return((b.tIdx-a.tIdx)+N)%N<((a.tIdx-b.tIdx)+N)%N?-1:1;});
+      var ahead=allCarsD[myRank-1];
+      if(ahead){
+        var wpGap=((ahead.tIdx-P.tIdx)+N)%N;
+        var gapS=(wpGap*2.2)/Math.max(P.speed,1);
+        hudDeltaEl.textContent='Δ +'+(gapS<99?gapS.toFixed(1)+'s':'lap');
+        hudDeltaEl.className='hud-delta'+(gapS<1?' green':gapS>5?' red':'');
+      }
+    }
+  }
   drawMinimap();
 }
 
@@ -1930,7 +1979,7 @@ function drawMinimap(){
   function wx(x){return ox+(x-bb.mnx)*sc;}
   function wz2(z){return oz+(z-bb.mnz)*sc;}
   minimapCtx.clearRect(0,0,mw,mh);
-  minimapCtx.strokeStyle='#333';minimapCtx.lineWidth=3;minimapCtx.beginPath();
+  minimapCtx.strokeStyle='#1A6A90';minimapCtx.lineWidth=3;minimapCtx.beginPath();
   for(var j=0;j<N;j+=2){
     var ww=waypoints[j];
     if(j===0) minimapCtx.moveTo(wx(ww.x),wz2(ww.z));

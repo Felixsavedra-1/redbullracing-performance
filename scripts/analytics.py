@@ -15,7 +15,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from constants import TEAM_REFS
+from constants import TEAM_REFS, DNF_POSITION_ORDER
 
 _log = logging.getLogger(__name__)
 
@@ -51,8 +51,8 @@ def teammate_delta(
     JOIN drivers da ON ra.driver_id = da.driver_id
     JOIN drivers db ON rb.driver_id = db.driver_id
     WHERE c.constructor_ref IN ({placeholders})
-      AND ra.position_order < 999
-      AND rb.position_order < 999
+      AND ra.position_order < {DNF_POSITION_ORDER}
+      AND rb.position_order < {DNF_POSITION_ORDER}
     """
     try:
         with engine.connect() as conn:
@@ -103,7 +103,7 @@ def qualifying_race_ols(
     JOIN drivers da ON r.driver_id = da.driver_id
     WHERE c.constructor_ref IN ({placeholders})
       AND r.grid           > 0
-      AND r.position_order < 999
+      AND r.position_order < {DNF_POSITION_ORDER}
     """
     try:
         with engine.connect() as conn:
@@ -196,7 +196,7 @@ def championship_trajectory(engine: Engine, team_refs: list[str] = TEAM_REFS) ->
             return pd.read_sql(text(sql), conn, params=params)
     except SQLAlchemyError as exc:
         _log.warning("championship_trajectory: query failed — %s", exc)
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["year", "round", "driver", "points", "position"])
 
 
 def dnf_rate_model(
@@ -215,7 +215,7 @@ def dnf_rate_model(
     SELECT
         COALESCE(da.forename, '') || ' ' || COALESCE(da.surname, '') AS driver,
         COUNT(*) AS races,
-        SUM(CASE WHEN r.position_order = 999 THEN 1 ELSE 0 END) AS dnfs
+        SUM(CASE WHEN r.position_order = {DNF_POSITION_ORDER} THEN 1 ELSE 0 END) AS dnfs
     FROM results r
     JOIN drivers da     ON r.driver_id        = da.driver_id
     JOIN constructors c ON r.constructor_id   = c.constructor_id
@@ -228,7 +228,7 @@ def dnf_rate_model(
             df = pd.read_sql(text(sql), conn, params=params)
     except SQLAlchemyError as exc:
         _log.warning("dnf_rate_model: query failed — %s", exc)
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["driver", "races", "dnfs", "rate", "ci_lower", "ci_upper"])
 
     dnfs = df["dnfs"].to_numpy(dtype=float)
     races = df["races"].to_numpy(dtype=float)
