@@ -20,7 +20,7 @@ from constants import TEAM_REFS, DNF_POSITION_ORDER
 _log = logging.getLogger(__name__)
 
 
-def _ref_params(refs: list[str]) -> tuple[str, dict]:
+def ref_params(refs: list[str]) -> tuple[str, dict]:
     """Returns (IN-clause placeholders, params dict) for parameterized queries."""
     return ", ".join(f":r{i}" for i in range(len(refs))), {f"r{i}": r for i, r in enumerate(refs)}
 
@@ -36,7 +36,7 @@ def teammate_delta(
     Negative mean_delta = driver_a finishes ahead of driver_b on average.
     DNFs excluded from both sides to isolate pace, not reliability.
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     SELECT
         COALESCE(da.forename, '') || ' ' || COALESCE(da.surname, '') AS driver_a,
@@ -92,7 +92,7 @@ def qualifying_race_ols(
     Returns (stats_dict, scatter_df). DNFs excluded.
     stats_dict: slope | intercept | r2 | p_value | n
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     SELECT
         COALESCE(da.forename, '') || ' ' || COALESCE(da.surname, '') AS driver,
@@ -130,7 +130,7 @@ def pit_stop_efficiency(
     Returns: driver | mean_z | std_z | n_stops  (sorted ascending by mean_z).
     Stops outside [15 s, 60 s] dropped — safety-car pits and data errors skew the baseline.
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     WITH season_stats AS (
         SELECT
@@ -176,7 +176,7 @@ def championship_trajectory(engine: Engine, team_refs: list[str] = TEAM_REFS) ->
     Cumulative championship points per driver per round, all seasons.
     Returns: year | round | driver | points | position
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     SELECT
         ra.year, ra.round,
@@ -209,7 +209,7 @@ def dnf_rate_model(
     Returns: driver | races | dnfs | rate | ci_lower | ci_upper  (sorted desc by rate).
     CI uses chi-squared exact method: lower = χ²(0.025, 2k)/(2n), upper = χ²(0.975, 2k+2)/(2n).
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     params["min_races"] = min_races
     sql = f"""
     SELECT
@@ -253,7 +253,7 @@ def tyre_degradation(
     Returns: driver | compound | deg_rate_s | r2 | n
     Positive deg_rate_s = lap time grows with tyre age (expected).
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     SELECT COALESCE(d.forename,'') || ' ' || COALESCE(d.surname,'') AS driver,
            l.compound, l.tyre_life, l.lap_time_s
@@ -288,7 +288,72 @@ def tyre_degradation(
             deg_rate_s=round(slope, 4), r2=round(r_val ** 2, 3), n=len(g),
         ))
 
+    if not rows:
+        return pd.DataFrame(columns=["driver", "compound", "deg_rate_s", "r2", "n"])
     return pd.DataFrame(rows).sort_values(["compound", "deg_rate_s"]).reset_index(drop=True)
+
+
+def pit_strategy(
+    engine: Engine,
+    team_refs: list[str] = TEAM_REFS,
+    year: int | None = None,
+) -> pd.DataFrame:
+    """
+    Stint structure for the most recent race with lap data.
+    Returns: race_name | year | driver | stint | compound | start_lap | end_lap | stint_laps | finish_pos
+    Sorted by finish position then stint number.
+    """
+    placeholders, params = ref_params(team_refs)
+    year_clause = "AND ra.year = :year" if year else ""
+    if year:
+        params["year"] = year
+    sql = f"""
+    WITH team_cons AS (
+        SELECT constructor_id FROM constructors
+        WHERE constructor_ref IN ({placeholders})
+    ),
+    latest_race AS (
+        SELECT l.race_id
+        FROM laps l
+        JOIN results res ON l.race_id   = res.race_id
+                       AND l.driver_id = res.driver_id
+        WHERE res.constructor_id IN (SELECT constructor_id FROM team_cons)
+          {year_clause}
+        ORDER BY l.race_id DESC
+        LIMIT 1
+    )
+    SELECT
+        ra.race_name,
+        ra.year,
+        COALESCE(d.forename,'') || ' ' || COALESCE(d.surname,'') AS driver,
+        l.stint,
+        UPPER(l.compound) AS compound,
+        MIN(l.lap_number) AS start_lap,
+        MAX(l.lap_number) AS end_lap,
+        COUNT(*)           AS stint_laps,
+        COALESCE(res.position_order, 99) AS finish_pos
+    FROM laps l
+    JOIN latest_race  lr  ON l.race_id         = lr.race_id
+    JOIN races        ra  ON l.race_id         = ra.race_id
+    JOIN results      res ON l.race_id         = res.race_id
+                         AND l.driver_id       = res.driver_id
+    JOIN drivers      d   ON l.driver_id        = d.driver_id
+    WHERE res.constructor_id IN (SELECT constructor_id FROM team_cons)
+      AND l.compound IS NOT NULL
+      AND l.compound NOT IN ('UNKNOWN', '')
+    GROUP BY ra.race_name, ra.year, l.driver_id, d.forename, d.surname,
+             l.stint, l.compound, res.position_order
+    ORDER BY finish_pos, l.stint
+    """
+    try:
+        with engine.connect() as conn:
+            return pd.read_sql(text(sql), conn, params=params)
+    except SQLAlchemyError as exc:
+        _log.warning("pit_strategy: query failed — %s", exc)
+        return pd.DataFrame(columns=[
+            "race_name", "year", "driver", "stint", "compound",
+            "start_lap", "end_lap", "stint_laps", "finish_pos",
+        ])
 
 
 def sector_deltas(
@@ -301,7 +366,7 @@ def sector_deltas(
     Returns: driver | s1_mean | s2_mean | s3_mean | n
     Sorted by combined sector time (fastest first).
     """
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     params["min_laps"] = min_laps
     sql = f"""
     SELECT COALESCE(d.forename,'') || ' ' || COALESCE(d.surname,'') AS driver,

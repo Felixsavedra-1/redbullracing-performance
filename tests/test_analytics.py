@@ -9,6 +9,7 @@ from scripts.analytics import (
     championship_trajectory,
     dnf_rate_model,
     pit_stop_efficiency,
+    pit_strategy,
     qualifying_race_ols,
     sector_deltas,
     teammate_delta,
@@ -87,6 +88,16 @@ INSERT INTO driver_standings VALUES (202401,1,25,1,'1',1);
 INSERT INTO driver_standings VALUES (202401,2,18,2,'2',0);
 INSERT INTO driver_standings VALUES (202402,1,50,1,'1',2);
 INSERT INTO driver_standings VALUES (202402,2,36,2,'2',0);
+INSERT INTO laps VALUES (202401,1,1,90.1,28.0,31.0,31.1,'SOFT',1,1,0,0,1,'1');
+INSERT INTO laps VALUES (202401,1,2,90.3,28.1,31.1,31.1,'SOFT',2,1,0,0,0,'1');
+INSERT INTO laps VALUES (202401,1,3,90.5,28.2,31.2,31.1,'SOFT',3,1,0,1,0,'1');
+INSERT INTO laps VALUES (202401,1,4,90.7,28.3,31.2,31.2,'MEDIUM',1,2,0,0,1,'1');
+INSERT INTO laps VALUES (202401,1,5,90.9,28.4,31.3,31.2,'MEDIUM',2,2,0,0,0,'1');
+INSERT INTO laps VALUES (202401,2,1,91.0,28.5,31.4,31.1,'SOFT',1,1,0,0,1,'1');
+INSERT INTO laps VALUES (202401,2,2,91.2,28.6,31.5,31.1,'SOFT',2,1,0,0,0,'1');
+INSERT INTO laps VALUES (202401,2,3,91.4,28.7,31.5,31.2,'SOFT',3,1,0,1,0,'1');
+INSERT INTO laps VALUES (202401,2,4,91.6,28.8,31.6,31.2,'MEDIUM',1,2,0,0,1,'1');
+INSERT INTO laps VALUES (202401,2,5,91.8,28.9,31.6,31.3,'MEDIUM',2,2,0,0,0,'1');
 """
 
 
@@ -219,6 +230,28 @@ class TestTyreDegradationAndSectorDeltas(unittest.TestCase):
 
     def test_sector_deltas_empty_returns_empty(self):
         df = sector_deltas(self.engine, team_refs=["red_bull"])
+        self.assertTrue(df.empty)
+
+
+class TestPitStrategy(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.engine = _make_engine()
+
+    def test_returns_expected_columns(self):
+        df = pit_strategy(self.engine, team_refs=["red_bull"])
+        for col in ("race_name", "year", "driver", "stint", "compound",
+                    "start_lap", "end_lap", "stint_laps", "finish_pos"):
+            self.assertIn(col, df.columns)
+
+    def test_returns_two_stints_per_driver(self):
+        df = pit_strategy(self.engine, team_refs=["red_bull"])
+        self.assertFalse(df.empty)
+        stints_per_driver = df.groupby("driver")["stint"].nunique()
+        self.assertTrue((stints_per_driver == 2).all())
+
+    def test_nonexistent_team_returns_empty(self):
+        df = pit_strategy(self.engine, team_refs=["nonexistent"])
         self.assertTrue(df.empty)
 
 

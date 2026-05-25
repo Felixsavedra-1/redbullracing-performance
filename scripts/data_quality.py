@@ -150,4 +150,42 @@ def run_quality_checks(
         _check_missing_data(conn, "results",   "race_id", "races_missing_results",   "results")
         _check_missing_data(conn, "qualifying", "race_id", "races_missing_qualifying", "qualifying")
 
+        try:
+            laps_row = conn.execute(text("SELECT COUNT(*) AS value FROM laps")).fetchone()
+            laps_count = laps_row[0] if laps_row else 0
+        except SQLAlchemyError:
+            laps_count = 0
+
+        if laps_count > 0:
+            lap_checks = [
+                {
+                    "name": "laps_lap_time_bounds",
+                    "query": "SELECT COUNT(*) AS value FROM laps WHERE lap_time_s IS NOT NULL AND (lap_time_s < 60 OR lap_time_s > 300)",
+                    "expected_zero": True,
+                },
+                {
+                    "name": "laps_invalid_compound",
+                    "query": "SELECT COUNT(*) AS value FROM laps WHERE compound IS NOT NULL AND compound NOT IN ('SOFT','MEDIUM','HARD','INTERMEDIATE','WET','UNKNOWN')",
+                    "expected_zero": True,
+                },
+                {
+                    "name": "laps_driver_fk",
+                    "query": "SELECT COUNT(*) AS value FROM laps WHERE driver_id NOT IN (SELECT driver_id FROM drivers)",
+                    "expected_zero": True,
+                },
+                {
+                    "name": "laps_race_fk",
+                    "query": "SELECT COUNT(*) AS value FROM laps WHERE race_id NOT IN (SELECT race_id FROM races)",
+                    "expected_zero": True,
+                },
+            ]
+            for check in lap_checks:
+                try:
+                    result = conn.execute(text(check["query"])).fetchone()
+                    value = result[0] if result else 0
+                    if value != 0:
+                        failures.append({"check": check["name"], "value": str(value), "expected": "0"})
+                except SQLAlchemyError as exc:
+                    failures.append({"check": check["name"], "value": f"error: {exc}", "expected": "query_success"})
+
     return failures

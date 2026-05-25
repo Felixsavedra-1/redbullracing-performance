@@ -14,7 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from analytics import _ref_params, pit_stop_efficiency, dnf_rate_model, sector_deltas
+from analytics import ref_params, pit_stop_efficiency, dnf_rate_model, sector_deltas, tyre_degradation, pit_strategy
 
 logger = logging.getLogger("f1_analytics")
 
@@ -295,6 +295,19 @@ footer{padding:20px 40px;border-top:1px solid #0A2035;display:flex;justify-conte
       <div class="telem-panel">
         <div class="telem-label">Sector Delta &middot; Green-Flag Laps</div>
         PLACEHOLDER_C8
+      </div>
+    </div>
+  </div>
+  <div class="chart-section" data-section="SYS&middot;07">
+    <div class="chart-label">Lap Analysis &middot; FastF1</div>
+    <div class="chart-row">
+      <div>
+        <div class="telem-label">Tyre Degradation &middot; Rate by Compound</div>
+        PLACEHOLDER_C9
+      </div>
+      <div>
+        <div class="telem-label">Race Strategy &middot; Stint Structure</div>
+        PLACEHOLDER_C10
       </div>
     </div>
   </div>
@@ -2179,7 +2192,7 @@ def _round_by_round_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
     """Cumulative points and finish position per driver per round, all seasons.
     Returns: year | round | driver | points | position
     Computed from results — independent of driver_standings population."""
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = f"""
     SELECT
         ra.year, ra.round,
@@ -2202,7 +2215,7 @@ def _round_by_round_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
 
 
 def _grid_finish_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
-    placeholders, params = _ref_params(team_refs)
+    placeholders, params = ref_params(team_refs)
     sql = (
         "SELECT COALESCE(da.forename,'') || ' ' || COALESCE(da.surname,'') AS driver,"
         " ra.year, CAST(r.grid AS INTEGER) AS grid,"
@@ -2241,17 +2254,22 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
-        fill_color = _hex_to_rgba(color if color != "#FFFFFF" else "#888888", 0.10)
         surname = driver.split()[-1]
 
         fig.add_trace(go.Scatter(
             x=g["round"], y=g["points"],
+            mode="none",
+            fill="tozeroy",
+            fillcolor=_hex_to_rgba(color, 0.12),
+            showlegend=False,
+            hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=g["round"], y=g["points"],
             mode="lines+markers",
             name=surname,
-            line=dict(color=color, width=3, shape="spline"),
+            line=dict(color=color, width=2.5, shape="spline"),
             marker=dict(size=6, color=color, line=dict(color="#030F1A", width=1)),
-            fill="tozeroy",
-            fillcolor=fill_color,
             hovertemplate=f"<b>{surname}</b>  %{{y}} pts<extra></extra>",
         ))
 
@@ -2299,8 +2317,8 @@ def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
     layout.yaxis.update(autorange="reversed", dtick=5)
     fig = go.Figure(layout=layout)
 
-    fig.add_hrect(y0=0.5, y1=1.5, fillcolor="rgba(255,215,0,0.04)", layer="below", line_width=0)
-    fig.add_hrect(y0=0.5, y1=3.5, fillcolor="rgba(255,255,255,0.02)", layer="below", line_width=0)
+    fig.add_hrect(y0=0.5, y1=1.5, fillcolor="rgba(255,215,0,0.10)", layer="below", line_width=0)
+    fig.add_hrect(y0=0.5, y1=3.5, fillcolor="rgba(255,255,255,0.04)", layer="below", line_width=0)
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         color = _driver_color(driver, i)
@@ -2308,21 +2326,24 @@ def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
             x=g["round"], y=g["position"],
             mode="lines+markers",
             name=driver.split()[-1],
-            line=dict(color=color, width=4, shape="spline"),
-            marker=dict(size=9, color=color, line=dict(color="#030F1A", width=1.5)),
+            line=dict(color=color, width=2.5, shape="linear"),
+            marker=dict(size=7, color=color, line=dict(color="#030F1A", width=1.5)),
             hovertemplate="<b>%{fullData.name}</b>  P%{y}<extra></extra>",
         ))
     return fig
 
 
 def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
-    """Points gap between the two drivers — latest season. Filled area above/below zero."""
+    """Points gap between the two drivers — latest season.
+    Gap = d_a (season leader) minus d_b.  Positive = d_a leads, negative = d_b leads.
+    Step interpolation: gap is a discrete step function that changes only at race events.
+    Line color tracks the current leader so the viewer always knows who's ahead."""
     layout = _layout_2d(
         "POINTS GAP · DRIVERS",
         xaxis_title="ROUND",
         yaxis_title="GAP (PTS)",
         height=420,
-        hovermode="x unified",
+        hovermode="closest",
     )
     fig = go.Figure(layout=layout)
 
@@ -2336,50 +2357,115 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         return fig
 
     pivot = df.pivot_table(index="round", columns="driver", values="points", aggfunc="last").ffill()
-    d_a, d_b = drivers[0], drivers[1]
-    if d_a not in pivot.columns or d_b not in pivot.columns:
+    # Sort by total season points descending so d_a is always the championship leader
+    total_pts = df.groupby("driver")["points"].max()
+    sorted_drivers = total_pts.sort_values(ascending=False).index.tolist()
+    d_a = next((d for d in sorted_drivers if d in pivot.columns), None)
+    remaining = [d for d in sorted_drivers if d in pivot.columns and d != d_a]
+    d_b = remaining[0] if remaining else None
+    if d_a is None or d_b is None:
         return fig
 
     rounds = pivot.index.tolist()
     gap = (pivot[d_a] - pivot[d_b]).tolist()
-    color_a = _driver_color(d_a, 0)
-    color_b = _driver_color(d_b, 1)
+    # Resolve white to a visible grey so it renders on dark background
+    color_a = _driver_color(d_a, 0) if _driver_color(d_a, 0) != "#FFFFFF" else "#AAAAAA"
+    color_b = _driver_color(d_b, 1) if _driver_color(d_b, 1) != "#FFFFFF" else "#888888"
+    surname_a = d_a.split()[-1]
+    surname_b = d_b.split()[-1]
 
-    fig.add_hline(y=0, line=dict(color=_GRID, width=1, dash="dot"))
+    # Zero reference
+    fig.add_hline(y=0, line=dict(color=_ZERO_LINE, width=1.5, dash="dot"))
 
+    # Area fills — show which driver is leading at a glance
     pos_gap = [g if g >= 0 else 0 for g in gap]
     neg_gap = [g if g < 0 else 0 for g in gap]
-
     fig.add_trace(go.Scatter(
         x=rounds, y=pos_gap,
         mode="none", fill="tozeroy",
-        fillcolor=_hex_to_rgba(color_a if color_a != "#FFFFFF" else "#888888", 0.18),
-        name=d_a.split()[-1], showlegend=False, hoverinfo="skip",
+        fillcolor=_hex_to_rgba(color_a, 0.25),
+        showlegend=False, hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
         x=rounds, y=neg_gap,
         mode="none", fill="tozeroy",
-        fillcolor=_hex_to_rgba(color_b if color_b != "#FFFFFF" else "#888888", 0.18),
-        name=d_b.split()[-1], showlegend=False, hoverinfo="skip",
-    ))
-    fig.add_trace(go.Scatter(
-        x=rounds, y=gap,
-        mode="lines+markers",
-        name=f"{d_a.split()[-1]} vs {d_b.split()[-1]}",
-        line=dict(color="#ffffff", width=2, shape="spline"),
-        marker=dict(size=5, color="#ffffff"),
-        hovertemplate="%{y:+d} pts<extra></extra>",
+        fillcolor=_hex_to_rgba(color_b, 0.25),
+        showlegend=False, hoverinfo="skip",
     ))
 
+    # Gap line — step interpolation (gap only changes at race events)
+    # Color segments by leader: build separate traces per contiguous leader block
+    leader_color = color_a if gap[0] >= 0 else color_b
+    seg_x: list = [rounds[0]]
+    seg_y: list = [gap[0]]
+    for i in range(1, len(gap)):
+        cur_color = color_a if gap[i] >= 0 else color_b
+        if cur_color != leader_color:
+            # Close the segment and start a new one, sharing the boundary point
+            seg_x.append(rounds[i])
+            seg_y.append(gap[i])
+            fig.add_trace(go.Scatter(
+                x=seg_x, y=seg_y,
+                mode="lines",
+                line=dict(color=leader_color, width=2.5, shape="hv"),
+                showlegend=False, hoverinfo="skip",
+            ))
+            seg_x = [rounds[i - 1], rounds[i]]
+            seg_y = [gap[i - 1], gap[i]]
+            leader_color = cur_color
+        else:
+            seg_x.append(rounds[i])
+            seg_y.append(gap[i])
+    # Final segment
+    fig.add_trace(go.Scatter(
+        x=seg_x, y=seg_y,
+        mode="lines",
+        line=dict(color=leader_color, width=2.5, shape="hv"),
+        showlegend=False, hoverinfo="skip",
+    ))
+
+    # Markers per round with full hover context
+    fig.add_trace(go.Scatter(
+        x=rounds, y=gap,
+        mode="markers",
+        name=f"{surname_a} vs {surname_b}",
+        marker=dict(
+            size=7,
+            color=[color_a if g >= 0 else color_b for g in gap],
+            line=dict(color="#030F1A", width=1),
+        ),
+        customdata=[[surname_a if (g or 0) >= 0 else surname_b, abs(int(g)) if pd.notna(g) else 0] for g in gap],
+        hovertemplate=(
+            "<b>R%{x}</b>  %{customdata[0]} leads by %{customdata[1]} pts<extra></extra>"
+        ),
+    ))
+
+    # End annotation — show the final gap prominently
+    final_gap = gap[-1]
+    final_round = rounds[-1]
+    leader_name = surname_a if final_gap >= 0 else surname_b
+    leader_col = color_a if final_gap >= 0 else color_b
     fig.add_annotation(
-        x=0.01, y=0.96, xref="paper", yref="paper",
-        text=d_a.split()[-1], font=dict(color=color_a, family=_FONT, size=9),
-        showarrow=False, xanchor="left",
+        x=final_round, y=final_gap,
+        text=f"  {leader_name} +{abs(int(final_gap))} pts",
+        font=dict(color=leader_col, family=_FONT, size=10),
+        showarrow=True, arrowcolor=leader_col, arrowwidth=1,
+        arrowhead=0, ax=20, ay=-20,
+        xanchor="left",
+    )
+
+    # Zone labels — anchored to right edge, clearly in each zone
+    fig.add_annotation(
+        x=0.98, y=0.93, xref="paper", yref="paper",
+        text=f"↑ {surname_a} leads",
+        font=dict(color=color_a, family=_FONT, size=9),
+        showarrow=False, xanchor="right",
     )
     fig.add_annotation(
-        x=0.01, y=0.06, xref="paper", yref="paper",
-        text=d_b.split()[-1], font=dict(color=color_b, family=_FONT, size=9),
-        showarrow=False, xanchor="left",
+        x=0.98, y=0.07, xref="paper", yref="paper",
+        text=f"↓ {surname_b} leads",
+        font=dict(color=color_b, family=_FONT, size=9),
+        showarrow=False, xanchor="right",
     )
     return fig
 
@@ -2389,11 +2475,11 @@ def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
     layout = _layout_2d(
         "PERFORMANCE MATRIX · ALL SEASONS",
         xaxis_title="ROUND",
-        height=260,
+        height=400,
         hovermode="closest",
     )
     fig = go.Figure(layout=layout)
-    layout.yaxis.update(showgrid=False)
+    fig.update_layout(yaxis_showgrid=False)
 
     if traj_df.empty:
         return fig
@@ -2428,12 +2514,16 @@ def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
 
     fig.add_trace(go.Heatmap(
         z=z, x=cols, y=rows,
-        text=text, texttemplate="%{text}",
+        text=text,
         colorscale=colorscale,
         zmin=1, zmax=20,
-        showscale=False,
+        showscale=True,
+        colorbar=dict(
+            title=dict(text="POS", font=dict(family=_FONT, color=_TICK, size=9)),
+            tickfont=dict(family=_FONT, color=_TICK, size=8),
+            thickness=10, len=0.8,
+        ),
         xgap=2, ygap=2,
-        textfont=dict(family=_FONT, size=8, color="#ffffff"),
         hovertemplate="<b>%{y}</b>  %{x}<br>%{text}<extra></extra>",
     ))
 
@@ -2462,7 +2552,16 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
         line=dict(color=_ZERO_LINE, width=1.5, dash="dash"),
         showlegend=False,
         hoverinfo="skip",
+        name="grid = finish",
     ))
+    fig.add_annotation(
+        x=mx * 0.72, y=mx * 0.72,
+        text="grid = finish",
+        font=dict(color=_TICK, family=_FONT, size=8),
+        showarrow=False, xanchor="left", yanchor="bottom",
+        textangle=-45,
+    )
+    fig.update_yaxes(autorange="reversed")
 
     years = sorted(df["year"].unique())
     year_norm = {y: i / max(len(years) - 1, 1) for i, y in enumerate(years)}
@@ -2514,42 +2613,78 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
 # --------------------------------------------------------------------------- #
 
 def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
-    """Pit stop efficiency — z-score horizontal bar per driver."""
+    """Pit stop efficiency — z-score horizontal bar per driver.
+    Error bars show SEM (precision of the mean estimate, not spread of observations).
+    Bar color encodes z-score magnitude: cyan = fast, red = slow."""
     layout = _layout_2d(
         "PIT STOP EFFICIENCY · Z-SCORE",
-        xaxis_title="Z-SCORE (σ)",
+        xaxis_title="← faster than field  ·  Z-SCORE (σ)  ·  slower →",
         height=280,
         hovermode="closest",
     )
-    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    layout.margin.update(dict(l=90, r=60, t=48, b=48))
     fig = go.Figure(layout=layout)
     if df.empty:
         return fig
 
-    colors = [_ACCENT if z <= 0 else "#FF4400" for z in df["mean_z"]]
+    # SEM — precision of the mean, not spread of individual stops
+    sem = (df["std_z"] / np.sqrt(df["n_stops"])).fillna(0)
+
+    # Continuous color: red (slow, high z) → grey (average) → cyan (fast, low z)
+    z_min, z_max = df["mean_z"].min(), df["mean_z"].max()
+    z_range = max(z_max - z_min, 1e-9)
+    norm = ((df["mean_z"] - z_min) / z_range).tolist()  # 0 = fastest, 1 = slowest
+    bar_colors = [
+        f"rgba({int(255 * v)},{int(212 * (1 - v))},{int(255 * (1 - v))},0.90)"
+        for v in norm
+    ]
+
+    surnames = df["driver"].apply(lambda d: d.split()[-1])
     fig.add_trace(go.Bar(
         x=df["mean_z"],
-        y=df["driver"].apply(lambda d: d.split()[-1]),
+        y=surnames,
         orientation="h",
-        marker=dict(color=colors),
-        error_x=dict(type="data", array=df["std_z"].fillna(0), visible=True,
-                     color=_TICK, thickness=1.5, width=4),
-        customdata=df["n_stops"],
-        hovertemplate="<b>%{y}</b>  z=%{x:.3f}σ  (n=%{customdata} stops)<extra></extra>",
+        marker=dict(color=bar_colors),
+        error_x=dict(
+            type="data", array=sem.tolist(), visible=True,
+            color="#FFFFFF", thickness=1.8, width=5,
+        ),
+        customdata=list(zip(df["n_stops"], df["std_z"].fillna(0))),
+        hovertemplate=(
+            "<b>%{y}</b>  z = %{x:.3f}σ<br>"
+            "SEM ±%{error_x.array:.3f}σ<br>"
+            "n = %{customdata[0]} stops<extra></extra>"
+        ),
     ))
-    fig.add_vline(x=0, line=dict(color=_TICK, width=1, dash="dot"))
+
+    # Zero reference — prominent, not just a dotted line
+    fig.add_vline(x=0, line=dict(color=_ACCENT_DIM, width=1.5, dash="dot"))
+
+    # n_stops count to the right of each bar
+    x_offset = (z_max - z_min) * 0.04 + 0.02
+    for _, row in df.iterrows():
+        fig.add_annotation(
+            x=max(row["mean_z"], 0) + x_offset,
+            y=row["driver"].split()[-1],
+            text=f"n={int(row['n_stops'])}",
+            font=dict(color=_TICK, family=_FONT, size=8),
+            showarrow=False, xanchor="left", yanchor="middle",
+        )
     return fig
 
 
 def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
-    """DNF rate per driver — dot plot with asymmetric Poisson CI."""
+    """DNF rate per driver — dot plot with asymmetric Poisson CI.
+    Marker color encodes reliability: green (0 DNFs) → red (high rate).
+    CI bars are white for contrast against dark background.
+    X/Y count shown beside each marker in the static view."""
     layout = _layout_2d(
         "RELIABILITY MODEL · DNF RATE",
-        xaxis_title="DNF RATE",
+        xaxis_title="DNF RATE  (95% Poisson CI)",
         height=280,
         hovermode="closest",
     )
-    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    layout.margin.update(dict(l=90, r=72, t=48, b=36))
     layout.xaxis.update(tickformat=".0%")
     fig = go.Figure(layout=layout)
     if df.empty:
@@ -2559,58 +2694,255 @@ def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
     err_upper = (df["ci_upper"] - df["rate"]).clip(lower=0)
     err_lower = (df["rate"] - df["ci_lower"]).clip(lower=0)
 
+    # Gradient: green (reliable, rate≈0) → red (unreliable, rate≈max)
+    max_rate = max(df["rate"].max(), 1e-9)
+    dot_colors = [
+        f"rgba({int(220 * r / max_rate)},{int(200 * (1 - r / max_rate))},60,0.95)"
+        for r in df["rate"]
+    ]
+
     fig.add_trace(go.Scatter(
         x=df["rate"],
         y=surnames,
         mode="markers",
-        marker=dict(size=10, color="#FF4400", line=dict(color="#030F1A", width=1)),
+        marker=dict(
+            size=11,
+            color=dot_colors,
+            line=dict(color="#030F1A", width=1.5),
+        ),
         error_x=dict(
             type="data", symmetric=False,
             array=err_upper.tolist(),
             arrayminus=err_lower.tolist(),
-            visible=True, color=_TICK, thickness=1.5, width=4,
+            visible=True,
+            color="rgba(255,255,255,0.65)",
+            thickness=2.5, width=5,
         ),
-        customdata=list(zip(df["ci_lower"], df["ci_upper"], df["races"])),
+        customdata=list(zip(df["ci_lower"], df["ci_upper"], df["races"], df["dnfs"])),
         hovertemplate=(
-            "<b>%{y}</b>  Rate: %{x:.1%}<br>"
+            "<b>%{y}</b>  %{x:.1%} DNF rate<br>"
             "95% CI [%{customdata[0]:.1%}, %{customdata[1]:.1%}]<br>"
-            "n=%{customdata[2]} races<extra></extra>"
+            "%{customdata[3]:.0f} DNFs / %{customdata[2]:.0f} races<extra></extra>"
         ),
     ))
+
+    # Static count label — visible without hovering
+    for _, row in df.iterrows():
+        fig.add_annotation(
+            x=row["ci_upper"],
+            y=row["driver"].split()[-1],
+            text=f"  {int(row['dnfs'])}/{int(row['races'])}",
+            font=dict(color=_TICK, family=_FONT, size=8),
+            showarrow=False, xanchor="left", yanchor="middle",
+        )
     return fig
 
 
 def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
-    """Mean sector times per driver — grouped horizontal bar (S1/S2/S3)."""
+    """Sector delta from best — grouped horizontal bar (S1/S2/S3).
+    Each bar shows how many seconds slower than the fastest driver in that sector.
+    Shorter bar = closer to best pace. Best driver per sector annotated with ★."""
+    n_drivers = max(len(df), 1)
+    chart_height = max(280, n_drivers * 72)
     layout = _layout_2d(
-        "SECTOR DELTA · MEAN TIME (s)",
-        xaxis_title="TIME (s)",
-        height=280,
+        "SECTOR DELTA · Δ FROM BEST (s)",
+        xaxis_title="SECONDS SLOWER THAN BEST",
+        height=chart_height,
         hovermode="closest",
     )
-    layout.margin.update(dict(l=90, r=24, t=48, b=36))
+    layout.margin.update(dict(l=90, r=48, t=48, b=48))
     layout.update(barmode="group")
+    layout.xaxis.update(tickformat=".2f")
     fig = go.Figure(layout=layout)
     if df.empty:
         return fig
 
-    surnames = df["driver"].apply(lambda d: d.split()[-1])
-    for col, label, color in [
-        ("s1_mean", "S1", _ACCENT),
-        ("s2_mean", "S2", _FONT_COLOR),
-        ("s3_mean", "S3", "#FFD700"),
-    ]:
+    surnames = df["driver"].apply(lambda d: d.split()[-1]).tolist()
+    # S2 was near-white (#E0F2FE) — invisible on dark background; use orange instead
+    sector_cfg = [
+        ("s1_mean", "S1", _ACCENT),       # cyan
+        ("s2_mean", "S2", "#FF9500"),      # orange
+        ("s3_mean", "S3", "#FFD700"),      # gold
+    ]
+    for col, label, color in sector_cfg:
         if col not in df.columns:
             continue
+        best = df[col].min()
+        delta = (df[col] - best).tolist()
         fig.add_trace(go.Bar(
-            x=df[col],
+            x=delta,
             y=surnames,
             orientation="h",
             name=label,
-            marker=dict(color=color, opacity=0.85),
-            customdata=df["n"],
-            hovertemplate=f"<b>%{{y}}</b>  {label}: %{{x:.3f}}s  (n=%{{customdata}} laps)<extra></extra>",
+            marker=dict(color=color, opacity=0.88),
+            customdata=list(zip(df[col], df["n"])),
+            hovertemplate=(
+                f"<b>%{{y}}</b>  {label}: %{{customdata[0]:.3f}}s"
+                f"  (+%{{x:.2f}}s vs best)"
+                f"  (n=%{{customdata[1]}} laps)<extra></extra>"
+            ),
         ))
+        # ★ annotation for the best driver in this sector
+        best_idx = int(df[col].idxmin())
+        best_surname = df.loc[best_idx, "driver"].split()[-1]
+        fig.add_annotation(
+            x=0, y=best_surname,
+            text=f"★ {label} best",
+            font=dict(color=color, family=_FONT, size=7),
+            showarrow=False, xanchor="right", xshift=-4, yanchor="middle",
+        )
+    return fig
+
+
+# --------------------------------------------------------------------------- #
+#  FastF1 lap analysis chart builders                                           #
+# --------------------------------------------------------------------------- #
+
+_COMPOUND_COLORS = {
+    "SOFT":         "#FF3333",
+    "MEDIUM":       "#FFD700",
+    "HARD":         "#CCCCCC",
+    "INTERMEDIATE": "#39B54A",
+    "WET":          "#0067FF",
+}
+
+
+def _no_data_fig(title: str, note: str = "Run pipeline with --telemetry to load lap data") -> go.Figure:
+    fig = go.Figure()
+    fig.add_annotation(
+        text=note, xref="paper", yref="paper", x=0.5, y=0.5,
+        showarrow=False, font=dict(color=_TICK, family=_FONT, size=10),
+    )
+    fig.update_layout(
+        title=dict(text=title, font=dict(family=_FONT, size=11, color=_ACCENT), x=0),
+        paper_bgcolor=_BG_CARD, plot_bgcolor=_BG_CARD,
+        height=240, margin=dict(l=12, r=12, t=36, b=12),
+        font=dict(family=_FONT, color=_FONT_COLOR),
+    )
+    return fig
+
+
+def chart_tyre_degradation_2d(deg_df: pd.DataFrame) -> go.Figure:
+    if deg_df.empty:
+        return _no_data_fig("Tyre Degradation · Rate by Compound")
+
+    compounds = [c for c in ("SOFT", "MEDIUM", "HARD") if c in deg_df["compound"].unique()]
+    drivers_sorted = (
+        deg_df.groupby("driver")["deg_rate_s"].mean()
+        .sort_values().index.tolist()
+    )
+    surnames = [d.split()[-1] for d in drivers_sorted]
+
+    fig = go.Figure()
+    for compound in compounds:
+        cdf = deg_df[deg_df["compound"] == compound].set_index("driver")
+        y_vals = [
+            float(cdf.loc[d, "deg_rate_s"]) if d in cdf.index else None
+            for d in drivers_sorted
+        ]
+        r2_vals = [
+            f"{float(cdf.loc[d,'r2']):.3f}" if d in cdf.index else "—"
+            for d in drivers_sorted
+        ]
+        n_vals = [
+            str(int(cdf.loc[d, "n"])) if d in cdf.index else "—"
+            for d in drivers_sorted
+        ]
+        fig.add_trace(go.Bar(
+            x=surnames, y=y_vals,
+            name=compound,
+            marker=dict(color=_COMPOUND_COLORS.get(compound, "#888888"), opacity=0.88),
+            customdata=list(zip(r2_vals, n_vals)),
+            hovertemplate=(
+                "<b>%{x}</b> — " + compound +
+                "<br>Rate: %{y:+.4f} s/lap"
+                "<br>R²: %{customdata[0]}  n=%{customdata[1]}"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.add_hline(y=0, line=dict(color=_ZERO_LINE, width=1, dash="dot"))
+    fig.update_layout(
+        barmode="group",
+        title=dict(text="Tyre Degradation · Rate by Compound", font=dict(family=_FONT, size=11, color=_ACCENT), x=0),
+        paper_bgcolor=_BG_CARD, plot_bgcolor=_BG_CARD,
+        height=300,
+        margin=dict(l=48, r=16, t=40, b=40),
+        font=dict(family=_FONT, color=_FONT_COLOR, size=9),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=8)),
+        xaxis=dict(gridcolor=_GRID, tickfont=dict(size=9, color=_TICK)),
+        yaxis=dict(
+            title=dict(text="s / lap", font=dict(size=9, color=_TICK)),
+            gridcolor=_GRID, tickfont=dict(size=9, color=_TICK), zeroline=False,
+        ),
+        hovermode="closest",
+    )
+    return fig
+
+
+def chart_pit_strategy_2d(strategy_df: pd.DataFrame) -> go.Figure:
+    if strategy_df.empty:
+        return _no_data_fig("Race Strategy · Stint Structure")
+
+    race_name = strategy_df["race_name"].iloc[0]
+    year = int(strategy_df["year"].iloc[0])
+
+    finish_order = (
+        strategy_df.groupby("driver")["finish_pos"].min()
+        .sort_values().index.tolist()
+    )
+    surnames_ordered = [d.split()[-1] for d in finish_order]
+
+    fig = go.Figure()
+    seen: set[str] = set()
+
+    for _, row in strategy_df.iterrows():
+        compound = str(row["compound"]).upper()
+        color = _COMPOUND_COLORS.get(compound, "#888888")
+        surname = row["driver"].split()[-1]
+        show_legend = compound not in seen
+        seen.add(compound)
+        width = int(row["end_lap"]) - int(row["start_lap"]) + 1
+
+        fig.add_trace(go.Bar(
+            x=[width],
+            y=[surname],
+            base=int(row["start_lap"]) - 1,
+            orientation="h",
+            name=compound,
+            marker=dict(color=color, opacity=0.88, line=dict(color=_BG, width=0.8)),
+            showlegend=show_legend,
+            hovertemplate=(
+                f"<b>{surname}</b> — Stint {int(row['stint'])}<br>"
+                f"{compound}<br>"
+                f"Laps {int(row['start_lap'])}–{int(row['end_lap'])} "
+                f"({int(row['stint_laps'])} laps)<extra></extra>"
+            ),
+        ))
+
+    n_drivers = max(len(finish_order), 1)
+    fig.update_layout(
+        barmode="stack",
+        title=dict(
+            text=f"Race Strategy · {race_name} {year}",
+            font=dict(family=_FONT, size=11, color=_ACCENT), x=0,
+        ),
+        paper_bgcolor=_BG_CARD, plot_bgcolor=_BG_CARD,
+        height=max(220, n_drivers * 52 + 80),
+        margin=dict(l=60, r=16, t=40, b=36),
+        font=dict(family=_FONT, color=_FONT_COLOR, size=9),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=8)),
+        xaxis=dict(
+            title=dict(text="Lap", font=dict(size=9, color=_TICK)),
+            gridcolor=_GRID, tickfont=dict(size=9, color=_TICK), zeroline=False,
+        ),
+        yaxis=dict(
+            categoryorder="array",
+            categoryarray=surnames_ordered[::-1],
+            tickfont=dict(size=9, color=_TICK), gridcolor=_GRID,
+        ),
+        hovermode="closest",
+    )
     return fig
 
 
@@ -2642,6 +2974,14 @@ def generate_dashboard(
         sec_df = sector_deltas(engine, team_refs)
     except Exception:
         sec_df = pd.DataFrame()
+    try:
+        deg_df = tyre_degradation(engine, team_refs)
+    except Exception:
+        deg_df = pd.DataFrame()
+    try:
+        strat_df = pit_strategy(engine, team_refs)
+    except Exception:
+        strat_df = pd.DataFrame()
 
     fig1 = chart_championship_2d(traj)
     fig2 = chart_positions_bump_2d(traj)
@@ -2650,17 +2990,21 @@ def generate_dashboard(
     fig5 = chart_grid_finish_2d(gf)
     fig6 = chart_pit_efficiency_2d(pit_df)
     fig7 = chart_dnf_reliability_2d(dnf_df)
-    fig8 = chart_sector_delta_2d(sec_df)
+    fig8  = chart_sector_delta_2d(sec_df)
+    fig9  = chart_tyre_degradation_2d(deg_df)
+    fig10 = chart_pit_strategy_2d(strat_df)
 
     _cfg = {"displayModeBar": "hover", "scrollZoom": False}
-    div1 = fig1.to_html(full_html=False, include_plotlyjs="cdn",  config=_cfg)
-    div2 = fig2.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div3 = fig3.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div4 = fig4.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div5 = fig5.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div6 = fig6.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div7 = fig7.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
-    div8 = fig8.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div1  = fig1.to_html(full_html=False, include_plotlyjs="cdn",  config=_cfg)
+    div2  = fig2.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div3  = fig3.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div4  = fig4.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div5  = fig5.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div6  = fig6.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div7  = fig7.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div8  = fig8.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div9  = fig9.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
+    div10 = fig10.to_html(full_html=False, include_plotlyjs=False, config=_cfg)
 
     years = sorted(traj["year"].unique()) if not traj.empty else []
     year_range = f"{years[0]}–{years[-1]}" if years else ""
@@ -2709,6 +3053,8 @@ def generate_dashboard(
         .replace("PLACEHOLDER_C6",           div6)
         .replace("PLACEHOLDER_C7",           div7)
         .replace("PLACEHOLDER_C8",           div8)
+        .replace("PLACEHOLDER_C9",           div9)
+        .replace("PLACEHOLDER_C10",          div10)
         .replace("PLACEHOLDER_DRIVER_COUNT", driver_count)
         .replace("PLACEHOLDER_TS",           ts)
     )

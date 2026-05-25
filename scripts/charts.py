@@ -99,6 +99,15 @@ def championship(
     fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows))
     axes = np.array(axes).flatten()
 
+    all_drivers: set[str] = set()
+    for year in years:
+        yd = df[df["year"] == year]
+        all_drivers.update(
+            yd.groupby("driver")["points"].max()
+            .sort_values(ascending=False).index.tolist()
+        )
+    cmap = _driver_colors(sorted(all_drivers), primary)
+
     for i, year in enumerate(years):
         ax = axes[i]
         yd = df[df["year"] == year]
@@ -106,7 +115,6 @@ def championship(
             yd.groupby("driver")["points"].max()
             .sort_values(ascending=False).index.tolist()
         )
-        cmap = _driver_colors(drivers, primary)
         for driver in drivers:
             d = yd[yd["driver"] == driver].sort_values("round")
             ax.plot(d["round"], d["points"],
@@ -114,12 +122,15 @@ def championship(
         ax.set_title(str(year))
         ax.set_xlabel("Round", fontsize=8)
         ax.set_ylabel("Points", fontsize=8)
-        ax.legend(loc="upper left", fontsize=7)
+        ax.set_ylim(bottom=0)
         ax.tick_params(labelsize=8)
 
     for ax in axes[len(years):]:
         ax.set_visible(False)
 
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper right", fontsize=8,
+               frameon=False, bbox_to_anchor=(1.0, 1.0))
     fig.suptitle(f"{team_name}  —  Championship Progression",
                  fontsize=13, fontweight="semibold", y=1.01)
     fig.tight_layout()
@@ -240,6 +251,48 @@ def pit_stops_chart(
         ax.text(idx, row["mean_z"] + offset, f"n={int(row['n_stops'])}",
                 ha="center", fontsize=7.5, color="#AA9988")
 
+    fig.tight_layout()
+    return _save(fig, path)
+
+
+def tyre_degradation_chart(
+    df: pd.DataFrame,
+    path: str | None = None,
+    colors: dict | None = None,
+) -> plt.Figure | None:
+    if df.empty:
+        return None
+
+    _COMPOUND_COLORS = {"SOFT": "#FF1800", "MEDIUM": "#FFD700", "HARD": "#AAAAAA"}
+    compounds = [c for c in ("SOFT", "MEDIUM", "HARD") if c in df["compound"].unique()]
+    drivers_sorted = (
+        df.groupby("driver")["deg_rate_s"].mean().sort_values().index.tolist()
+    )
+    n = len(drivers_sorted)
+    width = 0.65 / max(len(compounds), 1)
+    x = np.arange(n)
+
+    fig, ax = plt.subplots(figsize=(max(7, n * 1.8), 5))
+
+    for i, compound in enumerate(compounds):
+        cdf = df[df["compound"] == compound].set_index("driver")
+        heights = [
+            float(cdf.loc[d, "deg_rate_s"]) if d in cdf.index else 0.0
+            for d in drivers_sorted
+        ]
+        offset = (i - len(compounds) / 2 + 0.5) * width
+        ax.bar(
+            x + offset, heights, width=width * 0.9,
+            color=_COMPOUND_COLORS.get(compound, "#888888"),
+            alpha=0.82, label=compound, zorder=3,
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([d.split()[-1] for d in drivers_sorted])
+    ax.set_ylabel("Degradation Rate (s / lap)")
+    ax.set_title("Tyre Degradation · Rate by Compound")
+    ax.axhline(0, color="#888888", linewidth=0.8, linestyle="--", alpha=0.4)
+    ax.legend(fontsize=9, frameon=False)
     fig.tight_layout()
     return _save(fig, path)
 

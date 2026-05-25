@@ -17,6 +17,6 @@ except KeyError as e:
 
 CONSTRUCTOR_ID = 9  # Oracle Red Bull Racing in the Ergast API
 
-TEAM_COLORS.setdefault("primary", "#C9A96E")
-TEAM_COLORS.setdefault("accent",  "#8B5E3C")
-TEAM_COLORS.setdefault("neutral", "#D4C5A9")
+TEAM_COLORS.setdefault("primary", "#1E41FF")  # Red Bull blue
+TEAM_COLORS.setdefault("accent",  "#FF1800")  # Red Bull red
+TEAM_COLORS.setdefault("neutral", "#AAAAAA")

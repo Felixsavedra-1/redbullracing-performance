@@ -18,11 +18,12 @@ from constants import TEAM_NAME, TEAM_COLORS, TEAM_REFS
 from analytics import (
     teammate_delta, qualifying_race_ols,
     pit_stop_efficiency, championship_trajectory, dnf_rate_model,
+    tyre_degradation,
 )
 from charts import (
     championship as chart_championship,
     teammate_delta_chart, qualifying_regression,
-    pit_stops_chart, reliability_chart,
+    pit_stops_chart, reliability_chart, tyre_degradation_chart,
 )
 from dashboard import generate_dashboard
 
@@ -119,6 +120,18 @@ def run(export: bool = False) -> None:
             for r in dnf.itertuples(index=False)
         ]
         logger.info("\n%s", format_table(headers, rows, {1, 2, 3}))
+
+    logger.info("Tyre degradation...")
+    deg = tyre_degradation(engine)
+    fig = tyre_degradation_chart(deg, _out("tyre_degradation", export), TEAM_COLORS)
+    _close(fig, "tyre_degradation", export)
+    if not deg.empty:
+        headers = ["Driver", "Compound", "Rate (s/lap)", "R²", "n"]
+        rows = [
+            [r.driver.split()[-1], r.compound, f"{r.deg_rate_s:+.4f}", f"{r.r2:.3f}", str(r.n)]
+            for r in deg.itertuples(index=False)
+        ]
+        logger.info("\n%s", format_table(headers, rows, {2, 3, 4}))
 
     if export:
         logger.info("Charts saved to %s/", _EXPORTS)

@@ -183,6 +183,7 @@ def run_full_pipeline(
             f"Invalid year range after clamping to {DEFAULT_START_YEAR}-{DEFAULT_END_YEAR}."
         )
 
+    n_steps = 3 + (1 if include_telemetry else 0)
     logger.info("F1 Red Bull Analytics - Complete Pipeline")
     if clamped:
         logger.warning(
@@ -192,7 +193,7 @@ def run_full_pipeline(
         )
 
     if not skip_extract:
-        logger.info("[1/3] EXTRACTING DATA FROM API")
+        logger.info("[1/%d] EXTRACTING DATA FROM API", n_steps)
         extractor = F1DataExtractor(
             output_path="data/raw/",
             base_delay=base_delay,
@@ -205,24 +206,24 @@ def run_full_pipeline(
             skip_pit_stops=skip_pit_stops,
         )
     else:
-        logger.info("[1/3] SKIPPING EXTRACTION (--skip-extract flag)")
+        logger.info("[1/%d] SKIPPING EXTRACTION (--skip-extract flag)", n_steps)
 
     if not skip_transform:
-        logger.info("[2/3] TRANSFORMING DATA")
+        logger.info("[2/%d] TRANSFORMING DATA", n_steps)
         transformer = F1DataTransformer(
             raw_data_path="data/raw/",
             processed_data_path="data/processed/",
         )
         transformer.transform_all()
     else:
-        logger.info("[2/3] SKIPPING TRANSFORMATION (--skip-transform flag)")
+        logger.info("[2/%d] SKIPPING TRANSFORMATION (--skip-transform flag)", n_steps)
 
     if dry_run:
         _dry_run_preview()
         return
 
     if not skip_load:
-        logger.info("[3/3] LOADING DATA INTO DATABASE")
+        logger.info("[3/%d] LOADING DATA INTO DATABASE", n_steps)
         loader = F1DataLoader(
             mode=mode,
             strict_schema=strict_schema,
@@ -261,10 +262,10 @@ def run_full_pipeline(
                     raise RuntimeError("dbt run failed")
                 logger.info("dbt models built successfully.")
     else:
-        logger.info("[3/3] SKIPPING DATABASE LOAD (--skip-load flag)")
+        logger.info("[3/%d] SKIPPING DATABASE LOAD (--skip-load flag)", n_steps)
 
     if include_telemetry and not skip_load:
-        logger.info("[4/4] EXTRACTING FASTF1 LAP TELEMETRY")
+        logger.info("[4/%d] EXTRACTING FASTF1 LAP TELEMETRY", n_steps)
         try:
             extract_telemetry(loader.engine, start_year=start_year, end_year=end_year)
         except Exception:

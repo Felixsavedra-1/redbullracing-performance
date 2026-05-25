@@ -164,7 +164,7 @@ SCHEMA_CONTRACTS: dict[str, dict[str, list[str]]] = {
         ],
         "string": ["compound", "track_status"],
         "constraints": {
-            "compound": ("enum", ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]),
+            "compound": ("enum", ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET", "UNKNOWN"]),
         },
     },
 }
