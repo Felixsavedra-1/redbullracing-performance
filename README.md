@@ -95,3 +95,9 @@ python -m unittest discover -s tests
 | `test_smoke` | End-to-end pipeline |
 | `test_quality_checks` | Quality gate integration |
 | `test_etl_unit` | Schema contracts, DNF sentinel, FK ref resolution |
+
+---
+
+<p align="center">
+  <img src="company.JPG" alt="Company Logo" />
+</p>
