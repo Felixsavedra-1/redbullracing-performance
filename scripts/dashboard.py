@@ -1306,13 +1306,14 @@ var AI=(function(){
     var bl=LANES[i%5];
     // Unique apex depth per car: 0.42–0.74, deterministic so fast cars stay consistent
     var apxD=0.42+((i*3)%7)*0.090+Math.random()*0.03;
-    var aggr=0.75+Math.random()*0.50;
-    a.push({tIdx:40+(i+1)*14,latOff:(i%2===0?2.0:-2.0),spdFac:1.45-i*0.028,
-            _randFac:Math.random()*0.025,apexD:apxD,_aggr:aggr,_ovSide:(i%2===0)?1:-1,
+    var aggr=0.90+Math.random()*0.50;
+    var initTIdx=40+(i+1)*14,initSide=(i%2===0)?1:-1;
+    a.push({tIdx:initTIdx,_initTIdx:initTIdx,latOff:(i%2===0?2.0:-2.0),spdFac:1.12-i*0.016,
+            _randFac:Math.random()*0.025,apexD:apxD,_aggr:aggr,_ovSide:initSide,_initOvSide:initSide,
             _ovTgt:bl,_ovTimer:0.0,finishTime:Infinity,
-            x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_skipFirst:true,
+            x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,
             _stuckTimer:0,
-            _latTarget:bl,_baseLat:bl});
+            _latTarget:bl,_baseLat:bl,_initLat:bl});
   }
   return a;
 })();
@@ -1374,9 +1375,11 @@ function initRace(){
   AI.forEach(function(ai,i){
     var ag=buildCar(AI_COLORS[i],AI_ACCENTS[i]);scene.add(ag);aiGrps.push(ag);
     var lbl=makeLabel(AI_NAMES[i+1],AI_TEAMS[i],AI_COLORS[i],AI_ACCENTS[i]);scene.add(lbl);aiLabels.push(lbl);
+    ai.tIdx=ai._initTIdx;ai._latTarget=ai._initLat;ai._baseLat=ai._initLat;
+    ai._ovTimer=0;ai._stuckTimer=0;ai._ovSide=ai._initOvSide;ai._ovTgt=ai._initLat;
     var as=spawnPos(ai.tIdx,ai._baseLat);
     ai.x=as.x;ai.z=as.z;ai.y=as.y;ai.heading=as.heading;
-    ai.speed=0;ai.yawRate=0;ai.lap=1;ai._inStart=false;ai._skipFirst=true;ai.finishTime=Infinity;
+    ai.speed=0;ai.yawRate=0;ai.lap=1;ai._inStart=false;ai.finishTime=Infinity;
     ag.position.set(ai.x,ai.y+RIDE_H,ai.z);ag.rotation.y=ai.heading-Math.PI/2;
     lbl.position.set(ai.x,ai.y+RIDE_H+3.2,ai.z);
   });
@@ -1497,8 +1500,8 @@ function updateAI(ai,dt){
   var onStraight=curvature<0.12;
 
   // Target speed: corner-limited with 58% reduction at max curvature, floored at 32%
-  var brkFac=0.48-(ai._aggr-1.0)*0.12;
-  var spdFloor=Math.max(0.34,0.42-ai._aggr*0.06);
+  var brkFac=0.40-(ai._aggr-1.0)*0.12;
+  var spdFloor=Math.max(0.38,0.46-ai._aggr*0.06);
   var targetSpd=Math.max(maxSpd*spdFloor,maxSpd*(1-curvature*brkFac));
   var launching=raceTime<2.5;
 
@@ -1520,6 +1523,11 @@ function updateAI(ai,dt){
       if(closingSpd>0){
         var allowedClose=Math.min(fwdGap*0.7,9.0);
         if(closingSpd>allowedClose) targetSpd=Math.min(targetSpd,fwdCar.speed+allowedClose);
+      }
+      var desiredGap=9;
+      if(fwdGap<desiredGap){
+        var gapFac=fwdGap/desiredGap;
+        targetSpd=Math.min(targetSpd,fwdCar.speed*(0.90+0.10*gapFac));
       }
     }
     if(fwdCar&&fwdGap<40) ai._stuckTimer+=dt;
@@ -1587,6 +1595,8 @@ function updateAI(ai,dt){
       desiredLat=ai._baseLat;
     }
   }
+  var wallEdge=halfTW*0.78;
+  if(Math.abs(desiredLat)>wallEdge) desiredLat-=Math.sign(desiredLat)*(Math.abs(desiredLat)-wallEdge)*1.4;
   desiredLat=Math.max(-halfTW,Math.min(halfTW,desiredLat));
   ai._latTarget+=(desiredLat-ai._latTarget)*Math.min(dt*3.5,1);
   ai._latTarget=Math.max(-halfTW,Math.min(halfTW,ai._latTarget));
@@ -1620,8 +1630,7 @@ function updateAI(ai,dt){
   // Lap detection
   if(ai.tIdx<12&&!ai._inStart){
     ai._inStart=true;
-    if(ai._skipFirst) ai._skipFirst=false;
-    else{ai.lap++;if(ai.lap>LAPS){ai.lap=LAPS;if(ai.finishTime===Infinity)ai.finishTime=raceTime;}}
+    ai.lap++;if(ai.lap>LAPS){ai.lap=LAPS;if(ai.finishTime===Infinity)ai.finishTime=raceTime;}
   }
   if(ai.tIdx>=20) ai._inStart=false;
 }
@@ -1646,8 +1655,10 @@ function resolveCollisions(){
           nx=projL>0?fx:-fx;nz=projL>0?fz:-fz;pen=ovL*0.5;
           var dv=Math.max(0,a.speed-b.speed);
           var imp=Math.min(dv*0.35,pen*5+dv*0.08);
-          a.speed=Math.max(0,a.speed-imp*0.65);
+          var flatPen=Math.min(pen*1.2,0.8);
+          a.speed=Math.max(0,a.speed-imp*0.65-flatPen*0.4);
           b.speed=Math.min(b.speed+imp*0.25,MAX_SPD*1.05);
+          b.speed=Math.max(0,b.speed-flatPen*0.15);
         } else {
           nx=projS>0?sx:-sx;nz=projS>0?sz:-sz;pen=ovS*0.5;
           var bumpY=pen*0.08;
@@ -1656,10 +1667,12 @@ function resolveCollisions(){
           // Strong speed penalty on contact — proportional to penetration depth
           var rub=Math.min(pen*0.6,0.45);
           a.speed=Math.max(0,a.speed-rub);b.speed=Math.max(0,b.speed-rub);
-          // Force lateral targets to diverge so they don't keep colliding
-          var latPush=1.0,hTW=TW*0.44;
+          // Force lateral targets AND base lanes to diverge — prevents immediate re-merge
+          var latPush=2.5,hTW=TW*0.44;
           if(a._latTarget!==undefined){a._latTarget+=(projS>0?-latPush:latPush);a._latTarget=Math.max(-hTW,Math.min(hTW,a._latTarget));}
           if(b._latTarget!==undefined){b._latTarget+=(projS>0?latPush:-latPush);b._latTarget=Math.max(-hTW,Math.min(hTW,b._latTarget));}
+          if(a._baseLat!==undefined){a._baseLat+=(projS>0?-latPush*0.5:latPush*0.5);a._baseLat=Math.max(-hTW,Math.min(hTW,a._baseLat));}
+          if(b._baseLat!==undefined){b._baseLat+=(projS>0?latPush*0.5:-latPush*0.5);b._baseLat=Math.max(-hTW,Math.min(hTW,b._baseLat));}
         }
         a.x-=nx*pen;a.z-=nz*pen;b.x+=nx*pen;b.z+=nz*pen;
       }
