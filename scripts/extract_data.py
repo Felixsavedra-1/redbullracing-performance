@@ -240,7 +240,7 @@ class F1DataExtractor:
                     'url': circuit.get('url', ''),
                 })
         df = pd.DataFrame(all_circuits)
-        df.to_csv(os.path.join(self.output_path, "circuits.csv"), index=False)
+        self._write_csv_atomic(df, "circuits.csv")
         self.logger.info("Extracted %s circuits.", len(df))
         return df
     
@@ -254,7 +254,7 @@ class F1DataExtractor:
                     "url": season.get("url", ""),
                 })
         df = pd.DataFrame(all_seasons)
-        df.to_csv(os.path.join(self.output_path, "seasons.csv"), index=False)
+        self._write_csv_atomic(df, "seasons.csv")
         self.logger.info("Extracted %s seasons.", len(df))
         return df
     
@@ -271,7 +271,7 @@ class F1DataExtractor:
                 })
         df = pd.DataFrame(all_constructors)
         df.insert(0, "constructor_id", range(1, len(df) + 1))
-        df.to_csv(os.path.join(self.output_path, "constructors.csv"), index=False)
+        self._write_csv_atomic(df, "constructors.csv")
         self.logger.info("Extracted %s constructors.", len(df))
         return df
     
@@ -293,7 +293,7 @@ class F1DataExtractor:
                 })
         df = pd.DataFrame(all_drivers)
         df.insert(0, "driver_id", range(1, len(df) + 1))
-        df.to_csv(os.path.join(self.output_path, "drivers.csv"), index=False)
+        self._write_csv_atomic(df, "drivers.csv")
         self.logger.info("Extracted %s drivers.", len(df))
         return df
     
@@ -642,7 +642,7 @@ class F1DataExtractor:
             )
         if end_year > DEFAULT_END_YEAR:
             self.logger.warning(
-                "end_year %s is beyond project scope; clamping to %s.", end_year, DEFAULT_END_YEAR
+                "end_year %s is in the future; clamping to current year %s.", end_year, DEFAULT_END_YEAR
             )
         start_year = max(DEFAULT_START_YEAR, start_year)
         end_year = min(DEFAULT_END_YEAR, end_year)
@@ -686,7 +686,7 @@ def main() -> None:
         help=f"End year (default: {DEFAULT_END_YEAR})",
     )
     parser.add_argument('--output', type=str, default='data/raw/', help='Output directory (default: data/raw/)')
-    parser.add_argument('--base-delay', type=float, default=0.75, help='Delay between API requests in seconds')
+    parser.add_argument('--base-delay', type=float, default=1.5, help='Delay between API requests in seconds')
     parser.add_argument('--max-retries', type=int, default=6, help='Max retries on API errors or rate limits')
     
     args = parser.parse_args()

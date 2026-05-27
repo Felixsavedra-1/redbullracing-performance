@@ -12,7 +12,7 @@ if SCRIPT_DIR not in sys.path:
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 
-from load_data import _build_connection_string
+from load_data import _build_connection_string, DB_CONFIG
 from logging_utils import setup_logging, format_table
 from constants import TEAM_NAME, TEAM_COLORS, TEAM_REFS
 from analytics import (
@@ -26,11 +26,6 @@ from charts import (
     pit_stops_chart, reliability_chart, tyre_degradation_chart,
 )
 from dashboard import generate_dashboard
-
-try:
-    from config import DB_CONFIG
-except ImportError:
-    DB_CONFIG = {"type": "sqlite", "filename": "f1_analytics.db"}
 
 logger = setup_logging()
 _EXPORTS = os.path.join("data", "exports", "charts")

@@ -187,7 +187,7 @@ def run_full_pipeline(
     logger.info("F1 Red Bull Analytics - Complete Pipeline")
     if clamped:
         logger.warning(
-            "Year range clamped to %s-%s for this project scope.",
+            "Year range clamped to %s-%s.",
             DEFAULT_START_YEAR,
             DEFAULT_END_YEAR,
         )

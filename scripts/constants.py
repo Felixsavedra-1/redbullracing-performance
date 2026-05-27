@@ -1,5 +1,7 @@
+import datetime
+
 DEFAULT_START_YEAR = 2020
-DEFAULT_END_YEAR = 2025
+DEFAULT_END_YEAR = datetime.date.today().year
 DNF_POSITION_ORDER = 999  # sentinel for non-finishers in position_order
 
 # Team config — overridden by config.py when present

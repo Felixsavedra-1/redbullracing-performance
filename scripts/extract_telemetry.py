@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import re
 import sys
 from collections import defaultdict
 
@@ -25,14 +24,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from analytics import ref_params
 from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, TEAM_REFS
-from load_data import _build_connection_string
+from load_data import _build_connection_string, DB_CONFIG
 from logging_utils import setup_logging
-
-try:
-    from config import DB_CONFIG
-except ImportError:
-    DB_CONFIG = {"type": "sqlite", "filename": "f1_analytics.db"}
 
 _log = logging.getLogger("f1_analytics")
 _CACHE_DIR = os.path.join("data", "fastf1_cache")
@@ -44,15 +39,6 @@ _COLS = [
     "is_personal_best", "pit_in", "pit_out", "track_status",
 ]
 
-_REF_RE = re.compile(r"^[a-z0-9_]+$")
-
-
-def _refs_sql(refs: list[str]) -> str:
-    for r in refs:
-        if not _REF_RE.match(r):
-            raise ValueError(f"Invalid team ref: {r!r}")
-    return ", ".join(f"'{r}'" for r in refs)
-
 
 def _td_s(series: pd.Series) -> pd.Series:
     """Timedelta series → float seconds; NaT becomes NaN."""
@@ -63,7 +49,7 @@ def _load_maps(
     engine, start_year: int, end_year: int
 ) -> tuple[pd.DataFrame, dict[str, int], dict[int, set[str]]]:
     """Return races_df, driver code→id map, race_id→set[driver_code] map."""
-    refs = _refs_sql(TEAM_REFS)
+    placeholders, ref_p = ref_params(TEAM_REFS)
     with engine.connect() as conn:
         races = pd.read_sql(
             text("SELECT race_id, year, round FROM races WHERE year BETWEEN :y1 AND :y2 ORDER BY year, round"),
@@ -79,10 +65,10 @@ def _load_maps(
                 FROM results res
                 JOIN drivers      d ON res.driver_id      = d.driver_id
                 JOIN constructors c ON res.constructor_id = c.constructor_id
-                WHERE c.constructor_ref IN ({refs})
+                WHERE c.constructor_ref IN ({placeholders})
                   AND d.code IS NOT NULL AND d.code != ''
             """),
-            conn,
+            conn, params=ref_p,
         )
 
     driver_map: dict[str, int] = dict(zip(drivers["code"], drivers["driver_id"]))
