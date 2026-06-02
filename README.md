@@ -4,6 +4,10 @@
   <img src="docs/dashboard.gif" alt="Interactive dashboard — Three.js 3D visualization + playable F1 game" width="100%">
 </p>
 
+<p align="center">
+  <img src="docs/cockpit.gif" alt="Playable F1 game — first-person cockpit (halo) view" width="100%">
+</p>
+
 Production-style ETL pipeline covering 6 seasons of F1 race data (2020–2025). Dual-source extraction — Ergast API for race results and FastF1 for lap-by-lap telemetry — with schema-validated transforms, 15+ CI-enforced quality gates, 7 statistical models, and a self-contained Three.js dashboard with an embedded playable F1 game — no server required.
 
 ---

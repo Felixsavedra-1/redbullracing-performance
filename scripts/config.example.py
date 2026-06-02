@@ -1,20 +1,16 @@
 # Copy this file to config.py. Do not commit config.py to version control.
 
-# --- Team ---
-# family_refs: constructor_ref value(s) to include (must match constructors table —
-#              check with: SELECT constructor_ref FROM constructors)
-# name:        Display name shown in terminal output
+# family_refs must match the constructors table: SELECT constructor_ref FROM constructors
 TEAM_CONFIG = {
     "family_refs": ["red_bull"],
     "name": "Oracle Red Bull Racing",
     "colors": {
-        "primary": "#C9A96E",   # primary chart color
-        "accent":  "#8B5E3C",   # secondary / highlight color
-        "neutral": "#D4C5A9",   # axis labels, annotations
+        "primary": "#C9A96E",
+        "accent":  "#8B5E3C",
+        "neutral": "#D4C5A9",
     },
 }
 
-# --- Database ---
 # Option 1: DuckDB (recommended — OLAP-optimized, no server required)
 DB_CONFIG = {
     "type": "duckdb",
@@ -37,7 +33,6 @@ DB_CONFIG = {
 #     "database": "f1_analytics",
 # }
 
-# --- Data paths ---
 DATA_PATHS = {
     "raw_data": "data/raw/",
     "processed_data": "data/processed/",

@@ -36,10 +36,10 @@ _STATUS_OK  = "#1E41FF"
 _SPIKE      = "#1E41FF"
 
 _DRIVER_COLORS = {
-    "Verstappen": "#1E41FF",  # blue
-    "Pérez":      "#FFFFFF",  # white
-    "Tsunoda":    "#FF1800",  # red
-    "Lawson":     "#FFDD00",  # yellow
+    "Verstappen": "#1E41FF",
+    "Pérez":      "#FFFFFF",
+    "Tsunoda":    "#FF1800",
+    "Lawson":     "#FFDD00",
 }
 _FALLBACK_COLORS = ["#1E41FF", "#FFFFFF", "#FF1800", "#FFDD00", "#888888"]
 
@@ -51,9 +51,6 @@ def _driver_color(name: str, idx: int) -> str:
     return _FALLBACK_COLORS[idx % len(_FALLBACK_COLORS)]
 
 
-# --------------------------------------------------------------------------- #
-#  HTML template                                                                #
-# --------------------------------------------------------------------------- #
 
 _HTML_TEMPLATE = """\
 <!DOCTYPE html>
@@ -102,7 +99,7 @@ h1 span.accent{color:var(--accent)}
 .stat-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
 .stat-ok-text{font-size:.50rem;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
 .car-viewer{padding:0;display:flex;justify-content:center;border-bottom:1px solid var(--border);background:radial-gradient(ellipse at 50% 42%,#141416 0%,#000 72%);cursor:pointer;position:relative}
-.car-viewer::before{content:'RB \00B7 STUDIO RENDER';position:absolute;top:16px;left:24px;font-size:.56rem;font-weight:500;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;font-family:var(--font);z-index:2}
+.car-viewer::before{content:'RB \\00B7 STUDIO RENDER';position:absolute;top:16px;left:24px;font-size:.56rem;font-weight:500;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;font-family:var(--font);z-index:2}
 #f1car{display:block;width:100%;height:480px}
 .race-cta{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:10px;font-family:var(--font);font-size:.74rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:13px 26px;cursor:pointer;z-index:3;transition:transform .16s ease,background .16s ease,box-shadow .16s ease;box-shadow:0 6px 22px rgba(30,65,255,.28)}
 .race-cta:hover{transform:translateX(-50%) translateY(-2px);background:#3358ff;box-shadow:0 10px 30px rgba(30,65,255,.42)}
@@ -147,6 +144,11 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
 .hud-tire-wrap{width:52px;height:8px;background:#0A2035;border-radius:3px;overflow:hidden;border:1px solid #0F3050}
 .hud-tire-bar{height:100%;width:100%;border-radius:3px;transition:width .1s,background .3s}
 .hud-tire-temp{width:10px;height:10px;border-radius:50%;background:#4A7FA5;transition:background .4s;border:1px solid rgba(255,255,255,0.25)}
+.hud-tire-cmp{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0a0a0a;border:1px solid rgba(255,255,255,0.4)}
+.hud-tire-pct{color:#cfe0ff;font-size:11px;min-width:30px;font-weight:700}
+.hud-box{color:#0A2035;border:1px solid #0A2035;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:800;letter-spacing:.12em}
+.hud-box.advise{color:#ff5a2a;border-color:#ff5a2a;animation:boxPulse .7s ease-in-out infinite}
+@keyframes boxPulse{0%,100%{opacity:.35}50%{opacity:1;text-shadow:0 0 9px #ff5a2a}}
 .hud-s1,.hud-s2,.hud-s3{color:#4A7FA5;min-width:88px;font-size:11px}
 .hud-s1.purple,.hud-s2.purple,.hud-s3.purple{color:#cc00ff;font-weight:700}
 .hud-s1.green,.hud-s2.green,.hud-s3.green{color:#00FF87;font-weight:700}
@@ -171,6 +173,8 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
 #hud-standings .st-chip{width:5px;height:10px;border-radius:1px;flex-shrink:0}
 #hud-standings .st-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #hud-standings .st-gap{color:#4A7FA5;font-size:9px}
+#hud-standings .st-pit{color:#FFCC00;font-weight:700;letter-spacing:.08em}
+#hud-standings .st-dnf{color:#FF3B30;font-weight:700;letter-spacing:.08em}
 #podium-overlay{display:none;position:absolute;inset:0;z-index:10000;background:rgba(3,15,26,.93);flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono','Courier New',monospace;color:#E0F2FE}
 #podium-overlay.active{display:flex}
 #podium-overlay h2{font-size:1.4rem;letter-spacing:.25em;color:#00D4FF;margin-bottom:24px;text-transform:uppercase}
@@ -186,6 +190,23 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
 #pause-overlay.active{display:flex}
 #pause-overlay h2{font-size:1.8rem;letter-spacing:.35em;color:#00D4FF;text-transform:uppercase;margin-bottom:14px}
 #pause-overlay p{color:#4A7FA5;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase}
+#tire-select{display:none;position:absolute;inset:0;z-index:10001;background:rgba(3,9,16,.93);flex-direction:column;align-items:center;justify-content:center;font-family:'Space Mono','Courier New',monospace;color:#E0F2FE}
+#tire-select.active{display:flex}
+#ts-weather{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}
+#ts-wlabel{font-size:1.6rem;letter-spacing:.3em;font-weight:800;color:#00D4FF;text-shadow:0 0 16px rgba(0,212,255,.5)}
+#ts-wnote{font-size:.72rem;letter-spacing:.12em;color:#8fb3cc;max-width:540px;text-align:center}
+#ts-title{font-size:.8rem;letter-spacing:.34em;color:#4A7FA5;margin:14px 0 18px;text-transform:uppercase}
+#ts-cards{display:flex;gap:18px}
+.tire-card{position:relative;width:190px;padding:20px 16px 18px;background:rgba(10,20,34,.85);border:1px solid #143049;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform .14s,border-color .14s,box-shadow .14s}
+.tire-card:hover{transform:translateY(-4px);border-color:#00D4FF;box-shadow:0 10px 30px rgba(0,212,255,.22)}
+.tc-disc{width:74px;height:74px;border-radius:50%;border:6px solid #222;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:900;color:#0a0a0a;margin-bottom:12px}
+.tc-name{font-size:1rem;letter-spacing:.18em;font-weight:800;margin-bottom:8px}
+.tc-key{position:absolute;top:8px;left:10px;font-size:.7rem;color:#4A7FA5}
+.tc-desc{font-size:.66rem;line-height:1.5;color:#9fb6c9;letter-spacing:.04em}
+.tc-rec{margin-top:12px;font-size:.6rem;letter-spacing:.18em;color:#00FF87;border:1px solid #00FF87;border-radius:3px;padding:2px 8px;visibility:hidden}
+.tire-card.rec .tc-rec{visibility:visible}
+.tire-card.rec{border-color:#00FF87}
+#ts-hint{margin-top:22px;font-size:.66rem;letter-spacing:.2em;color:#4A7FA5;text-transform:uppercase}
 #lights-bar{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:20001;gap:10px;padding:10px 18px;background:rgba(3,15,26,.92);border:1px solid #330000;border-radius:8px;pointer-events:none}
 #lights-bar.active{display:flex}
 .light-bulb{width:30px;height:30px;border-radius:50%;background:#1a0000;border:2px solid #440000;transition:background .06s,box-shadow .06s}
@@ -230,12 +251,18 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
       </div>
       <span class="hud-drs">DRS</span>
       <div class="hud-tires">
+        <span class="hud-tire-cmp" id="tire-cmp">M</span>
         <span class="hud-tire-label">F</span>
         <div class="hud-tire-wrap"><div class="hud-tire-bar" id="tire-f"></div></div>
         <div class="hud-tire-temp" id="temp-f"></div>
         <span class="hud-tire-label">R</span>
         <div class="hud-tire-wrap"><div class="hud-tire-bar" id="tire-r"></div></div>
         <div class="hud-tire-temp" id="temp-r"></div>
+        <span class="hud-tire-pct" id="tire-pct">100%</span>
+        <span class="hud-tire-label" style="min-width:auto;margin-left:6px">DMG</span>
+        <div class="hud-tire-wrap"><div class="hud-tire-bar" id="dmg-bar" style="width:0%"></div></div>
+        <span class="hud-tire-pct" id="dmg-pct">0%</span>
+        <span class="hud-box" id="hud-box">BOX</span>
       </div>
       <span class="hud-msg"></span>
       <button class="hud-close">&#x2715; ESC</button>
@@ -349,6 +376,12 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
     <h2>PAUSED</h2>
     <p>ESC TO RESUME &nbsp;&#xB7;&nbsp; Q TO QUIT</p>
   </div>
+  <div id="tire-select">
+    <div id="ts-weather"><span id="ts-wlabel">DRY</span><span id="ts-wnote"></span></div>
+    <h3 id="ts-title">SELECT YOUR TIRES</h3>
+    <div id="ts-cards"></div>
+    <p id="ts-hint">CLICK A COMPOUND &nbsp;&#xB7;&nbsp; OR PRESS 1 / 2 / 3</p>
+  </div>
 </div>
 <div class="charts">
   <div class="chart-section" data-section="SYS&middot;01">
@@ -422,7 +455,7 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.28;
+  renderer.toneMappingExposure=1.32;
   renderer.physicallyCorrectLights=true;
 
   var scene=new THREE.Scene();
@@ -466,7 +499,6 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
     new THREE.MeshStandardMaterial({color:0x050507,metalness:0.62,roughness:0.20,envMapIntensity:0.9}));
   gnd.rotation.x=-Math.PI/2; gnd.position.y=-0.57; gnd.receiveShadow=true; scene.add(gnd);
 
-  // Materials
   var PI=Math.PI;
   var mNav=new THREE.MeshPhysicalMaterial({color:0x0D1B8C,metalness:0.06,roughness:0.26,clearcoat:1.0,clearcoatRoughness:0.05});
   var mRed=new THREE.MeshPhysicalMaterial({color:0xCC0000,metalness:0.04,roughness:0.23,clearcoat:1.0,clearcoatRoughness:0.04});
@@ -573,7 +605,6 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
     car.add(bx(1.22,0.08,0.26,mC,-0.39,-0.23,z));
   });
 
-  // Bargeboards
   for(var bi=0;bi<3;bi++){
     [-0.34-bi*0.09,0.34+bi*0.09].forEach(function(z){car.add(bx(0.09,0.20,0.03,mC,0.84,-0.04,z));});
   }
@@ -604,7 +635,6 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
   car.add(bx(0.11,0.07,0.17,mR,0.47,0.53,-0.26));
   car.add(bx(0.11,0.07,0.17,mR,0.47,0.53, 0.26));
 
-  // Helmet (Verstappen blue)
   var helm=mk(new THREE.SphereGeometry(0.14,24,18),mB,0.41,0.36,0);
   helm.scale.set(1.2,0.92,1.1); car.add(helm);
 
@@ -624,7 +654,6 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
     car.add(bx(0.31,0.58,0.048,mRed,-1.97,0.41,z));
   });
 
-  // Suspension wishbones
   [[1.72,-0.80],[1.72,0.80]].forEach(function(w){
     var wx=w[0],wz=w[1],ci=wz>0?0.22:-0.22;
     car.add(bar(wx, 0.00,wz, 1.52, 0.08,ci, 0.016,mG));
@@ -707,7 +736,6 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
 (function(){
 'use strict';
 
-/* ===================== DOM ===================== */
 var overlay=document.getElementById('game-overlay');
 var gameCanvas=document.getElementById('game-canvas');
 var podiumOvl=document.getElementById('podium-overlay');
@@ -727,6 +755,11 @@ var tireF=document.getElementById('tire-f');
 var tireR=document.getElementById('tire-r');
 var tempF=document.getElementById('temp-f');
 var tempR=document.getElementById('temp-r');
+var tireCmp=document.getElementById('tire-cmp');
+var tirePct=document.getElementById('tire-pct');
+var dmgBar=document.getElementById('dmg-bar');
+var dmgPct=document.getElementById('dmg-pct');
+var hudBox=document.getElementById('hud-box');
 var hudS1=document.getElementById('hud-s1');
 var hudS2=document.getElementById('hud-s2');
 var hudS3=document.getElementById('hud-s3');
@@ -753,11 +786,10 @@ var cwSteer=0,cwLeds=[];
 var hudClose=document.querySelector('.hud-close');
 var podiumClose=document.getElementById('podium-close');
 
-/* ===================== CONSTANTS ===================== */
 var SEGS=900,TW=21,CURB=2.2,BH=3.2;
 var MAX_SPD=30,ENG=12000,BRK=18000,DRAG=0.35,CAR_MASS=800;
 var GRIP_LIMIT=4.0,GRIP_SCRUB=3.2;  // lateral load (yawRate*speed) the tires hold; above it, understeer scrubs speed — you must brake for corners
-var RIDE_H=0.59,LAPS=3;
+var RIDE_H=0.59,LAPS=5;
 var AI_NUMS=[22,16,44,63,12,4,81,14,18,10,7,23,55,30,6,27,5,31,87];
 var AI_COLORS=[
   0x1A3E82,0xCC0000,0xCC0000,0xC0C0C0,0xC0C0C0,
@@ -780,8 +812,36 @@ var AI_TEAMS=[
   'ALP','WIL','WIL','RB','RB',
   'SAU','SAU','HAS','HAS'
 ];
+// Pace bias by team. The band sits ABOVE the player's 1.0 base so front-runners genuinely
+// out-pace you on raw speed — a clean top car beats your non-DRS pace, so climbing the order
+// takes the tow + DRS + capitalising on their rare mistakes. No rubber-banding.
+var TEAM_TIER={RBR:1.09,MCL:1.09,FER:1.08,MER:1.07,AMR:1.01,
+               WIL:0.99,RB:0.99,ALP:0.98,SAU:0.96,HAS:0.96};
 
-/* ===================== TRACK ===================== */
+// Two drivers per team (player takes Verstappen's RBR seat) — used for the garage name boards.
+var TEAM_DRIVERS={RBR:['VERSTAPPEN']};
+for(var _di=0;_di<AI_TEAMS.length;_di++){var _tid=AI_TEAMS[_di];(TEAM_DRIVERS[_tid]=TEAM_DRIVERS[_tid]||[]).push(AI_NAMES[_di+1]);}
+
+// grip multiplies cornering grip & a little top speed; wear scales wear rate; warm = how fast it heats.
+var COMPOUNDS=[
+  {id:'S',name:'SOFT',  col:0xe1342f, grip:1.07, wear:1.8, warm:0.65, desc:'Most grip, fastest lap — fades fast. Short stints.'},
+  {id:'M',name:'MEDIUM',col:0xf2c037, grip:1.00, wear:1.0, warm:0.48, desc:'Balanced pace and life. The all-rounder.'},
+  {id:'H',name:'HARD',  col:0xe8e8e8, grip:0.94, wear:0.6, warm:0.32, desc:'Least grip, longest life — go long, stop less.'}
+];
+// gripMul scales overall grip; wearMul scales wear; tempBias shifts tire temp; best = recommended compound.
+var WEATHERS=[
+  {id:'DRY',  label:'DRY',   gripMul:1.00, wearMul:1.00, tempBias:0.00, best:1, note:'Balanced track — the Medium is the safe call.'},
+  {id:'HOT',  label:'HOT',   gripMul:0.97, wearMul:1.45, tempBias:0.22, best:2, note:'Track is roasting — tires overheat and wear fast. Go Hard.'},
+  {id:'WINDY',label:'WINDY', gripMul:0.97, wearMul:1.10, tempBias:-0.04,best:1, note:'Gusts unsettle the car — keep it tidy on a Medium.'},
+  {id:'WET',  label:'RAIN',  gripMul:0.74, wearMul:0.65, tempBias:-0.20,best:0, note:'Low grip, slow wear — Soft warms quickest in the cold.'}
+];
+var weather=WEATHERS[0];                 // set per race in initRace()
+// Cold tires (below their warm threshold) give less grip; ramps to 1.0 once up to temp.
+function tempGrip(c){
+  var warm=COMPOUNDS[c.compound].warm;
+  return 0.82+0.18*Math.min(1,((c.tireTempF+c.tireTempR)*0.5)/Math.max(0.2,warm));
+}
+
 /* Suzuka-flavoured technical circuit (clockwise). y carries gentle elevation —
    flat across the start/finish straight (the pit complex datum), climbing through
    the Esses to a crest, descending back to flat before the line. The layout is an
@@ -837,7 +897,325 @@ function closestWP(x,z,hint){
   return best;
 }
 
-/* ===================== THREE.JS SETUP ===================== */
+// A real pit corridor parallel to the start/finish straight (which runs +X at z~32).
+// The lane sits on the +Z infield side; cars peel off just after the line, crawl past the
+// garages under a speed limiter, stop in their team box for a tyre change, and rejoin before T1.
+var PIT_Z=58,PIT_W=9,PIT_X0=-250,PIT_X1=70,GARAGE_Z=74,PIT_LIMIT=8.3,PIT_STOP_DUR=2.7;
+var REPAIR_TIME=2.2;   // extra box time for a full front-wing change on a badly damaged car
+// Bays sit beside the garages, off the clear through-lane; cars slide over into them.
+var PIT_BOX_Z=64,CREW_STOW_Z=72;var PIT_BOX_OFF=PIT_BOX_Z-PIT_Z;
+var PIT_TEAMS=[
+  {id:'RBR',col:0x1A3E82,acc:0xCC1E1E,num:1},
+  {id:'FER',col:0xCC0000,acc:0xFFD700,num:16},
+  {id:'MER',col:0xC0C0C0,acc:0x00D2BE,num:63},
+  {id:'MCL',col:0xFF5500,acc:0x0D1F8C,num:4},
+  {id:'AMR',col:0x1B5E38,acc:0xC5A028,num:14},
+  {id:'ALP',col:0x0090FF,acc:0xFF87BC,num:10},
+  {id:'WIL',col:0x005AFF,acc:0xE8002D,num:23},
+  {id:'RB', col:0x1934DB,acc:0xCC1E1E,num:30},
+  {id:'SAU',col:0x52E252,acc:0xEEEEEE,num:27},
+  {id:'HAS',col:0xDDDDDD,acc:0xCC1E1E,num:31}
+];
+var BOX_SP=(PIT_X1-PIT_X0)/PIT_TEAMS.length;
+var BOX_X=PIT_TEAMS.map(function(c,i){return PIT_X0+BOX_SP*0.5+i*BOX_SP;});
+var TEAM_IDX={};PIT_TEAMS.forEach(function(c,i){TEAM_IDX[c.id]=i;});
+
+// Pit path: a clean, monotonic-in-x corridor running alongside the S/F straight. The ends sit on
+// the racing line so cars merge on/off without a kink; the lateral move onto the lane is eased in
+// by an err-decay in pitMove (no teleport). Evenly spaced control points keep the spline smooth.
+var pitCtrl=[
+  new THREE.Vector3(-320,0,46),       // entry lead-in: keeps the start tangent parallel to the track (+x), not diving infield
+  new THREE.Vector3(-300,0,50),       // entry — a shallow parallel peel off the +z edge of the straight
+  new THREE.Vector3(PIT_X0,0,PIT_Z),  // lane start (-250, 58)
+  new THREE.Vector3(-90,0,PIT_Z),
+  new THREE.Vector3(PIT_X1,0,PIT_Z),  // lane end (70, 58)
+  new THREE.Vector3(90,0,54),         // exit taper begins, still running parallel to the lane
+  new THREE.Vector3(106,0,48),        // merge nearly complete, heading ~+x
+  new THREE.Vector3(120,0,44)         // rejoin on the +z track EDGE, parallel — clear of the T1 turn-in, never across the racing line
+];
+var pitCurve=new THREE.CatmullRomCurve3(pitCtrl,false,'centripetal');
+var PIT_SEGS=260;
+var pitPts=pitCurve.getSpacedPoints(PIT_SEGS);
+var PIT_LEN=pitCurve.getLength();
+function pitPointAt(s){
+  s=Math.max(0,Math.min(1,s));
+  var f=s*PIT_SEGS,i0=Math.floor(f),i1=Math.min(PIT_SEGS,i0+1),fr=f-i0;
+  var a=pitPts[i0],b=pitPts[i1];
+  var dx=b.x-a.x,dz=b.z-a.z,len=Math.sqrt(dx*dx+dz*dz)||1;
+  return {x:a.x+dx*fr,z:a.z+dz*fr,heading:Math.atan2(dx/len,dz/len)};
+}
+// Param along the path whose x best matches the given x (the path is monotonic in x), so a car can
+// enter the lane at its current position instead of teleporting to s=0.
+function pitSFromX(x){
+  var bi=0,bd=1e9;
+  for(var i=0;i<=PIT_SEGS;i++){var d=Math.abs(pitPts[i].x-x);if(d<bd){bd=d;bi=i;}}
+  return bi/PIT_SEGS;
+}
+// Arc-length param of each team's box (nearest lane point to the box x on the straight section).
+var BOX_S=BOX_X.map(function(bx){
+  var bi=0,bd=1e9;
+  for(var i=0;i<=PIT_SEGS;i++){var d=Math.abs(pitPts[i].x-bx)+Math.abs(pitPts[i].z-PIT_Z);if(d<bd){bd=d;bi=i;}}
+  return bi/PIT_SEGS;
+});
+var teamCrew={},pitClock=0,idleFolk=[];
+function inPit(c){return c.pitState&&c.pitState!=='NONE';}
+function boxXOf(c){var i=TEAM_IDX[c.team];return i==null?BOX_X[0]:BOX_X[i];}
+function boxSOf(c){var i=TEAM_IDX[c.team];return i==null?BOX_S[0]:BOX_S[i];}
+
+// Per-frame motion while a car is in the pit lane (player or AI).
+// LANE drive the clear lane -> ENTER slide into the side bay -> BOX stop ->
+// LEAVE slide back onto the lane -> EXIT rejoin the track. Slide-over keeps the car forward-facing.
+function pitMove(c,dt,isPlayer){
+  c.pitLift=c.pitLift||0;
+  if(c.pitState==='LANE'||c.pitState==='EXIT'){
+    var lim=PIT_LIMIT,bx=boxXOf(c),boxS=boxSOf(c);
+    if(c.pitState==='LANE'){
+      var dToBox=bx-c.x;
+      if(dToBox<20) lim=Math.min(lim,Math.max(1.2,dToBox*0.85));
+      if(isPlayer&&c.brk) lim*=0.4;
+    } else if(c.x>=PIT_X1){
+      lim=MAX_SPD;  // past the pit-exit line — limiter off, accelerate back to racing pace
+    }
+    // Ease gently into the limiter when first crossing the pit-entry line (no wall-slam from racing
+    // speed); stay responsive for box-approach braking and exit acceleration.
+    var sRate=(c.pitState==='LANE'&&(bx-c.x)>=20&&c.speed>lim)?1.6:3;
+    c.speed+=(lim-c.speed)*Math.min(dt*sRate,1);if(c.speed<0)c.speed=0;
+    c.pitS+=(c.speed*dt)/PIT_LEN;
+    var pp=pitPointAt(c.pitS);
+    // Bleed off the entry offset so the car eases onto the lane from wherever it committed (no snap).
+    var perr=Math.max(0,1-dt*3);
+    c._pitErrZ=(c._pitErrZ||0)*perr;c._pitErrH=(c._pitErrH||0)*perr;
+    c.x=pp.x;c.z=pp.z+c._pitErrZ;c.y=0;c.heading=pp.heading+c._pitErrH;
+    c.tIdx=closestWP(c.x,35,c.tIdx);
+    if(c.pitState==='LANE'&&c.pitS>=boxS){
+      // Reached the box longitudinally: peel off the lane into the side bay.
+      var bp=pitPointAt(boxS);c._laneX=bp.x;c._boxHead=c.heading;
+      c.pitState='ENTER';c._boxT=0;
+      if(isPlayer) radio('Box, box — peel into the box, crew is ready.',false);
+    }
+    if(c.pitState==='EXIT'&&c.pitS>=0.999){
+      c.pitState='NONE';c.pitLift=0;
+      c.tIdx=closestWP(c.x,40,c.tIdx);
+      if(isPlayer) radio('Out clean, P'+(getPos()+1)+'. Hammer it.',false);
+      else {c._latTarget=-(TW*0.44);c._baseLat=c._initLat;c._ovTimer=0;c._inStart=false;}  // rejoin eased from the pit-side (+z) edge, not snapped across to centre
+    }
+  } else if(c.pitState==='ENTER'||c.pitState==='LEAVE'){
+    // Lateral slide between the lane and the bay; stay parallel to the lane.
+    c._boxT=Math.min(1,(c._boxT||0)+dt/0.7);
+    var e=c._boxT*c._boxT*(3-2*c._boxT),bx2=boxXOf(c);
+    var fromX,toX,fromZ,toZ;
+    if(c.pitState==='ENTER'){fromX=c._laneX;toX=bx2;fromZ=PIT_Z;toZ=PIT_BOX_Z;}
+    else {fromX=bx2;toX=c._laneX;fromZ=PIT_BOX_Z;toZ=PIT_Z;}
+    c.x=fromX+(toX-fromX)*e;c.z=fromZ+(toZ-fromZ)*e;c.y=0;c.heading=c._boxHead;
+    c.speed=0;c.tIdx=closestWP(c.x,35,c.tIdx);
+    if(c._boxT>=1){
+      if(c.pitState==='ENTER'){c.pitState='BOX';c.pitTimer=0;c._dmgAtBox=c.damage;}
+      else {c.pitState='EXIT';c.pitS=boxSOf(c);c.speed=PIT_LIMIT;}
+    }
+  } else if(c.pitState==='BOX'){
+    c.speed=0;c.pitTimer=(c.pitTimer||0)+dt;
+    if(c.pitTimer>=PIT_STOP_DUR+(c._dmgAtBox||0)*REPAIR_TIME){
+      if(isPlayer){P.compound=(P._pitCompound==null?P.compound:P._pitCompound);P._pitCompound=null;P.tireWear=1;P.tireTempF=0.45;P.tireTempR=0.45;P._boxWarned=false;
+        if((c._dmgAtBox||0)>0.15) radio('New front wing on, damage fixed — back to full pace.',false);}
+      else {c.compound=(c._nextCompound==null?c.compound:c._nextCompound);c._nextCompound=null;c._deg=0;}
+      // Repairs complete: damage cleared, wing restored (applyDamageVisual reattaches it next frame)
+      c.damage=0;c.dmgFront=0;c.dmgRear=0;c._dmgAtBox=0;
+      c.pitsDone=(c.pitsDone||0)+1;c.pitState='LEAVE';c._boxT=0;
+    }
+  }
+}
+
+// Crew figures + garages (built once inside buildWorld; animated from updatePits)
+function buildPitCrew(col,bx){
+  var rec={grp:new THREE.Group(),guns:[],crouchers:[],jacks:[],lolly:null,_busy:false,_emerge:0};
+  rec.grp.position.set(bx,0,CREW_STOW_Z);
+  var mSuit=new THREE.MeshStandardMaterial({color:col,roughness:0.62,metalness:0.06});
+  var mDark=new THREE.MeshStandardMaterial({color:0x14171c,roughness:0.85});
+  var mSkin=new THREE.MeshStandardMaterial({color:0xd9b18c,roughness:0.85});
+  var mGun=new THREE.MeshStandardMaterial({color:0xffd000,emissive:0x231a00,roughness:0.5,metalness:0.4});
+  function fig(lx,lz,withGun){
+    var G=new THREE.Group();
+    function part(geo,mat,x,y,z,rx){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;m.castShadow=true;G.add(m);return m;}
+    part(new THREE.CylinderGeometry(0.21,0.16,0.6,8),mSuit,0,1.16,0);
+    part(new THREE.BoxGeometry(0.32,0.32,0.22),mDark,0,0.8,0);
+    part(new THREE.CylinderGeometry(0.07,0.07,0.52,6),mDark,-0.1,0.5,0);
+    part(new THREE.CylinderGeometry(0.07,0.07,0.52,6),mDark,0.1,0.5,0);
+    part(new THREE.SphereGeometry(0.14,10,8),mSkin,0,1.58,0);
+    var hel=part(new THREE.SphereGeometry(0.17,12,9),mSuit,0,1.6,0.01);hel.scale.set(1,0.82,1.05);
+    part(new THREE.CylinderGeometry(0.06,0.06,0.5,6),mSuit,-0.25,1.12,0.18,0.7);
+    part(new THREE.CylinderGeometry(0.06,0.06,0.5,6),mSuit,0.25,1.12,0.18,0.7);
+    if(withGun){
+      var gun=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.5,8),mGun);
+      gun.rotation.x=Math.PI/2;gun.position.set(0,0.95,0.42);G.add(gun);rec.guns.push(gun);
+    }
+    G.position.set(lx,0,lz);G.rotation.y=Math.atan2(-lx,-lz);
+    G.userData.baseY=0;rec.grp.add(G);return G;
+  }
+  rec.crouchers.push(fig(1.7,-1.8,true),fig(1.7,1.8,true),fig(-1.5,-1.8,true),fig(-1.5,1.8,true));
+  fig(2.5,2.7,false);fig(-2.3,2.7,false);
+  rec.jacks.push(fig(3.5,0,false),fig(-3.7,0,false));
+  var lo=new THREE.Group();
+  var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.4,6),mDark);pole.position.y=1.2;lo.add(pole);
+  var board=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.06,18),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.5,roughness:0.5}));
+  board.rotation.x=Math.PI/2;board.position.set(0,2.4,-0.5);lo.add(board);
+  lo.position.set(4.4,0,0);rec.grp.add(lo);rec.lolly=lo;
+  return rec;
+}
+
+function buildGarage(cfg,bx,m){
+  function pm(geo,mat,x,y,z){var me=new THREE.Mesh(geo,mat);me.position.set(x,y,z);me.castShadow=true;me.receiveShadow=true;scene.add(me);return me;}
+  var W=28,D=13,H=7,gz=GARAGE_Z;
+  pm(new THREE.BoxGeometry(W,H,0.5),m.conc,bx,H/2,gz+D/2);
+  pm(new THREE.BoxGeometry(0.5,H,D),m.conc,bx-W/2,H/2,gz);
+  pm(new THREE.BoxGeometry(0.5,H,D),m.conc,bx+W/2,H/2,gz);
+  pm(new THREE.BoxGeometry(W+1.5,0.5,D+3),m.roof,bx,H+0.25,gz-1.5);
+  var fas=new THREE.MeshStandardMaterial({color:cfg.col,emissive:cfg.col,emissiveIntensity:0.85,roughness:0.5});
+  pm(new THREE.BoxGeometry(W-2,1.7,0.4),fas,bx,H-0.5,gz-D/2+0.2);
+  pm(new THREE.BoxGeometry(5,2.4,0.2),m.screen,bx,4.2,gz+D/2-0.35);
+  for(var s=0;s<2;s++)for(var u=0;u<3;u++) pm(new THREE.CylinderGeometry(0.5,0.5,0.34,16),m.tyre,bx-W/2+2.2+s*1.2,0.2+u*0.36,gz+2.4);
+  pm(new THREE.BoxGeometry(1.5,1.0,0.9),m.metal,bx+W/2-2.6,0.6,gz+1.5);
+  // Pit box markings on the side bay: painted box outline + team number on the apron.
+  var bxw=3.4,bzd=2.4,bw=0.16;  // bay half-length (along lane) / half-depth / line width
+  pm(new THREE.BoxGeometry(bxw*2,0.05,bw),m.line,bx,0.07,PIT_BOX_Z-bzd);  // front line (lane side)
+  pm(new THREE.BoxGeometry(bxw*2,0.05,bw),m.line,bx,0.07,PIT_BOX_Z+bzd);  // back line (garage side)
+  pm(new THREE.BoxGeometry(bw,0.05,bzd*2),m.line,bx-bxw,0.07,PIT_BOX_Z);
+  pm(new THREE.BoxGeometry(bw,0.05,bzd*2),m.line,bx+bxw,0.07,PIT_BOX_Z);
+  var nMat=new THREE.MeshBasicMaterial({map:numTex(cfg.num,'#111','#fff'),transparent:true});
+  var npl=new THREE.Mesh(new THREE.PlaneGeometry(2.0,2.0),nMat);npl.rotation.x=-Math.PI/2;npl.position.set(bx,0.075,PIT_BOX_Z+bzd-1.4);scene.add(npl);
+  // extra garage detail: tool chest, energy rig, banners, monitors, ceiling light
+  var red=new THREE.MeshStandardMaterial({color:0xb71c1c,roughness:0.5,metalness:0.3});
+  var blk=new THREE.MeshStandardMaterial({color:0x16181c,roughness:0.6,metalness:0.4});
+  // rolling tool chest with drawer seams
+  pm(new THREE.BoxGeometry(2.4,1.6,0.9),red,bx-W/2+3.4,0.85,gz+1.0);
+  for(var dr=0;dr<3;dr++) pm(new THREE.BoxGeometry(2.2,0.07,0.92),blk,bx-W/2+3.4,0.55+dr*0.42,gz+1.0);
+  // tall energy/fuel rig with a glowing readout
+  pm(new THREE.BoxGeometry(1.3,2.6,1.0),blk,bx+W/2-2.4,1.3,gz+1.6);
+  pm(new THREE.BoxGeometry(0.9,0.5,0.06),m.screen,bx+W/2-2.4,1.95,gz+1.6-0.52);
+  // a second (slick) tyre stack
+  for(var s2=0;s2<2;s2++)for(var u2=0;u2<3;u2++) pm(new THREE.CylinderGeometry(0.5,0.5,0.34,16),m.tyre,bx+W/2-2.4-s2*1.2,0.2+u2*0.36,gz+3.0);
+  // wide team banner across the fascia + overhead wall monitor (both face the lane, -z)
+  var ban=new THREE.Mesh(new THREE.PlaneGeometry(W-3,1.2),new THREE.MeshStandardMaterial({color:cfg.col,emissive:cfg.col,emissiveIntensity:0.5,roughness:0.6,side:THREE.DoubleSide}));
+  ban.position.set(bx,H-2.0,gz-D/2+0.05);ban.rotation.y=Math.PI;scene.add(ban);
+  var wm=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),new THREE.MeshBasicMaterial({map:numTex(cfg.num,'#06101f','#36a0ff'),transparent:true}));
+  wm.position.set(bx+5,3.6,gz-D/2+0.16);wm.rotation.y=Math.PI;scene.add(wm);
+  // ceiling light strip so the bay reads as lit and occupied
+  pm(new THREE.BoxGeometry(W-4,0.12,0.6),new THREE.MeshStandardMaterial({color:0xcfe0ff,emissive:0xbcd2ff,emissiveIntensity:1.2,roughness:0.4}),bx,H-0.4,gz);
+  // two driver name boards across the fascia, facing the lane (-z)
+  var drv=TEAM_DRIVERS[cfg.id]||['',''];
+  for(var nbI=0;nbI<2;nbI++){
+    var nb=new THREE.Mesh(new THREE.PlaneGeometry(W*0.42,1.0),new THREE.MeshBasicMaterial({map:nameTex(drv[nbI]||'',cfg.col),transparent:true}));
+    nb.position.set(bx+(nbI===0?-1:1)*W*0.24,H-0.55,gz-D/2-0.1);nb.rotation.y=Math.PI;scene.add(nb);
+  }
+}
+
+// A simple standing/seated person in team kit (pit-wall engineers & loitering mechanics).
+function pitPerson(col,seated){
+  var G=new THREE.Group();
+  var suit=new THREE.MeshStandardMaterial({color:col,roughness:0.6,metalness:0.05});
+  var dark=new THREE.MeshStandardMaterial({color:0x14171c,roughness:0.85});
+  var skin=new THREE.MeshStandardMaterial({color:0xd9b18c,roughness:0.85});
+  var hs=new THREE.MeshStandardMaterial({color:0x101216,roughness:0.5,metalness:0.3});
+  function p(geo,mat,x,y,z,rx){var me=new THREE.Mesh(geo,mat);me.position.set(x,y,z);if(rx)me.rotation.x=rx;me.castShadow=true;G.add(me);return me;}
+  var hipY=seated?0.5:0.0;
+  p(new THREE.CylinderGeometry(0.2,0.16,0.58,8),suit,0,hipY+1.12,0);
+  p(new THREE.BoxGeometry(0.3,0.3,0.2),dark,0,hipY+0.78,0);
+  if(seated){
+    p(new THREE.BoxGeometry(0.13,0.12,0.5),dark,-0.1,hipY+0.6,0.26,-1.2);
+    p(new THREE.BoxGeometry(0.13,0.12,0.5),dark,0.1,hipY+0.6,0.26,-1.2);
+  } else {
+    p(new THREE.CylinderGeometry(0.07,0.07,0.62,6),dark,-0.1,0.45,0);
+    p(new THREE.CylinderGeometry(0.07,0.07,0.62,6),dark,0.1,0.45,0);
+  }
+  var head=p(new THREE.SphereGeometry(0.14,10,8),skin,0,hipY+1.52,0);
+  var cap=p(new THREE.SphereGeometry(0.16,12,8),suit,0,hipY+1.55,0.01);cap.scale.set(1,0.7,1.05);
+  var band=p(new THREE.TorusGeometry(0.15,0.022,6,14),hs,0,hipY+1.5,0);band.rotation.y=Math.PI/2;
+  p(new THREE.SphereGeometry(0.05,6,6),hs,0.14,hipY+1.48,0.02);
+  var ar=seated?-1.1:0.2;                                                // arms forward when seated/typing
+  p(new THREE.CylinderGeometry(0.055,0.055,0.5,6),suit,-0.22,hipY+1.08,seated?0.16:0.0,ar);
+  p(new THREE.CylinderGeometry(0.055,0.055,0.5,6),suit,0.22,hipY+1.08,seated?0.16:0.0,ar);
+  return {grp:G,head:head};
+}
+
+// Team pit-wall gantry ("comms box"): an elevated, canopied console on the track side of the
+// pit wall with a monitor bank and two seated engineers facing the track. One per team.
+function buildPitWallStand(cfg,bx){
+  var gz=PIT_Z-PIT_W*0.5-2.6;                 // track side of the pit wall
+  var topY=1.5,segW=BOX_SP*0.82,half=segW/2;
+  var body=new THREE.MeshStandardMaterial({color:0x16181d,roughness:0.6,metalness:0.3});
+  var trim=new THREE.MeshStandardMaterial({color:cfg.col,emissive:cfg.col,emissiveIntensity:0.7,roughness:0.5});
+  var scr=new THREE.MeshStandardMaterial({color:0x0a1830,emissive:0x2060ff,emissiveIntensity:1.3,roughness:0.35});
+  function m(geo,mat,x,y,z){var me=new THREE.Mesh(geo,mat);me.position.set(x,y,z);me.castShadow=true;me.receiveShadow=true;scene.add(me);return me;}
+  m(new THREE.BoxGeometry(segW,0.18,3.0),body,bx,topY,gz);
+  [-half+0.4,half-0.4].forEach(function(lx){m(new THREE.BoxGeometry(0.3,topY,0.3),body,bx+lx,topY*0.5,gz+1.2);});
+  m(new THREE.BoxGeometry(segW,0.9,1.0),body,bx,topY+0.55,gz-0.9);
+  m(new THREE.BoxGeometry(segW,0.14,0.06),trim,bx,topY+0.95,gz-1.4);
+  var nMon=3;for(var mi=0;mi<nMon;mi++){                                // monitor bank facing the track
+    var sm=m(new THREE.BoxGeometry(segW/nMon-0.2,0.7,0.07),scr,bx-half+segW/nMon*(mi+0.5),topY+1.4,gz-1.3);sm.rotation.x=-0.18;
+  }
+  m(new THREE.BoxGeometry(segW+0.6,0.1,3.4),body,bx,topY+2.5,gz);
+  m(new THREE.BoxGeometry(segW+0.6,0.12,0.12),trim,bx,topY+2.5,gz-1.7);
+  [-half,half].forEach(function(lx){m(new THREE.BoxGeometry(0.12,1.0,0.12),body,bx+lx,topY+2.0,gz-1.6);});
+  [-segW*0.22,segW*0.22].forEach(function(ox){                          // two engineers, facing the track
+    var pn=pitPerson(cfg.col,true);
+    pn.grp.position.set(bx+ox,topY+0.18,gz+0.4);pn.grp.rotation.y=Math.PI;scene.add(pn.grp);
+    idleFolk.push({head:pn.head,mode:'type',ph:Math.random()*6.28});
+  });
+}
+
+// Choreographed stop timeline (tt = seconds since stop; tt<0 = ready/idle pose).
+function animateStop(cr,tt){
+  var working=tt>=0.45&&tt<PIT_STOP_DUR-0.35;
+  var jacked=tt>=0.35&&tt<PIT_STOP_DUR-0.3;
+  var k;
+  for(k=0;k<cr.crouchers.length;k++){
+    var fg=cr.crouchers[k],ty=working?-0.22:0;
+    fg.position.y+=(ty-fg.position.y)*0.3;
+  }
+  for(k=0;k<cr.guns.length;k++) if(working) cr.guns[k].rotation.y+=0.6;
+  for(k=0;k<cr.jacks.length;k++){var jr=jacked?0.5:0;cr.jacks[k].rotation.x+=(jr-cr.jacks[k].rotation.x)*0.3;}
+  if(cr.lolly){var up=(tt<0||tt>=PIT_STOP_DUR-0.45)?-1.2:0;cr.lolly.rotation.x+=(up-cr.lolly.rotation.x)*0.25;}
+}
+function idleCrew(cr,clock){
+  for(var i=0;i<cr.crouchers.length;i++) cr.crouchers[i].position.y=Math.sin(clock*1.6+i*1.3)*0.03;
+  if(cr.lolly) cr.lolly.rotation.x+=(-1.2-cr.lolly.rotation.x)*0.1;
+  for(var j=0;j<cr.jacks.length;j++) cr.jacks[j].rotation.x+=(0-cr.jacks[j].rotation.x)*0.1;
+}
+function updatePits(dt){
+  pitClock+=dt;
+  var id;for(id in teamCrew) teamCrew[id]._busy=false;
+  var cars=[P].concat(AI),i;
+  for(i=0;i<cars.length;i++){
+    var c=cars[i];if(!inPit(c))continue;
+    var cr=teamCrew[c.team];if(!cr)continue;
+    // Crew stay idle in the garage until their car is arriving (head start down the lane) or at the
+    // bay; they retreat once it pulls away (EXIT). Keeps the lane crews idle on the grid/at the start.
+    var dApproach=boxXOf(c)-c.x;
+    var ready=(c.pitState==='ENTER'||c.pitState==='BOX'||c.pitState==='LEAVE')||
+              (c.pitState==='LANE'&&dApproach>-4&&dApproach<45);
+    if(!ready)continue;
+    cr._busy=true;
+    if(c.pitState==='BOX'){
+      animateStop(cr,c.pitTimer);
+      c.pitLift=(c.pitTimer>0.45&&c.pitTimer<PIT_STOP_DUR-0.35)?0.26:0;
+      if(c===P&&c.pitTimer>0.5&&c.pitTimer<2.0){c._gunT=(c._gunT||0)-dt;if(c._gunT<=0){_fireWheelGun();c._gunT=0.13;}}
+    } else {animateStop(cr,-1);c.pitLift=0;}
+  }
+  for(id in teamCrew){
+    var cr2=teamCrew[id];
+    // Slide the crew out from the garage front to the bay when busy, retreat when idle.
+    cr2._emerge+=((cr2._busy?1:0)-cr2._emerge)*Math.min(dt*4,1);
+    cr2.grp.position.z=CREW_STOW_Z+(PIT_BOX_Z-CREW_STOW_Z)*cr2._emerge;
+    if(cr2._busy)continue;
+    idleCrew(cr2,pitClock);
+  }
+  // Idle life: pit-wall engineers nod/scan over their screens, mechanics glance around and shift weight.
+  for(var fi=0;fi<idleFolk.length;fi++){
+    var fk=idleFolk[fi];
+    if(fk.mode==='type'){fk.head.rotation.x=Math.sin(pitClock*1.3+fk.ph)*0.12;fk.head.rotation.y=Math.sin(pitClock*0.5+fk.ph)*0.18;}
+    else{fk.head.rotation.y=Math.sin(pitClock*0.6+fk.ph)*0.4;if(fk.grp)fk.grp.position.y=Math.abs(Math.sin(pitClock*1.4+fk.ph))*0.02;}
+  }
+}
+
 if(!gameCanvas||typeof THREE==='undefined') return;
 var renderer=new THREE.WebGLRenderer({canvas:gameCanvas,antialias:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -859,7 +1237,9 @@ try{
   if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass){
     composer=new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scene,gameCam));
-    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(1280,720),0.50,0.4,0.88));
+    // Higher threshold + tighter strength so only genuine light sources (lamps, screens, tail lights)
+    // bloom — painted lines/kerbs no longer halo, which was the main "arcade neon" tell.
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(1280,720),0.52,0.40,0.92));
     // Speed motion blur: ghost-trail pass whose damp is driven by player speed in the loop
     // (near-zero at low speed so the static world stays crisp; ramps up toward top speed).
     if(THREE.AfterimagePass){afterPass=new THREE.AfterimagePass();afterPass.uniforms['damp'].value=0.0;composer.addPass(afterPass);}
@@ -878,26 +1258,28 @@ function resizeCam(){
 }
 window.addEventListener('resize',resizeCam);resizeCam();
 
-/* ===================== LIGHTING (night) ===================== */
 /* Floodlit-stadium night: the track surface is brightly lit (cool white) under a
    dark sky. One shadow-casting key keeps cars grounded; floodlight PointLights add
    warm local pools, and the bloom pass makes the lamps/lights glow. */
-scene.add(new THREE.AmbientLight(0x8aa0c0,0.16));
-scene.add(new THREE.HemisphereLight(0x3a4a68,0x080a10,0.34));
+scene.add(new THREE.AmbientLight(0x8aa0c0,0.19));
+scene.add(new THREE.HemisphereLight(0x3a4a68,0x080a10,0.40));   // lift matte surfaces off "flat paint" without killing the night mood
 var sun=new THREE.DirectionalLight(0xbecbf0,0.58);
 sun.position.set(180,320,80);sun.castShadow=true;
 sun.shadow.mapSize.width=sun.shadow.mapSize.height=2048;
 sun.shadow.camera.near=1;sun.shadow.camera.far=1200;
 sun.shadow.camera.left=-600;sun.shadow.camera.right=600;
 sun.shadow.camera.top=600;sun.shadow.camera.bottom=-600;
-sun.shadow.bias=-0.0004;
+sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.03;   // normalBias kills acne now that the tarmac carries a normal map
+sun.shadow.radius=2.5;                                 // softer PCF edges so shadows seat rather than knife-edge
 scene.add(sun);
 var fill=new THREE.DirectionalLight(0x5a72a8,0.16);
 fill.position.set(-120,60,-80);scene.add(fill);
 
-/* ===================== WORLD BUILD ===================== */
 // Populated inside buildWorld but animated from the game loop, so they live at the outer scope.
-var clouds=[],standAnchors=[],crowdMats=[];
+var clouds=[],standAnchors=[],crowdMats=[],crowdFolk=[];
+// Texture caches for the car/garage builders. Declared here (before buildWorld) so they are
+// initialised when buildWorld runs at load — buildGarage/buildCar call numTex()/carbonTex() then.
+var _carbonTex=null,_numTexCache={},_bgTex=null;
 (function buildWorld(){
   var i,b,wp,p,hw;
   /* Sky dome — clear night gradient with moon + stars + Milky Way + drifting clouds */
@@ -907,7 +1289,7 @@ var clouds=[],standAnchors=[],crowdMats=[];
     for(var si=0;si<sp.count;si++){
       var ny=sp.getY(si)/1800;
       var sh=(ny+1)*0.5;                 // 0 = nadir, 1 = zenith
-      var lo=1-Math.min(1,Math.max(0,sh));// brighter toward horizon
+      var lo=1-Math.min(1,Math.max(0,sh));
       // deep navy zenith -> faint blue horizon glow
       sc.push(0.012+0.040*lo, 0.022+0.055*lo, 0.055+0.095*lo);
     }
@@ -968,9 +1350,47 @@ var clouds=[],standAnchors=[],crowdMats=[];
       gg.beginPath();gg.arc(Math.random()*size,Math.random()*size,rr2,0,6.283);gg.fill();
     }
     var t=new THREE.CanvasTexture(cc);t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.anisotropy=renderer.capabilities.getMaxAnisotropy();   // stay crisp at grazing angles (kills the smeared arcade look)
     if(rep) t.repeat.set(rep,rep);return t;
   }
-  /* Road */
+  /* Tangent-space normal map derived (Sobel) from a procedural height field of fine bumps, so the
+     floodlights rake across real surface micro-relief instead of flat paint. */
+  function groundNormalTex(size,specks,strength,rep){
+    var hc=document.createElement('canvas');hc.width=hc.height=size;var hg=hc.getContext('2d');
+    hg.fillStyle='#808080';hg.fillRect(0,0,size,size);
+    for(var qi=0;qi<specks;qi++){
+      var v=Math.random()<0.5?0:255,a=0.05+Math.random()*0.12;
+      hg.fillStyle='rgba('+v+','+v+','+v+','+a+')';
+      var rr=1+Math.random()*size*0.03;
+      hg.beginPath();hg.arc(Math.random()*size,Math.random()*size,rr,0,6.283);hg.fill();
+    }
+    var hd=hg.getImageData(0,0,size,size).data;
+    var nc=document.createElement('canvas');nc.width=nc.height=size;var ng=nc.getContext('2d');
+    var out=ng.createImageData(size,size),od=out.data;
+    function H(x,y){x=(x+size)%size;y=(y+size)%size;return hd[((y*size+x)*4)]/255;}
+    for(var y=0;y<size;y++)for(var x=0;x<size;x++){
+      var nx=-(H(x+1,y)-H(x-1,y))*strength,ny=-(H(x,y+1)-H(x,y-1))*strength,nz=1;
+      var l=Math.sqrt(nx*nx+ny*ny+nz*nz)||1,o=(y*size+x)*4;
+      od[o]=(nx/l*0.5+0.5)*255;od[o+1]=(ny/l*0.5+0.5)*255;od[o+2]=(nz/l*0.5+0.5)*255;od[o+3]=255;
+    }
+    ng.putImageData(out,0,0);
+    var t=new THREE.CanvasTexture(nc);t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    if(rep) t.repeat.set(rep,rep);return t;
+  }
+  /* Asphalt roughness map: coarse aggregate stays rough (bright); the central racing line is polished
+     by rubber (darker -> lower roughness -> a faint sheen under the lights). u runs across the width. */
+  function asphaltRoughTex(size){
+    var cc=document.createElement('canvas');cc.width=cc.height=size;var g=cc.getContext('2d');
+    var grad=g.createLinearGradient(0,0,size,0);
+    grad.addColorStop(0,'#dadada');grad.addColorStop(0.4,'#d2d2d2');grad.addColorStop(0.5,'#8c8c8c');
+    grad.addColorStop(0.6,'#d2d2d2');grad.addColorStop(1,'#dadada');
+    g.fillStyle=grad;g.fillRect(0,0,size,size);
+    for(var qi=0;qi<1300;qi++){var v=Math.floor(120+Math.random()*120);g.fillStyle='rgba('+v+','+v+','+v+','+(0.05+Math.random()*0.1)+')';g.beginPath();g.arc(Math.random()*size,Math.random()*size,1+Math.random()*2.2,0,6.283);g.fill();}
+    var t=new THREE.CanvasTexture(cc);t.wrapS=t.wrapT=THREE.RepeatWrapping;
+    t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
   var rPos=[],rIdx=[],rUv=[];
   for(i=0;i<N;i++){
     wp=waypoints[i];p=wpPerp(i);hw=TW*0.5;
@@ -985,7 +1405,9 @@ var clouds=[],standAnchors=[],crowdMats=[];
   rGeo.setAttribute('uv',new THREE.Float32BufferAttribute(rUv,2));
   rGeo.setIndex(rIdx);rGeo.computeVertexNormals();
   var asphaltTex=groundTex(256,'#d8d8dc',900,150,255,1);
-  var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x17171b,map:asphaltTex,roughness:0.82,metalness:0.04}));
+  var asphaltNrm=groundNormalTex(256,1400,2.2,6);   // fine aggregate relief, tiled across the width
+  var asphaltRgh=asphaltRoughTex(256);
+  var road=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0x17171b,map:asphaltTex,normalMap:asphaltNrm,normalScale:new THREE.Vector2(0.55,0.55),roughnessMap:asphaltRgh,roughness:0.95,metalness:0.05}));
   road.receiveShadow=true;scene.add(road);
   /* Painted track lines: white limit lines (catch the lights) + dark rubbered-in racing band.
      Reuses the road's vertex/index winding so face normals point +Y. */
@@ -1005,16 +1427,15 @@ var clouds=[],standAnchors=[],crowdMats=[];
       var m=new THREE.Mesh(geo,mat);m.receiveShadow=true;scene.add(m);
     }
     strip(0,TW*0.30,0.068,new THREE.MeshStandardMaterial({color:0x0d0d0f,roughness:0.7}));
-    var lineMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x3a3a44,emissiveIntensity:1.0,roughness:0.55});
+    var lineMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x3a3a44,emissiveIntensity:0.25,roughness:0.55});  // painted lines catch the floods, they don't self-glow
     var lEdge=TW*0.5-0.5;
     strip( lEdge,0.34,0.074,lineMat);
     strip(-lEdge,0.34,0.074,lineMat);
   })();
-  /* S/F line */
   (function(){
     var sfwp=waypoints[0],sfd=wpDir(0);
     var sfAngle=Math.atan2(sfd.x,sfd.z);
-    var sfMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.6,roughness:0.7});
+    var sfMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.3,roughness:0.7});
     for(var li=0;li<5;li++){
       var sOff=(li-2)*0.55;
       var sw=new THREE.Mesh(new THREE.BoxGeometry(TW+CURB*2,0.06,0.32),sfMat);
@@ -1043,9 +1464,8 @@ var clouds=[],standAnchors=[],crowdMats=[];
   kGeo.setAttribute('position',new THREE.Float32BufferAttribute(kPos,3));
   kGeo.setAttribute('color',new THREE.Float32BufferAttribute(kCol,3));
   kGeo.setIndex(kIdx);kGeo.computeVertexNormals();
-  scene.add(new THREE.Mesh(kGeo,new THREE.MeshStandardMaterial({vertexColors:true,emissive:0x2a2a2a,emissiveIntensity:1.0,roughness:0.8})));
+  scene.add(new THREE.Mesh(kGeo,new THREE.MeshStandardMaterial({vertexColors:true,emissive:0x2a2a2a,emissiveIntensity:0.25,roughness:0.8})));
 
-  /* Armco barriers */
   var baPos=[],baIdx=[];
   hw=TW*0.5+CURB;
   for(i=0;i<N;i++){
@@ -1115,7 +1535,8 @@ var clouds=[],standAnchors=[],crowdMats=[];
   tGeo.setAttribute('uv',new THREE.Float32BufferAttribute(gUv2,2));
   tGeo.setIndex(gIdx2);tGeo.computeVertexNormals();
   var grassTex=groundTex(256,'#cfcfcf',1400,150,240,1);
-  scene.add(new THREE.Mesh(tGeo,new THREE.MeshStandardMaterial({vertexColors:true,map:grassTex,roughness:1.0})));
+  var grassNrm=groundNormalTex(256,1800,1.6,4);
+  scene.add(new THREE.Mesh(tGeo,new THREE.MeshStandardMaterial({vertexColors:true,map:grassTex,normalMap:grassNrm,normalScale:new THREE.Vector2(0.6,0.6),roughness:1.0})));
   /* Outer ground ring — fills the gap between terrain edge and mountain base */
   (function(){
     var NS=64,igR=200,ogR=690,ogPos=[],ogIdx=[],ogCol=[];
@@ -1151,6 +1572,8 @@ var clouds=[],standAnchors=[],crowdMats=[];
     [1,-1].forEach(function(s){
       var jit=((ti*7+s*3)%9)-4;
       var ox=twp.x+tp.x*s*(offs+jit),oz=twp.z+tp.z*s*(offs+jit);
+      // No foliage on the pit complex (apron, lane, garages) — keep it clean and real.
+      if(ox>PIT_X0-60&&ox<PIT_X1+90&&oz>42&&oz<98){return;}
       var trH=3.2+szJ;
       var tr=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.55,trH,7),mTrunk);
       tr.position.set(ox,twp.y+trH*0.5,oz);scene.add(tr);
@@ -1197,7 +1620,6 @@ var clouds=[],standAnchors=[],crowdMats=[];
     scene.add(new THREE.Mesh(mGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1.0,side:THREE.DoubleSide})));
   })();
 
-  /* Grandstands */
   var mk2=function(geo,mat,x,y,z){var m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);return m;};
   var mConc2=new THREE.MeshStandardMaterial({color:0x888878,roughness:0.85});
   var mRoof2=new THREE.MeshStandardMaterial({color:0x4a4e52,roughness:0.55,metalness:0.4});
@@ -1207,7 +1629,9 @@ var clouds=[],standAnchors=[],crowdMats=[];
   crowdMats=crowdCols.map(function(hx){return new THREE.MeshStandardMaterial({color:hx,emissive:hx,emissiveIntensity:0.0,roughness:1});});
   function buildGrandstand(wpIdx,side,width,seatHex){
     var wp2=waypoints[wpIdx],p2=wpPerp(wpIdx);
-    var ry2=Math.atan2(-p2.x*side,-p2.z*side);
+    // Orient so the raked SEATS (the low front edge + ad board, local -z) look back at the track,
+    // not away from it. atan2(p2*side,..) points local +z outward, leaving the viewing face inward.
+    var ry2=Math.atan2(p2.x*side,p2.z*side);
     var c2=Math.cos(ry2),s2=Math.sin(ry2);
     // Auto-clearance: push the stand outward until its whole footprint clears the drivable track.
     // Without this, where the loop folds back near itself (e.g. the Esses at wp280) a fixed offset
@@ -1232,7 +1656,7 @@ var clouds=[],standAnchors=[],crowdMats=[];
     }
     var ox2=wp2.x+p2.x*side*dist2,oz2=wp2.z+p2.z*side*dist2;
     var mS2=new THREE.MeshStandardMaterial({color:seatHex,roughness:0.8});
-    var mAd2=new THREE.MeshStandardMaterial({color:0x1E41FF,emissive:0x0c1f70,emissiveIntensity:2.0,roughness:0.6});
+    var mAd2=new THREE.MeshStandardMaterial({color:0x1E41FF,emissive:0x0c1f70,emissiveIntensity:1.1,roughness:0.6});
     var g2=new THREE.Group();
     g2.add(mk2(new THREE.BoxGeometry(width,4,9  ),mConc2,0,2,   -1.5));
     g2.add(mk2(new THREE.BoxGeometry(width,3,7  ),mConc2,0,5.5,  3.5));
@@ -1253,6 +1677,9 @@ var clouds=[],standAnchors=[],crowdMats=[];
         for(var cx3=-(width-3)*0.5;cx3<(width-3)*0.5;cx3+=1.6){
           var cm=new THREE.Mesh(crowdGeo,crowdMats[(ci2*7)%crowdMats.length]);
           cm.position.set(cx3,4.8+tY2,tZ2-1.0);cg.add(cm);ci2++;
+          // Keep a handle so the loop can make the crowd live: a travelling "wave" (phase from
+          // x-position so the peak sweeps along the stand) plus a small constant fidget.
+          crowdFolk.push({m:cm,by:cm.position.y,ph:cx3*0.22});
         }
       });
     });
@@ -1307,7 +1734,6 @@ var clouds=[],standAnchors=[],crowdMats=[];
     }
   })();
 
-  /* S/F gantry */
   (function(){
     var wp0=waypoints[0],p0=wpPerp(0);
     var hw=TW*0.5+CURB+BH+1.0;
@@ -1331,36 +1757,70 @@ var clouds=[],standAnchors=[],crowdMats=[];
       gl.position.set(wp0.x+p0.x*lt,wp0.y+16.5,wp0.z+p0.z*lt);scene.add(gl);
     }
   })();
-  /* Pit complex */
+  /* Pit lane + team garages (aligned to the start/finish straight) */
   (function(){
-    var plPos2=[],plIdx2=[];
-    var plZ1=52,plZ2=144,plSteps=25,plX=-17,plW=7;
-    for(var pli=0;pli<=plSteps;pli++){
-      var plz2=plZ1+(plZ2-plZ1)*pli/plSteps;
-      plPos2.push(plX-plW*0.5,0.02,plz2,plX+plW*0.5,0.02,plz2);
-      if(pli<plSteps){var pb2=pli*2;plIdx2.push(pb2,pb2+2,pb2+1,pb2+1,pb2+2,pb2+3);}
+    // Paved lane ribbon following the pit path, with white edge lines.
+    function ribbon(off,half,y,mat){
+      var pos=[],idx=[];
+      for(var i=0;i<=PIT_SEGS;i++){
+        var a=pitPts[i],b=pitPts[Math.min(PIT_SEGS,i+1)];
+        var dx=b.x-a.x,dz=b.z-a.z,L=Math.sqrt(dx*dx+dz*dz)||1,nx=dz/L,nz=-dx/L;
+        var cx=a.x+nx*off,cz=a.z+nz*off;
+        pos.push(cx+nx*half,y,cz+nz*half,cx-nx*half,y,cz-nz*half);
+        // CCW winding from above so face normals point +Y (visible from above) — matches the main road.
+        if(i<PIT_SEGS){var bb=i*2;idx.push(bb,bb+1,bb+2,bb+2,bb+1,bb+3);}
+      }
+      var g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+      var me=new THREE.Mesh(g,mat);me.receiveShadow=true;scene.add(me);
     }
-    var plGeo2=new THREE.BufferGeometry();
-    plGeo2.setAttribute('position',new THREE.Float32BufferAttribute(plPos2,3));
-    plGeo2.setIndex(plIdx2);plGeo2.computeVertexNormals();
-    function pm(geo,mat,x,y,z,ry){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(ry)m.rotation.y=ry;scene.add(m);}
-    pm(plGeo2,new THREE.MeshStandardMaterial({color:0x252525,roughness:0.75}),0,0,0);
-    pm(new THREE.BoxGeometry(0.45,1.3,93),new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:0.4,metalness:0.3}),-13.5,0.65,98);
-    pm(new THREE.BoxGeometry(0.45,0.08,93),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.7}),-13.5,1.34,98);
-    var pgCols=[0x1E41FF,0xff2200,0xffdd00,0x00ccff,0xff6600,0x22cc22,0xaaaaaa,0xcc00cc];
-    for(var pg=0;pg<8;pg++){
-      var pgz=60+pg*11;
-      pm(new THREE.BoxGeometry(14,8.5,10.5),new THREE.MeshStandardMaterial({color:0x555560,roughness:0.7,metalness:0.1}),-36,4.25,pgz);
-      pm(new THREE.BoxGeometry(9,6.5,0.3),new THREE.MeshStandardMaterial({color:pgCols[pg],emissive:pgCols[pg],emissiveIntensity:0.9,roughness:0.55}),-29.4,3.5,pgz);
-      pm(new THREE.BoxGeometry(16,0.5,12.5),new THREE.MeshStandardMaterial({color:0x2a2a30,roughness:0.8,metalness:0.2}),-35,8.75,pgz);
-      pm(new THREE.BoxGeometry(0.2,0.2,5),new THREE.MeshStandardMaterial({color:0x333333,metalness:0.5,roughness:0.5}),-28.5,2.5,pgz);
+    var mAsph=new THREE.MeshStandardMaterial({color:0x202024,roughness:0.82,metalness:0.05});
+    // Paved apron covering the whole pit complex (lane -> bays -> garage fronts) so no grass shows.
+    var apW=(PIT_X1-PIT_X0)+60,apCx=(PIT_X0+PIT_X1)/2,apZ0=PIT_Z-PIT_W*0.5-1,apZ1=GARAGE_Z-6.5,apCz=(apZ0+apZ1)/2;
+    var apron=new THREE.Mesh(new THREE.BoxGeometry(apW,0.08,apZ1-apZ0),mAsph);apron.position.set(apCx,0.0,apCz);apron.receiveShadow=true;scene.add(apron);
+    ribbon(0,PIT_W*0.5,0.06,mAsph);
+    var mLine=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.3,roughness:0.6});
+    ribbon(PIT_W*0.5-0.2,0.16,0.07,mLine);ribbon(-(PIT_W*0.5-0.2),0.16,0.07,mLine);
+    // Pit wall (track-facing) + white top, and the speed-limit line at the entry.
+    var wlen=(PIT_X1-PIT_X0)+40,wcx=(PIT_X0+PIT_X1)/2,wz=PIT_Z-PIT_W*0.5-0.4;
+    var pw=new THREE.Mesh(new THREE.BoxGeometry(wlen,1.3,0.5),new THREE.MeshStandardMaterial({color:0xc0c0c0,roughness:0.4,metalness:0.3}));pw.position.set(wcx,0.65,wz);pw.castShadow=true;scene.add(pw);
+    var pwt=new THREE.Mesh(new THREE.BoxGeometry(wlen,0.1,0.52),mLine);pwt.position.set(wcx,1.35,wz);scene.add(pwt);
+    var slm=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.06,PIT_W),new THREE.MeshStandardMaterial({color:0xffcc00,emissive:0xffcc00,emissiveIntensity:0.5,roughness:0.6}));slm.position.set(PIT_X0,0.06,PIT_Z);scene.add(slm);
+    // Pit control tower at the lane end.
+    var twr=new THREE.MeshStandardMaterial({color:0x6a7888,roughness:0.7,metalness:0.2});
+    var t1=new THREE.Mesh(new THREE.BoxGeometry(9,22,7),twr);t1.position.set(PIT_X1+24,15,GARAGE_Z);t1.castShadow=true;scene.add(t1);
+    var t2=new THREE.Mesh(new THREE.BoxGeometry(8,5,6.2),new THREE.MeshStandardMaterial({color:0x1a3344,roughness:0.08,metalness:0.7,transparent:true,opacity:0.85}));t2.position.set(PIT_X1+24,28,GARAGE_Z);scene.add(t2);
+    // Shared garage materials, then one garage + crew + pit-wall stand per team.
+    var gm={conc:new THREE.MeshStandardMaterial({color:0x555560,roughness:0.7,metalness:0.1}),
+            roof:new THREE.MeshStandardMaterial({color:0x2a2a30,roughness:0.8,metalness:0.2}),
+            metal:new THREE.MeshStandardMaterial({color:0x888888,roughness:0.45,metalness:0.4}),
+            screen:new THREE.MeshStandardMaterial({color:0x0a1830,emissive:0x1030a0,emissiveIntensity:1.4,roughness:0.4}),
+            tyre:new THREE.MeshStandardMaterial({color:0x111111,roughness:0.95}),line:mLine};
+    for(var ti=0;ti<PIT_TEAMS.length;ti++){
+      var cfg=PIT_TEAMS[ti],bx=BOX_X[ti];
+      buildGarage(cfg,bx,gm);
+      var crew=buildPitCrew(cfg.col,bx);scene.add(crew.grp);
+      teamCrew[cfg.id]=crew;
+      buildPitWallStand(cfg,bx);
+      // a couple of mechanics loitering by the garage front, between stops
+      [-8,9].forEach(function(ox,qi){
+        var pn=pitPerson(cfg.col,false);
+        pn.grp.position.set(bx+ox,0,GARAGE_Z-7.5);pn.grp.rotation.y=Math.PI+(qi?0.5:-0.4);scene.add(pn.grp);
+        idleFolk.push({head:pn.head,grp:pn.grp,mode:'stand',ph:Math.random()*6.28});
+      });
     }
-    pm(new THREE.BoxGeometry(14,4,11),new THREE.MeshStandardMaterial({color:0x888878,roughness:0.85}),-42,2,147);
-    pm(new THREE.BoxGeometry(9,22,7),new THREE.MeshStandardMaterial({color:0x6a7888,roughness:0.7,metalness:0.2}),-42,15,147);
-    pm(new THREE.BoxGeometry(8,5,6.2),new THREE.MeshStandardMaterial({color:0x1a3344,roughness:0.08,metalness:0.7,transparent:true,opacity:0.85}),-42,28,147);
-    pm(new THREE.BoxGeometry(8.2,1.5,0.3),new THREE.MeshStandardMaterial({color:0x1E41FF,emissive:0x1030a0,emissiveIntensity:1.8,roughness:0.5}),-42,23.5,143.8);
+    // Pit-lane dressing: a fire extinguisher by each bay, marshal cones bracketing entry & exit.
+    var redPost=new THREE.MeshStandardMaterial({color:0xcc1c1c,roughness:0.5});
+    for(var fp=0;fp<PIT_TEAMS.length;fp++){
+      var ext=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.7,10),redPost);
+      ext.position.set(BOX_X[fp]+5.2,0.55,PIT_BOX_Z-2.0);ext.castShadow=true;scene.add(ext);
+    }
+    var coneMat=new THREE.MeshStandardMaterial({color:0xff6a00,emissive:0xff5500,emissiveIntensity:0.4,roughness:0.7});
+    [PIT_X0-3,PIT_X0+3,PIT_X1-3,PIT_X1+3].forEach(function(cxp){
+      var cone=new THREE.Mesh(new THREE.ConeGeometry(0.35,1.0,10),coneMat);
+      cone.position.set(cxp,0.5,PIT_Z-PIT_W*0.5+0.6);cone.castShadow=true;scene.add(cone);
+    });
   })();
-  /* Animated billboard posts */
   (function(){
     var CW=1024,CH=256;
     function _bbOracle(ctx){
@@ -1476,7 +1936,6 @@ var clouds=[],standAnchors=[],crowdMats=[];
       });
     },500);
   })();
-  /* Catch fencing posts */
   (function(){
     var mFP=new THREE.MeshStandardMaterial({color:0x777777,roughness:0.5,metalness:0.45});
     var fGeo=new THREE.CylinderGeometry(0.07,0.07,5,5);
@@ -1563,12 +2022,40 @@ var clouds=[],standAnchors=[],crowdMats=[];
 
 /* NB: we deliberately do NOT set scene.environment. A PMREM env map of the night
    scene zeroes out direct/ambient lighting on every MeshStandardMaterial in r128,
-   turning the whole world black. Car paint instead picks up glossy specular glints
-   from the floodlights/moonlight via its clearcoat + the direct lights. */
+   turning the whole world black. Instead we bake a dedicated night-sky probe below and
+   assign it PER-MATERIAL on the cars only, so paint/chrome gain real reflections while the
+   world keeps its direct lighting. */
+// One-time night-sky reflection probe (sky gradient + moon highlight + warm floodlight keys), baked
+// into a PMREM cubemap. Applied per-material on cars via buildCar — never as scene.environment.
+var _gameEnv=null;
+function gameEnvMap(){
+  if(_gameEnv!==null) return _gameEnv||undefined;
+  try{
+    var pmrem=new THREE.PMREMGenerator(renderer);pmrem.compileEquirectangularShader();
+    var em=new THREE.ShaderMaterial({side:THREE.BackSide,
+      vertexShader:'varying vec3 vN;void main(){vN=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'varying vec3 vN;void main(){vec3 n=normalize(vN);vec3 col=mix(vec3(0.006,0.010,0.022),vec3(0.05,0.08,0.16),smoothstep(-0.3,0.8,n.y));float m=pow(max(0.,dot(n,normalize(vec3(0.86,0.40,0.26)))),60.);col+=m*vec3(0.90,0.95,1.00)*3.0;float fa=pow(max(0.,dot(n,normalize(vec3(0.20,0.92,0.10)))),3.);col+=fa*vec3(0.55,0.66,0.95)*0.60;float fb=pow(max(0.,dot(n,normalize(vec3(-0.50,0.72,-0.42)))),4.);col+=fb*vec3(0.50,0.60,0.92)*0.40;gl_FragColor=vec4(col,1.);}'
+    });
+    var es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),em));
+    var rt=new THREE.WebGLCubeRenderTarget(256,{format:THREE.RGBFormat,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+    var cc=new THREE.CubeCamera(1,100,rt);es.add(cc);cc.update(renderer,es);
+    _gameEnv=pmrem.fromCubemap(rt.texture).texture;pmrem.dispose();
+  }catch(e){_gameEnv=false;}
+  return _gameEnv||undefined;
+}
 
-/* ===================== CAR BUILDER ===================== */
+// Soft radial blob, built once, used as a fake-AO contact shadow under every car so they sit on the
+// track instead of floating (complements the single sun shadow on a balanced perf budget).
+var _csTex=null;
+function contactShadowTex(){
+  if(_csTex) return _csTex;
+  var cc=document.createElement('canvas');cc.width=cc.height=128;var g=cc.getContext('2d');
+  var grd=g.createRadialGradient(64,64,4,64,64,64);
+  grd.addColorStop(0,'rgba(0,0,0,0.60)');grd.addColorStop(0.5,'rgba(0,0,0,0.28)');grd.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=grd;g.fillRect(0,0,128,128);
+  _csTex=new THREE.CanvasTexture(cc);return _csTex;
+}
 // Shared procedural carbon-weave map for the floor/wings/diffuser — built once, reused on every car.
-var _carbonTex=null;
 function carbonTex(){
   if(_carbonTex) return _carbonTex;
   var s=128,cv=document.createElement('canvas');cv.width=cv.height=s;var x=cv.getContext('2d');
@@ -1583,7 +2070,6 @@ function carbonTex(){
   _carbonTex=t;return t;
 }
 // Race-number roundel texture (cached per number/colour) for the nose flanks.
-var _numTexCache={};
 function numTex(n,bgHex,fgHex){
   var key=n+bgHex+fgHex;if(_numTexCache[key]) return _numTexCache[key];
   var s=128,cv=document.createElement('canvas');cv.width=cv.height=s;var x=cv.getContext('2d');
@@ -1594,7 +2080,25 @@ function numTex(n,bgHex,fgHex){
   x.textAlign='center';x.textBaseline='middle';x.fillText(''+n,s/2,s*0.56);
   var t=new THREE.CanvasTexture(cv);_numTexCache[key]=t;return t;
 }
-function buildCar(bodyColor,accentColor,carNum){
+// Garage driver name board: surname on a dark plate with a team-colour underline.
+function nameTex(text,colHex){
+  var cw=512,ch=128,cv=document.createElement('canvas');cv.width=cw;cv.height=ch;var x=cv.getContext('2d');
+  x.fillStyle='rgba(8,10,14,0.92)';x.fillRect(0,0,cw,ch);
+  var r=(colHex>>16)&255,g=(colHex>>8)&255,b=colHex&255;
+  x.fillStyle='rgb('+r+','+g+','+b+')';x.fillRect(0,ch-14,cw,14);
+  x.fillStyle='#ffffff';x.font='bold 64px Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';
+  x.fillText(''+text,cw/2,ch*0.46);
+  return new THREE.CanvasTexture(cv);
+}
+function brakeGlowTex(){
+  if(_bgTex) return _bgTex;
+  var c=document.createElement('canvas');c.width=c.height=32;var g=c.getContext('2d');
+  var rg=g.createRadialGradient(16,16,0,16,16,16);
+  rg.addColorStop(0,'rgba(255,210,140,1)');rg.addColorStop(0.45,'rgba(255,80,20,0.85)');
+  rg.addColorStop(1,'rgba(255,40,0,0)');
+  g.fillStyle=rg;g.fillRect(0,0,32,32);_bgTex=new THREE.CanvasTexture(c);return _bgTex;
+}
+function buildCar(bodyColor,accentColor,carNum,envMap){
   var g=new THREE.Group();
   var PI=Math.PI;
   var mNav=new THREE.MeshPhysicalMaterial({color:bodyColor,metalness:0.12,roughness:0.22,clearcoat:1.0,clearcoatRoughness:0.05});
@@ -1606,6 +2110,10 @@ function buildCar(bodyColor,accentColor,carNum){
   var mG=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.74,roughness:0.28});
   var mRim=new THREE.MeshPhysicalMaterial({color:0x202024,metalness:0.92,roughness:0.34,clearcoat:0.4});
   var mRimAcc=new THREE.MeshStandardMaterial({color:accentColor,metalness:0.55,roughness:0.40});
+  // Per-material night-sky reflections (game scene only): lacquered paint + chrome catch the sky,
+  // moon and floodlights instead of reading as flat plastic. Studio cars pass no envMap (they use
+  // scene.environment). See gameEnvMap()/the scene.environment note above.
+  if(envMap){[mNav,mRed,mGold,mC,mR,mG,mRim,mRimAcc].forEach(function(m){m.envMap=envMap;m.envMapIntensity=(m===mR?1.5:(m.metalness>0.6?1.1:0.7));});}
   var mPir=new THREE.MeshStandardMaterial({color:0xE10600,emissive:0x300000,emissiveIntensity:0.45,roughness:0.7});
   function mk(geo,mat,x,y,z,rx,ry,rz){var m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);m.rotation.set(rx||0,ry||0,rz||0);return m;}
   function bx(w,h,d,mat,x,y,z,rx,ry,rz){return mk(new THREE.BoxGeometry(w,h,d),mat,x,y,z,rx,ry,rz);}
@@ -1615,7 +2123,6 @@ function buildCar(bodyColor,accentColor,carNum){
   function tube3(ax,ay,az,bx2,by2,bz2,cx2,cy2,cz2,r,mat){var crv=new THREE.QuadraticBezierCurve3(new THREE.Vector3(ax,ay,az),new THREE.Vector3(bx2,by2,bz2),new THREE.Vector3(cx2,cy2,cz2));return new THREE.Mesh(new THREE.TubeGeometry(crv,20,r,8,false),mat);}
   function bar(ax,ay,az,ex,ey,ez,r,mat){var dx=ex-ax,dy=ey-ay,dz=ez-az,len=Math.sqrt(dx*dx+dy*dy+dz*dz);var m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,6),mat);m.position.set((ax+ex)/2,(ay+ey)/2,(az+ez)/2);var q=new THREE.Quaternion();q.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dx/len,dy/len,dz/len));m.setRotationFromQuaternion(q);return m;}
   function add(m){g.add(m);}
-  // Chassis
   add(el(0.31,0.20,0.70,mNav, 1.25,0.05,0,0,0,PI/2));
   add(el(0.35,0.21,0.80,mNav, 0.50,0.05,0,0,0,PI/2));
   add(el(0.26,0.19,0.50,mNav,-0.15,0.05,0,0,0,PI/2));
@@ -1623,59 +2130,52 @@ function buildCar(bodyColor,accentColor,carNum){
   add(el(0.275,0.18,0.75,mNav,-1.28,0.05,0,0,0,PI/2));
   add(el(0.27,0.105,1.10,mNav,-0.30,0.31,0,0,0,PI/2));
   add(el(0.30,0.065,0.58,mNav, 0.53,0.27,0,0,0,PI/2));
-  // Nose
   var nosePts=[new THREE.Vector2(0.28,0),new THREE.Vector2(0.27,0.08),new THREE.Vector2(0.24,0.26),new THREE.Vector2(0.21,0.46),new THREE.Vector2(0.17,0.68),new THREE.Vector2(0.12,0.90),new THREE.Vector2(0.07,1.14),new THREE.Vector2(0.04,1.32),new THREE.Vector2(0.02,1.46)];
   var noseMesh=new THREE.Mesh(new THREE.LatheGeometry(nosePts,32),mNav);noseMesh.rotation.z=-PI/2;noseMesh.position.set(1.60,-0.01,0);add(noseMesh);
   add(cy(0.022,0.022,0.06,8,mRed,3.10,-0.01,0,0,0,-PI/2));
-  // Front wing
-  add(wing(2.12,0.30,0.040,mC,2.86,-0.245,0,0));add(wing(1.94,0.24,0.036,mC,2.66,-0.200,0,0));add(wing(1.74,0.18,0.030,mC,2.48,-0.158,0,0));
-  [-1.03,1.03].forEach(function(z){add(bx(0.50,0.32,0.05,mRed,2.66,-0.095,z));add(bx(0.20,0.10,0.05,mRed,2.84,-0.30,z));});
-  [-0.20,0.20].forEach(function(z){add(bx(0.06,0.24,0.04,mC,2.72,-0.075,z));});
-  // Sidepods
+  // Front wing — own subgroup so damage can droop then detach it
+  var fw=new THREE.Group();function addFW(m){fw.add(m);}
+  addFW(wing(2.12,0.30,0.040,mC,2.86,-0.245,0,0));addFW(wing(1.94,0.24,0.036,mC,2.66,-0.200,0,0));addFW(wing(1.74,0.18,0.030,mC,2.48,-0.158,0,0));
+  [-1.03,1.03].forEach(function(z){addFW(bx(0.50,0.32,0.05,mRed,2.66,-0.095,z));addFW(bx(0.20,0.10,0.05,mRed,2.84,-0.30,z));});
+  [-0.20,0.20].forEach(function(z){addFW(bx(0.06,0.24,0.04,mC,2.72,-0.075,z));});
+  add(fw);g.userData.fw=fw;
   [-0.53,0.53].forEach(function(z){
     var sg=z>0?1:-1;
     var sf=new THREE.Mesh(new THREE.CylinderGeometry(0.175,0.145,0.85,24),mNav);sf.scale.set(1,1,1.9);sf.rotation.z=PI/2;sf.position.set(0.10,-0.03,z+sg*0.02);add(sf);
     var sr2=new THREE.Mesh(new THREE.CylinderGeometry(0.130,0.090,0.77,24),mNav);sr2.scale.set(1,1,1.7);sr2.rotation.z=PI/2;sr2.position.set(-0.565,-0.03,z+sg*0.02);add(sr2);
     add(bx(0.90,0.32,0.012,mRed,-0.16,-0.03,z+sg*0.166));add(bx(0.09,0.21,0.09,mC,0.37,0.04,z));add(bx(1.22,0.08,0.26,mC,-0.39,-0.23,z));
   });
-  // Bargeboards
   for(var bi=0;bi<3;bi++){[-0.34-bi*0.09,0.34+bi*0.09].forEach(function(z){add(bx(0.09,0.20,0.03,mC,0.84,-0.04,z));});}
-  // Engine cover
   var ecPts=[new THREE.Vector2(0,0),new THREE.Vector2(0.085,0.10),new THREE.Vector2(0.195,0.26),new THREE.Vector2(0.260,0.35),new THREE.Vector2(0.240,0.25),new THREE.Vector2(0.185,0.10),new THREE.Vector2(0,0)];
   var ecMesh=new THREE.Mesh(new THREE.LatheGeometry(ecPts,20),mNav);ecMesh.rotation.z=PI/2;ecMesh.scale.set(1,0.054,1);ecMesh.position.set(-0.20,0.18,0);add(ecMesh);
   add(bx(0.70,0.040,0.054,mGold,-0.20,0.71,0));
   var riMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,0.19,20),mNav);riMesh.scale.set(1,1,2.0);riMesh.position.set(0.29,0.39,0);add(riMesh);
-  // Halo
   add(cy(0.028,0.028,0.34,12,mG,0.60,0.52,0));
   add(tube3(0.40,0.70,-0.28,0.57,0.82,0,0.40,0.70,0.28,0.034,mG));
   add(bar(0.40,0.70,-0.28,0.18,0.30,-0.26,0.022,mG));add(bar(0.40,0.70,0.28,0.18,0.30,0.26,0.022,mG));
-  // Mirrors
   add(cy(0.016,0.016,0.28,8,mC,0.50,0.38,-0.26));add(cy(0.016,0.016,0.28,8,mC,0.50,0.38,0.26));
   add(bx(0.11,0.07,0.17,mR,0.47,0.53,-0.26));add(bx(0.11,0.07,0.17,mR,0.47,0.53,0.26));
-  // Helmet
-  var helm=mk(new THREE.SphereGeometry(0.14,24,18),mNav,0.41,0.36,0);helm.scale.set(1.2,0.92,1.1);add(helm);
-  // Floor + diffuser
+  var helm=mk(new THREE.SphereGeometry(0.14,24,18),mNav,0.41,0.36,0);helm.scale.set(1.2,0.92,1.1);g.userData.helmet=helm;add(helm);
   add(bx(3.12,0.042,1.80,mC,-0.08,-0.21,0));
   for(var ds=-3;ds<=3;ds++){add(bx(0.64,0.13,0.03,mC,-1.83,-0.15,ds*0.245));}
   add(bx(0.42,0.030,1.60,mC,-1.830,-0.146,0,0,0,2.719));
-  // Rear wing
   add(bx(0.33,0.23,0.42,mNav,-1.71,0.07,0));add(bx(0.54,0.065,0.90,mC,-1.85,0.19,0));
   add(bar(-1.62,0.185,-0.13,-2.00,0.661,-0.18,0.018,mC));add(bar(-1.62,0.185,0.13,-2.00,0.661,0.18,0.018,mC));
-  add(wing(1.60,0.27,0.058,mC,-2.03,0.69,0,0));add(wing(1.48,0.18,0.046,mC,-1.87,0.63,0,0));
-  [-0.80,0.80].forEach(function(z){add(bx(0.31,0.58,0.048,mRed,-1.97,0.41,z));});
+  var rw=new THREE.Group();function addRW(m){rw.add(m);}
+  addRW(wing(1.60,0.27,0.058,mC,-2.03,0.69,0,0));addRW(wing(1.48,0.18,0.046,mC,-1.87,0.63,0,0));
+  [-0.80,0.80].forEach(function(z){addRW(bx(0.31,0.58,0.048,mRed,-1.97,0.41,z));});
+  add(rw);g.userData.rw=rw;
   // Lights — emissive so bloom picks them up; intensities pulsed from the loop
   var mTail=new THREE.MeshStandardMaterial({color:0x3a0000,emissive:0xff0000,emissiveIntensity:1.5,roughness:0.5});
   var mDrs=new THREE.MeshStandardMaterial({color:0x0a0a0a,emissive:0x00ff66,emissiveIntensity:0.0,roughness:0.5});
   var mHead=new THREE.MeshStandardMaterial({color:0x222222,emissive:0xfff2dc,emissiveIntensity:0.45,roughness:0.5});
-  add(bx(0.07,0.16,0.13,mTail,-2.07,0.00,0));                         // rear rain light
-  [-0.80,0.80].forEach(function(z){add(bx(0.05,0.10,0.16,mTail,-2.05,0.30,z));}); // endplate tail strips
-  add(bx(0.04,0.05,0.16,mDrs,-2.07,0.58,0));                          // DRS tell-tale
-  [-0.12,0.12].forEach(function(z){add(bx(0.04,0.05,0.06,mHead,2.90,-0.05,z));}); // nose markers
-  g.userData.tailMat=mTail;g.userData.drsMat=mDrs;
-  // Suspension
+  add(bx(0.07,0.16,0.13,mTail,-2.07,0.00,0));
+  [-0.80,0.80].forEach(function(z){add(bx(0.05,0.10,0.16,mTail,-2.05,0.30,z));});
+  add(bx(0.04,0.05,0.16,mDrs,-2.07,0.58,0));
+  [-0.12,0.12].forEach(function(z){add(bx(0.04,0.05,0.06,mHead,2.90,-0.05,z));});
+  g.userData.tailMat=mTail;g.userData.drsMat=mDrs;g.userData.bodyMat=mNav;
   [[1.72,-0.80],[1.72,0.80]].forEach(function(w){var wx=w[0],wz=w[1],ci=wz>0?0.22:-0.22;add(bar(wx,0.00,wz,1.52,0.08,ci,0.016,mG));add(bar(wx,0.00,wz,1.18,0.06,ci,0.016,mG));add(bar(wx,-0.28,wz,1.50,-0.22,ci,0.016,mG));add(bar(wx,-0.28,wz,1.16,-0.22,ci,0.016,mG));});
   [[-1.52,-0.88],[-1.52,0.88]].forEach(function(w){var wx=w[0],wz=w[1],ci=wz>0?0.24:-0.24;add(bar(wx,0.00,wz,-1.10,0.06,ci,0.016,mG));add(bar(wx,0.00,wz,-1.42,0.04,ci,0.016,mG));add(bar(wx,-0.28,wz,-1.12,-0.20,ci,0.016,mG));add(bar(wx,-0.28,wz,-1.44,-0.18,ci,0.016,mG));});
-  // Wheels
   function addWheel(x,z,tw){
     var wg=new THREE.Group();var fs=(z>0)?1:-1,fY=fs*tw*0.46;
     var R=0.340,ri=0.260,hw=tw*0.50;
@@ -1684,7 +2184,7 @@ function buildCar(bodyColor,accentColor,carNum){
     wg.add(mk(new THREE.CylinderGeometry(ri-0.002,ri-0.002,tw+0.006,44),mRim,0,0,0));
     wg.add(mk(new THREE.CylinderGeometry(ri-0.004,ri-0.004,0.026,44),mRimAcc,0,fY,0));
     wg.add(mk(new THREE.CylinderGeometry(0.065,0.065,tw+0.032,16),mG,0,0,0));
-    wg.add(mk(new THREE.CylinderGeometry(R-0.008,R-0.008,0.05,40,1,true),mPir,0,fY*0.55,0)); // Pirelli compound stripe
+    wg.add(mk(new THREE.CylinderGeometry(R-0.008,R-0.008,0.05,40,1,true),mPir,0,fY*0.55,0));
     for(var wi=0;wi<5;wi++){var pv=new THREE.Group();pv.rotation.y=wi*2*PI/5;pv.position.y=fY;var sp=new THREE.Mesh(new THREE.BoxGeometry(ri-0.044,0.020,0.020),mRim);sp.position.x=(ri-0.044)/2;pv.add(sp);wg.add(pv);}
     wg.rotation.x=PI/2;wg.position.set(x,-0.22,z);g.add(wg);
   }
@@ -1699,11 +2199,20 @@ function buildCar(bodyColor,accentColor,carNum){
       np.position.set(2.02,0.12,nz);np.rotation.y=nz>0?0:PI;g.add(np);
     });
   }
+  // Brake-disc glow — additive sprites at the rear wheels, ramped by braking from the loop
+  var bgTex=brakeGlowTex();g.userData.brakeGlow=[];
+  [-0.88,0.88].forEach(function(bz){
+    var bm=new THREE.SpriteMaterial({map:bgTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+    var bs=new THREE.Sprite(bm);bs.scale.set(0.66,0.66,1);bs.position.set(-1.52,-0.16,bz);g.add(bs);
+    g.userData.brakeGlow.push(bm);
+  });
   g.traverse(function(o){if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  // Contact shadow grounds the car — added after the traverse so it stays a flat decal (no self-cast).
+  var cs=new THREE.Mesh(new THREE.PlaneGeometry(5.6,2.7),new THREE.MeshBasicMaterial({map:contactShadowTex(),transparent:true,depthWrite:false,opacity:0.85,fog:true}));
+  cs.rotation.x=-PI/2;cs.position.set(0.1,-RIDE_H+0.03,0);cs.renderOrder=2;g.add(cs);
   return g;
 }
 
-/* ===================== GAME STATE ===================== */
 var gameState='IDLE',paused=false,raceTime=0,animRunning=false;
 var playerGrp=null,aiGrps=[],aiLabels=[];
 var camSmooth=new THREE.Vector3(),camVel=new THREE.Vector3();
@@ -1713,7 +2222,9 @@ var P={x:0,z:0,y:0,heading:0,speed:0,yawRate:0,tIdx:0,lap:1,
   sector:0,sectorStart:0,lapStart:0,s1:0,s2:0,s3:0,
   bestS1:Infinity,bestS2:Infinity,bestS3:Infinity,bestLap:Infinity,
   rpmVal:0,gear:1,drs:false,_drsKey:false,
-  tireWear:1.0,tireTempF:0.3,tireTempR:0.3,_lapGuard:false};
+  tireWear:1.0,tireTempF:0.3,tireTempR:0.3,compound:1,_pitCompound:null,_lapGuard:false,
+  team:'RBR',pitState:'NONE',pitS:0,pitTimer:0,pitLift:0,pitsDone:0,_pitArmed:false,_pitKey:false,
+  damage:0,dmgFront:0,dmgRear:0,dnf:false};
 
 // Standing-grid slots: staggered 2-wide on the flat S/F straight (wp ~47..104, clear of Turn 1 ~135).
 // Position p (0=pole) -> row/column; consecutive slots step back ~3 wp so no two cars sit exactly abreast.
@@ -1728,18 +2239,19 @@ var AI=(function(){
   var LANES=[-TW*0.36,-TW*0.18,0,TW*0.18,TW*0.36];
   for(var i=0;i<19;i++){
     var bl=LANES[i%5];
-    // Unique apex depth per car: 0.42–0.74, deterministic so fast cars stay consistent
+    // Unique apex depth per car: 0.42–0.74, constant so each car keeps a recognisable line
     var apxD=0.42+((i*3)%7)*0.090+Math.random()*0.03;
-    var aggr=0.90+Math.random()*0.50;
-    // Fastest cars (low i) start nearest pole; player takes grid slot PLAYER_GRID (~P10).
-    var gp=i<PLAYER_GRID?i:i+1,slot=gridSlot(gp);
-    var initTIdx=slot.ti,initSide=(i%2===0)?1:-1;
-    a.push({tIdx:initTIdx,_initTIdx:initTIdx,latOff:slot.lat,_gridLat:slot.lat,spdFac:1.36-i*0.012,
-            _randFac:Math.random()*0.025,apexD:apxD,_aggr:aggr,_ovSide:initSide,_initOvSide:initSide,
-            _ovTgt:bl,_ovTimer:0.0,finishTime:Infinity,
-            x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,
-            _stuckTimer:0,
-            _latTarget:bl,_baseLat:bl,_initLat:bl});
+    var initSide=(i%2===0)?1:-1;
+    // Performance (paceFac/skill/aggr) and grid slot are rolled fresh each race in initRace();
+    // _randFac is a tiny constant per-car jitter so two equal-form cars aren't identical.
+    a.push({team:AI_TEAMS[i],tIdx:0,_initTIdx:0,latOff:bl,_gridLat:bl,
+            paceFac:1.0,skill:0.7,_aggr:1.0,_randFac:(Math.random()-0.5)*0.01,apexD:apxD,
+            _mood:1.0,_moodPhase:0,_deg:0,_mistakeTimer:0,_mistakeKind:0,
+            _ovSide:initSide,_initOvSide:initSide,_ovTgt:bl,_ovTimer:0.0,finishTime:Infinity,
+            x:0,z:0,y:0,heading:0,speed:0,yawRate:0,lap:1,_inStart:false,_stuckTimer:0,
+            _latTarget:bl,_baseLat:bl,_initLat:bl,
+            pitState:'NONE',pitS:0,pitTimer:0,pitLift:0,pitsDone:0,pitLap:0,compound:1,_nextCompound:null,
+            damage:0,dmgFront:0,dmgRear:0,dnf:false});
   }
   return a;
 })();
@@ -1758,7 +2270,6 @@ document.addEventListener('keydown',function(e){
 });
 document.addEventListener('keyup',function(e){keys[e.code]=false;});
 
-/* ===================== SPAWN ===================== */
 function spawnPos(ti,lat){
   var idx=((ti%N)+N)%N;
   var wp=waypoints[idx],p=wpPerp(idx),d=wpDir(idx);
@@ -1769,16 +2280,13 @@ function makeLabel(driverName,abbr,bodyHex,accentHex){
   var cv=document.createElement('canvas');cv.width=256;cv.height=72;
   var ctx=cv.getContext('2d');
   function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
-  // Dark background pill
   ctx.fillStyle='rgba(0,0,0,0.78)';rr(0,0,256,72,10);ctx.fill();
   // Team badge (left block)
   var br=(bodyHex>>16)&255,bg=(bodyHex>>8)&255,bb=bodyHex&255;
   ctx.fillStyle='rgb('+br+','+bg+','+bb+')';rr(5,5,58,62,7);ctx.fill();
-  // Badge text
   var ar=(accentHex>>16)&255,ag=(accentHex>>8)&255,ab=accentHex&255;
   ctx.fillStyle='rgb('+ar+','+ag+','+ab+')';
   ctx.font='bold 15px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(abbr,34,36);
-  // Driver name
   ctx.fillStyle='#ffffff';ctx.font='bold 21px Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(driverName,74,36);
   var tex=new THREE.CanvasTexture(cv);
   var spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
@@ -1791,21 +2299,60 @@ function initRace(){
   if(playerGrp){scene.remove(playerGrp);playerGrp=null;}
   aiGrps.forEach(function(gr){scene.remove(gr);});aiGrps=[];
   aiLabels.forEach(function(sl){scene.remove(sl);});aiLabels=[];
-  playerGrp=buildCar(0x1A3E82,0xCC1E1E,1);scene.add(playerGrp);
+
+  // Per-race form roll: fresh pace/skill for every driver, so no two races match
+  PLAYER_GRID=8+Math.floor(Math.random()*5);   // player qualifies in the P9–P13 band
+  // Randomized weather for this race — sets the atmosphere and the recommended compound.
+  weather=WEATHERS[Math.floor(Math.random()*WEATHERS.length)];
+  applyWeatherVisuals(weather);WEATHER.set(weather);
+  AI.forEach(function(ai){
+    // rough bell curve (two uniforms summed) centred on the team's tier bias
+    var noise=((Math.random()+Math.random())-1.0)*0.05;
+    ai.paceFac=Math.max(0.94,Math.min(1.11,(TEAM_TIER[ai.team]||0.99)+noise));
+    // skill tracks form (quicker cars are sharper) plus its own roll: drives mistakes + corner pace.
+    // Front-runners reach ~0.99 (almost never err); backmarkers stay error-prone.
+    ai.skill=Math.max(0.34,Math.min(0.99,(ai.paceFac-0.92)*4.4+(Math.random()-0.5)*0.26));
+    ai._aggr=0.85+Math.random()*0.55;
+    ai._mood=1.0;ai._moodPhase=Math.random()*Math.PI*2;ai._deg=0;
+    ai._mistakeTimer=0;ai._mistakeKind=0;
+    // Pit strategy: most cars take one stop on lap 2 or 3; the rest run to the flag.
+    ai.pitState='NONE';ai.pitS=0;ai.pitTimer=0;ai.pitLift=0;ai.pitsDone=0;
+    ai.pitLap=(Math.random()<0.7)?(2+Math.floor(Math.random()*2)):0;
+    // Starting compound: weighted toward the weather pick, with spread so strategies differ.
+    var rc=Math.random();
+    ai.compound=rc<0.55?weather.best:(rc<0.8?Math.max(0,weather.best-1):(rc<0.95?Math.min(2,weather.best+1):(Math.random()*3|0)));
+    ai._nextCompound=null;
+  });
+  // Qualifying grid: fastest pace = pole. Player keeps slot PLAYER_GRID; AI fill the rest in order.
+  var qOrder=AI.slice().sort(function(a,b){return b.paceFac-a.paceFac;}),gp=0;
+  qOrder.forEach(function(ai){
+    if(gp===PLAYER_GRID) gp++;                  // leave the player's grid box open
+    var qslot=gridSlot(gp);
+    ai._initTIdx=qslot.ti;ai._gridLat=qslot.lat;
+    gp++;
+  });
+
+  playerGrp=buildCar(0x1A3E82,0xCC1E1E,1,gameEnvMap());scene.add(playerGrp);
   var pslot=gridSlot(PLAYER_GRID),sp=spawnPos(pslot.ti,pslot.lat);
   P.x=sp.x;P.z=sp.z;P.y=sp.y;P.heading=sp.heading;
   P.speed=0;P.yawRate=0;P.tIdx=pslot.ti;P.lap=1;P.rpmVal=0;P.gear=1;
   P.drs=false;P._drsKey=false;P.drsArmed=false;P.tireWear=1;P.tireTempF=0.3;P.tireTempR=0.3;
+  P.compound=weather.best;P._pitCompound=null;P._boxWarned=false;   // default; overridden by the tire-select screen
   P.sector=0;P.sectorStart=0;P.lapStart=0;P.s1=0;P.s2=0;P.s3=0;
   P.bestS1=Infinity;P.bestS2=Infinity;P.bestS3=Infinity;P.bestLap=Infinity;P._lapGuard=false;P.finishTime=Infinity;
+  P.pitState='NONE';P.pitS=0;P.pitTimer=0;P.pitLift=0;P.pitsDone=0;P._pitArmed=false;
+  P.damage=0;P.dmgFront=0;P.dmgRear=0;P.dnf=false;P._retired=false;
+  for(var _tk in teamCrew){teamCrew[_tk]._busy=false;}
   AI.forEach(function(ai,i){
-    var ag=buildCar(AI_COLORS[i],AI_ACCENTS[i],AI_NUMS[i]);scene.add(ag);aiGrps.push(ag);
+    var ag=buildCar(AI_COLORS[i],AI_ACCENTS[i],AI_NUMS[i],gameEnvMap());scene.add(ag);aiGrps.push(ag);
     var lbl=makeLabel(AI_NAMES[i+1],AI_TEAMS[i],AI_COLORS[i],AI_ACCENTS[i]);scene.add(lbl);aiLabels.push(lbl);
+    ai._name=AI_NAMES[i+1];
     ai.tIdx=ai._initTIdx;ai._latTarget=ai._gridLat;ai._baseLat=ai._initLat;
     ai._ovTimer=0;ai._stuckTimer=0;ai._ovSide=ai._initOvSide;ai._ovTgt=ai._initLat;
     var as=spawnPos(ai.tIdx,ai._gridLat);
     ai.x=as.x;ai.z=as.z;ai.y=as.y;ai.heading=as.heading;
     ai.speed=0;ai.yawRate=0;ai.lap=1;ai._inStart=false;ai.finishTime=Infinity;
+    ai.damage=0;ai.dmgFront=0;ai.dmgRear=0;ai.dnf=false;
     ag.position.set(ai.x,ai.y+RIDE_H,ai.z);ag.rotation.y=ai.heading-Math.PI/2;
     lbl.position.set(ai.x,ai.y+RIDE_H+3.2,ai.z);
   });
@@ -1817,7 +2364,6 @@ function initRace(){
   gameCam.fov=80;gameCam.updateProjectionMatrix();
 }
 
-/* ===================== COUNTDOWN ===================== */
 var lightEls=[
   document.getElementById('lb0'),document.getElementById('lb1'),
   document.getElementById('lb2'),document.getElementById('lb3'),
@@ -1838,13 +2384,12 @@ function startCountdown(){
     lightEls.forEach(function(l){if(l) l.className='light-bulb';});
     if(lightsBarEl) lightsBarEl.className='';
     if(gridMsgEl) gridMsgEl.className='';
-    gameState='RACING';raceTime=0;P.lapStart=0;P.sectorStart=0;
+    gameState='RACING';raceTime=0;P.lapStart=0;P.sectorStart=0;_lastPos=-1;
+    radio('Lights out and away we go — P'+(getPos()+1)+'. Send it!');
     if(goFlashEl){goFlashEl.style.display='block';setTimeout(function(){goFlashEl.style.display='none';},180);}
   },5*750+400);
 }
 
-/* ===================== PLAYER PHYSICS ===================== */
-/* ===================== TIRE SMOKE ===================== */
 // Pooled sprite particles: lockups (front axle), wheelspin/slides (rear axle), wall brushes.
 var SMOKE=(function(){
   var POOL=150,parts=[],tex=null,idx=0;
@@ -1901,7 +2446,55 @@ var SMOKE=(function(){
   return {emit:emit,update:update,init:init};
 })();
 
-/* ===================== CROWD CAMERA FLASHES ===================== */
+// Additive orange-white sparks — thrown from under the car on hard braking, kerbs, and AI
+// lockups. Bloom (already on) makes them glow; they bounce once off the track then fade.
+var SPARKS=(function(){
+  var POOL=140,parts=[],tex=null,idx=0;
+  function mkTex(){
+    var c=document.createElement('canvas');c.width=c.height=16;var g=c.getContext('2d');
+    var rg=g.createRadialGradient(8,8,0,8,8,8);
+    rg.addColorStop(0,'rgba(255,250,235,1)');rg.addColorStop(0.4,'rgba(255,185,70,0.9)');
+    rg.addColorStop(1,'rgba(255,120,0,0)');
+    g.fillStyle=rg;g.fillRect(0,0,16,16);return new THREE.CanvasTexture(c);
+  }
+  function init(){
+    if(tex) return;tex=mkTex();
+    for(var i=0;i<POOL;i++){
+      var m=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,opacity:0,blending:THREE.AdditiveBlending,fog:false});
+      var sp=new THREE.Sprite(m);sp.visible=false;sp.scale.set(0.35,0.35,1);scene.add(sp);
+      parts.push({sp:sp,life:0,max:1,vx:0,vy:0,vz:0});
+    }
+  }
+  function emit(car,intensity){
+    if(!tex) init();
+    var fx=Math.sin(car.heading),fz=Math.cos(car.heading);
+    var n=2+((Math.random()*intensity*4)|0);
+    for(var k=0;k<n;k++){
+      var p=parts[idx];idx=(idx+1)%POOL;
+      p.life=p.max=0.16+Math.random()*0.20;
+      p.vx=-fx*(6+Math.random()*11)+(Math.random()-0.5)*6;
+      p.vy=1.2+Math.random()*3.2;
+      p.vz=-fz*(6+Math.random()*11)+(Math.random()-0.5)*6;
+      p.sp.position.set(car.x-fx*1.7+(Math.random()-0.5)*1.2,(car.y||0)+0.12,car.z-fz*1.7+(Math.random()-0.5)*1.2);
+      var s=0.22+Math.random()*0.30*intensity;p.sp.scale.set(s,s,s);
+      p.sp.material.opacity=1;p.sp.visible=true;
+    }
+  }
+  function update(dt){
+    if(!tex) return;
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i];if(p.life<=0) continue;
+      p.life-=dt;
+      if(p.life<=0){p.sp.visible=false;p.sp.material.opacity=0;continue;}
+      p.vy-=dt*16;
+      p.sp.position.x+=p.vx*dt;p.sp.position.y+=p.vy*dt;p.sp.position.z+=p.vz*dt;
+      if(p.sp.position.y<0.05){p.sp.position.y=0.05;p.vy*=-0.3;p.vx*=0.6;p.vz*=0.6;}
+      p.sp.material.opacity=Math.max(0,p.life/p.max);
+    }
+  }
+  return {emit:emit,update:update,init:init};
+})();
+
 var FLASH=(function(){
   var POOL=18,fl=[],tex=null,idx=0,timer=0;
   function mkTex(){
@@ -1935,7 +2528,65 @@ var FLASH=(function(){
   return {update:update};
 })();
 
-/* ===================== DRS ZONES ===================== */
+// Recycled rain streaks that follow the camera, drifting wind debris, and per-weather atmosphere.
+var WEATHER=(function(){
+  var rain=[],debris=[],rtex=null,dtex=null,mode='DRY',built=false;
+  var RN=240,DN=14,BOX=70,TOP=42;
+  function rainTex(){
+    var c=document.createElement('canvas');c.width=8;c.height=64;var g=c.getContext('2d');
+    var lg=g.createLinearGradient(0,0,0,64);
+    lg.addColorStop(0,'rgba(190,210,255,0)');lg.addColorStop(0.5,'rgba(205,222,255,0.9)');lg.addColorStop(1,'rgba(190,210,255,0)');
+    g.fillStyle=lg;g.fillRect(0,0,8,64);return new THREE.CanvasTexture(c);
+  }
+  function debrisTex(){
+    var c=document.createElement('canvas');c.width=c.height=16;var g=c.getContext('2d');
+    g.fillStyle='rgba(150,140,110,0.7)';g.beginPath();g.arc(8,8,5,0,6.283);g.fill();return new THREE.CanvasTexture(c);
+  }
+  function build(){
+    if(built) return;built=true;rtex=rainTex();dtex=debrisTex();
+    for(var i=0;i<RN;i++){
+      var m=new THREE.SpriteMaterial({map:rtex,transparent:true,depthWrite:false,opacity:0,fog:false});
+      var sp=new THREE.Sprite(m);sp.scale.set(0.07,1.5,1);sp.visible=false;scene.add(sp);rain.push({sp:sp,vy:0});
+    }
+    for(var j=0;j<DN;j++){
+      var dm=new THREE.SpriteMaterial({map:dtex,transparent:true,depthWrite:false,opacity:0,fog:false});
+      var ds=new THREE.Sprite(dm);ds.scale.set(0.5,0.5,1);ds.visible=false;scene.add(ds);debris.push({sp:ds,ang:Math.random()*6.28});
+    }
+  }
+  function seed(p,cam){
+    p.sp.position.set(cam.x+(Math.random()-0.5)*BOX*2,cam.y+TOP*Math.random(),cam.z+(Math.random()-0.5)*BOX*2);
+    p.vy=46+Math.random()*26;p.sp.material.opacity=0.5+Math.random()*0.4;p.sp.visible=true;
+  }
+  function set(w){
+    build();mode=w.id;
+    for(var i=0;i<rain.length;i++){rain[i].sp.visible=false;rain[i].sp.material.opacity=0;}
+    for(var j=0;j<debris.length;j++){debris[j].sp.visible=false;debris[j].sp.material.opacity=0;}
+  }
+  function update(dt,cam){
+    if(!built) return;
+    if(mode==='WET'){
+      for(var i=0;i<rain.length;i++){var p=rain[i];
+        if(!p.sp.visible){seed(p,cam);continue;}
+        p.sp.position.y-=p.vy*dt;p.sp.position.x+=dt*4;
+        if(p.sp.position.y<cam.y-18||Math.abs(p.sp.position.x-cam.x)>BOX||Math.abs(p.sp.position.z-cam.z)>BOX) seed(p,cam);
+      }
+    } else if(mode==='WINDY'){
+      for(var j=0;j<debris.length;j++){var d=debris[j];d.ang+=dt*1.5;
+        if(d.sp.material.opacity<=0){d.sp.position.set(cam.x+(Math.random()-0.5)*60,cam.y+2+Math.random()*10,cam.z+(Math.random()-0.5)*60);d.sp.material.opacity=0.6;d.sp.visible=true;}
+        d.sp.position.x+=dt*(14+Math.sin(d.ang)*4);d.sp.position.y+=Math.sin(d.ang*2)*dt*3;d.sp.material.opacity-=dt*0.12;
+        if(Math.abs(d.sp.position.x-cam.x)>50) d.sp.material.opacity=0;
+      }
+    }
+  }
+  return {set:set,update:update};
+})();
+function applyWeatherVisuals(w){
+  if(w.id==='WET'){scene.fog.color.setHex(0x1a2230);scene.fog.density=0.0030;renderer.toneMappingExposure=0.82;}
+  else if(w.id==='HOT'){scene.fog.color.setHex(0x14110c);scene.fog.density=0.0016;renderer.toneMappingExposure=1.18;}
+  else if(w.id==='WINDY'){scene.fog.color.setHex(0x0a0d14);scene.fog.density=0.0020;renderer.toneMappingExposure=1.02;}
+  else {scene.fog.color.setHex(0x05070e);scene.fog.density=0.0017;renderer.toneMappingExposure=1.0;}
+}
+
 // Activation zones on the two fast straights; player must be within ~1s of the car ahead to arm.
 var DRS_ZONES=[{s:868,e:112},{s:545,e:645}];
 function drsZoneIndex(ti){
@@ -1974,7 +2625,32 @@ function updatePlayer(dt){
     return;
   }
   if(gameState!=='RACING') return;
-  var maxSpd=P.drs?MAX_SPD*1.08:MAX_SPD;
+  // Pit: arm/cancel with P; once past the S/F line, peel into the lane (limiter + guided path follow).
+  if(keys['KeyP']&&!P._pitKey&&P.pitState==='NONE'){P._pitArmed=!P._pitArmed;if(P._pitArmed&&P._pitCompound==null)P._pitCompound=P.compound;radio(P._pitArmed?'Copy, box this lap — pick a compound (1/2/3), pit after the line.':'Stay out, box cancelled.',false);}
+  P._pitKey=keys['KeyP'];
+  if(P._pitArmed){if(keys['Digit1'])P._pitCompound=0;else if(keys['Digit2'])P._pitCompound=1;else if(keys['Digit3'])P._pitCompound=2;}
+  if(P._pitArmed&&P.pitState==='NONE'&&P.tIdx>=2&&P.tIdx<=22&&P.lap<LAPS){
+    P.pitState='LANE';P.pitS=pitSFromX(P.x);P._pitArmed=false;
+    var _epp=pitPointAt(P.pitS);P._pitErrZ=P.z-_epp.z;P._pitErrH=P.heading-_epp.heading;
+  }
+  if(P.pitState!=='NONE'){pitMove(P,dt,true);return;}
+  // Slipstream/tow: tuck within ~25 wp behind a car in your lane for up to +6% top speed —
+  // your main weapon to reel in and attack genuinely-faster cars. Stacks with DRS.
+  var towBoost=1.0;
+  var _tpp=wpPerp(P.tIdx),_tpw=waypoints[P.tIdx];
+  var _myLatT=(P.x-_tpw.x)*_tpp.x+(P.z-_tpw.z)*_tpp.z;
+  for(var _ti=0;_ti<AI.length;_ti++){
+    var _oc=AI[_ti],_gg=((_oc.tIdx-P.tIdx)+N)%N;
+    if(inPit(_oc)) continue;
+    if(_gg<1||_gg>25) continue;
+    var _ocl=_oc._latTarget!==undefined?_oc._latTarget:0;
+    if(Math.abs(_myLatT-_ocl)<TW*0.26){towBoost=Math.max(towBoost,1.0+0.04*(1-_gg/25));}
+  }
+  // Effective grip = compound × weather × warm-up temp. Drives cornering grip and a slice of top speed.
+  var gF=COMPOUNDS[P.compound].grip*weather.gripMul*tempGrip(P);
+  // Tire wear gently trims top speed (fresh=1.0, fully worn≈0.93) — same envelope as AI degradation
+  var maxSpd=(P.drs?MAX_SPD*1.08:MAX_SPD)*(0.93+0.07*P.tireWear)*towBoost*(0.85+0.15*gF)*(1-P.damage*0.10);
+  P._tow=towBoost;
   var acc=(thr*ENG-brk*BRK-DRAG*P.speed*P.speed)/CAR_MASS;
   P.speed=Math.max(0,Math.min(P.speed+acc*dt,maxSpd));
   var ms=Math.PI/5*(1-0.6*P.speed/MAX_SPD);
@@ -1983,29 +2659,38 @@ function updatePlayer(dt){
   // Cornering grip: too much lateral load and the tires give up — the car understeers and scrubs speed,
   // so you have to brake for the Esses/hairpin instead of holding top speed through them.
   var latLoad=Math.abs(P.yawRate)*P.speed;
-  if(latLoad>GRIP_LIMIT){P.speed=Math.max(0,P.speed-(latLoad-GRIP_LIMIT)*GRIP_SCRUB*dt);P.gripLoss=true;}
+  var gripLim=GRIP_LIMIT*gF*(1-P.dmgFront*0.30);   // a broken front wing washes out in corners
+  if(latLoad>gripLim){P.speed=Math.max(0,P.speed-(latLoad-gripLim)*GRIP_SCRUB*dt);P.gripLoss=true;}
   else P.gripLoss=false;
   P.heading+=P.yawRate*P.speed*0.6*dt;
   P.x+=Math.sin(P.heading)*P.speed*dt;
   P.z+=Math.cos(P.heading)*P.speed*dt;
+  if(weather.id==='WINDY'&&P.speed>8){var gst=Math.sin(raceTime*1.7)*0.9*dt;P.x+=Math.cos(P.heading)*gst;P.z-=Math.sin(P.heading)*gst;}
   P.tIdx=closestWP(P.x,P.z,P.tIdx);
   P.y=waypoints[P.tIdx].y;
   var _bwp=waypoints[P.tIdx],_bp=wpPerp(P.tIdx);
   var _lat=(P.x-_bwp.x)*_bp.x+(P.z-_bwp.z)*_bp.z;
-  var _maxL=TW*0.5+CURB;
-  if(Math.abs(_lat)>_maxL){var _sgn=_lat>0?1:-1;P.x=_bwp.x+_bp.x*_sgn*_maxL;P.z=_bwp.z+_bp.z*_sgn*_maxL;P.speed*=0.45;}
+  var _maxL=TW*0.5+CURB,_absL=Math.abs(_lat);
+  // Kerb rumble: riding the curb at speed rattles the car and throws sparks
+  if(_absL>TW*0.5&&_absL<_maxL&&P.speed>10){
+    P._shake=Math.max(P._shake||0,0.45);
+    if(Math.random()<0.6) SPARKS.emit(P,0.8);
+  }
+  if(_absL>_maxL){var _sgn=_lat>0?1:-1;P.x=_bwp.x+_bp.x*_sgn*_maxL;P.z=_bwp.z+_bp.z*_sgn*_maxL;P.speed*=0.45;P._shake=1.3;}
   var GB=[0,0.12,0.25,0.38,0.54,0.70,0.86,1.0];
   var rpm=P.speed/maxSpd;P.gear=7;
   for(var gi=1;gi<GB.length-1;gi++){if(rpm<GB[gi+1]){P.gear=gi;break;}}
   var gLo=GB[Math.max(P.gear-1,0)],gHi=GB[P.gear];
   P.rpmVal=gHi>gLo?Math.max(0,Math.min(1,(rpm-gLo)/(gHi-gLo))):0;
   var slp=Math.abs(P.yawRate)*P.speed;
-  P.tireWear=Math.max(0.02,P.tireWear-slp*dt*0.00004);
-  P.tireTempF=Math.min(1,Math.max(0.1,P.tireTempF+(thr*0.3+slp*0.08)*dt*0.08-dt*0.02));
-  P.tireTempR=Math.min(1,Math.max(0.1,P.tireTempR+(thr*0.5+brk*0.3)*dt*0.08-dt*0.02));
+  P.tireWear=Math.max(0.02,P.tireWear-slp*dt*0.00004*COMPOUNDS[P.compound].wear*weather.wearMul);
+  if(P.tireWear<0.22&&!P._boxWarned&&P.pitState==='NONE'&&P.lap<LAPS){P._boxWarned=true;radio('Tyres are gone — box now for fresh rubber (press P).');}
+  P.tireTempF=Math.min(1,Math.max(0.05,P.tireTempF+(thr*0.3+slp*0.08)*dt*0.08-dt*0.02+weather.tempBias*dt*0.06));
+  P.tireTempR=Math.min(1,Math.max(0.05,P.tireTempR+(thr*0.5+brk*0.3)*dt*0.08-dt*0.02+weather.tempBias*dt*0.06));
   // Tire smoke: lockup under heavy braking (front), wheelspin on a low-speed launch + slides (rear)
-  if(brk===1&&P.speed>12) SMOKE.emit(P,1,1,1.0);
+  if(brk===1&&P.speed>12){SMOKE.emit(P,1,1,1.0);if(P.speed>22){P._shake=Math.max(P._shake||0,0.3);if(Math.random()<0.4) SPARKS.emit(P,0.6);}}
   if((thr===1&&P.speed<7&&P.speed>0.2)||slp>4.5) SMOKE.emit(P,-1,1,slp>4.5?1.2:0.6);
+  if(P.gripLoss) P._shake=Math.max(P._shake||0,0.4);
   var s1i=Math.floor(N/3),s2i=Math.floor(2*N/3);
   if(P.sector===0&&P.tIdx>=s1i&&P.tIdx<s1i+15){
     P.s1=raceTime-P.sectorStart;P.sector=1;P.sectorStart=raceTime;
@@ -2019,9 +2704,12 @@ function updatePlayer(dt){
     P._lapGuard=true;
     P.s3=raceTime-P.sectorStart;
     setSec(hudS3,'hud-s3',P.s3,P.bestS3);if(P.s3<P.bestS3) P.bestS3=P.s3;
-    var lapT=P.s1+P.s2+P.s3;if(lapT>0&&lapT<P.bestLap) P.bestLap=lapT;
+    var lapT=P.s1+P.s2+P.s3;
+    if(lapT>0&&lapT<P.bestLap){if(P.bestLap<Infinity) radio('Fastest lap! &nbsp;'+fmt(lapT),true);P.bestLap=lapT;}
     P.lap++;P.sector=0;P.sectorStart=raceTime;P.lapStart=raceTime;
-    if(P.lap>LAPS){P.lap=LAPS;P.finishTime=raceTime;gameState='FINISHED';showPodium();}
+    if(P.lap>LAPS){P.lap=LAPS;P.finishTime=raceTime;gameState='FINISHED';radio('Chequered flag! P'+(getPos()+1)+' — that\\'s the race.',true);showPodium();}
+    else if(P.lap===LAPS) radio('White flag — last lap. Leave it all out there.');
+    else if(P.lap===2&&P.pitsDone===0) radio('Tyres will fade through the stint — press P to box for fresh rubber.');
   }
   if(P.tIdx>=20) P._lapGuard=false;
 }
@@ -2032,10 +2720,35 @@ function setSec(el,cls,t,best){
   el.textContent=(cls==='hud-s1'?'S1 ':cls==='hud-s2'?'S2 ':'S3 ')+(t>0?t.toFixed(3):'---.---');
 }
 
-/* ===================== AI ===================== */
 function updateAI(ai,dt){
   if(gameState!=='RACING') return;
-  var maxSpd=MAX_SPD*(ai.spdFac+ai._randFac);
+  if(inPit(ai)){pitMove(ai,dt,false);return;}
+  // Retired: coast to a stop on the outside edge, clear of the racing line, trailing smoke.
+  if(ai.dnf){
+    ai.speed=Math.max(0,ai.speed-dt*7);
+    var ddR=wpDir(ai.tIdx),ppR=wpPerp(ai.tIdx),wwR=waypoints[ai.tIdx];
+    ai.heading=Math.atan2(ddR.x,ddR.z);
+    ai.x+=Math.sin(ai.heading)*ai.speed*dt;ai.z+=Math.cos(ai.heading)*ai.speed*dt;
+    var edge=(ai._initOvSide>0?1:-1)*(TW*0.5);
+    ai.x+=((wwR.x+ppR.x*edge)-ai.x)*Math.min(dt*1.2,1);
+    ai.z+=((wwR.z+ppR.z*edge)-ai.z)*Math.min(dt*1.2,1);
+    ai.tIdx=closestWP(ai.x,ai.z,ai.tIdx);ai.y=waypoints[ai.tIdx].y;
+    if(Math.random()<0.4) SMOKE.emit(ai,-1,1,1.3);
+    return;
+  }
+
+  // In-race pace swing: a smooth ±3% drift, wider for lower-skill drivers, so lap pace wobbles
+  ai._moodPhase+=dt*(0.5+ai._randFac);
+  var moodAmp=0.03*(1.4-ai.skill);
+  ai._mood=1.0+Math.sin(ai._moodPhase)*moodAmp+Math.sin(ai._moodPhase*2.3)*moodAmp*0.4;
+
+  // Tire degradation: fades top speed across the race; soft compounds and hot/dry weather wear faster
+  ai._deg+=dt*0.00022*(0.6+ai._aggr*0.7)*COMPOUNDS[ai.compound].wear*weather.wearMul;
+  var degFac=Math.max(0.93,1.0-ai._deg);
+  // Fresh grip term: a soft is genuinely quicker than a hard; rain pegs everyone back. Small so races stay close.
+  var aiGrip=0.97+0.03*COMPOUNDS[ai.compound].grip*weather.gripMul;
+
+  var maxSpd=(MAX_SPD*ai.paceFac*ai._mood*degFac*aiGrip+MAX_SPD*ai._randFac)*(1-ai.damage*0.12);
 
   // Curvature scan: max curvature over 5–55 wp for speed; nearest significant turn within 35 wp for apex direction
   var curvature=0,turnSign=0;
@@ -2045,12 +2758,21 @@ function updateAI(ai,dt){
     if(absCr>curvature) curvature=absCr;
     if(!turnSign&&k<=35&&absCr>0.018) turnSign=cr>0?1:-1;
   }
-  curvature=Math.min(1,curvature*5.5);
+  curvature=Math.min(1,curvature*4.0);
   var onStraight=curvature<0.12;
 
-  // Target speed: corner-limited — brake hard for the Esses/hairpin so the line holds inside the wall
-  var brkFac=0.40-(ai._aggr-1.0)*0.12;
-  var spdFloor=Math.max(0.36,0.46-ai._aggr*0.06);
+  // Mistakes: rare, skill-scaled, more likely in corners. 1=lockup (big slow), 2=run wide.
+  if(ai._mistakeTimer<=0&&raceTime>3.0&&Math.random()<0.012*(1.0-ai.skill)*dt*(1.0+curvature*2.0)){
+    ai._mistakeKind=Math.random()<0.55?1:2;
+    ai._mistakeTimer=ai._mistakeKind===1?0.7+Math.random()*0.6:0.9+Math.random()*0.8;
+    var _ddp=ai.x-P.x,_ddpz=ai.z-P.z;   // call it out on the radio if it happens near you
+    if(ai._name&&_ddp*_ddp+_ddpz*_ddpz<6400&&Math.random()<0.7) radio(ai._name+(ai._mistakeKind===1?' has locked up!':' has gone wide!'));
+  }
+
+  // Target speed: corner-limited. Skilful drivers brake less and carry more apex speed, so
+  // front-runners are genuinely quicker through the technical sections (not just on straights).
+  var brkFac=Math.max(0.16,0.32-ai.skill*0.12-(ai._aggr-1.0)*0.08)+ai.dmgFront*0.12;
+  var spdFloor=Math.min(0.66,0.52+ai.skill*0.12);
   var targetSpd=Math.max(maxSpd*spdFloor,maxSpd*(1-curvature*brkFac));
   var launching=raceTime<2.0;
 
@@ -2061,7 +2783,7 @@ function updateAI(ai,dt){
   var fwdCar=null,fwdGap=999;
   if(!launching){
     for(var j=0;j<allCars.length;j++){
-      var oth=allCars[j];if(oth===ai) continue;
+      var oth=allCars[j];if(oth===ai||inPit(oth)) continue;
       var g=((oth.tIdx-ai.tIdx)+N)%N;
       if(g<1||g>40) continue;
       var othLat=oth._latTarget!==undefined?oth._latTarget:((oth.x-bw0.x)*bp0.x+(oth.z-bw0.z)*bp0.z);
@@ -2070,17 +2792,34 @@ function updateAI(ai,dt){
     if(fwdCar){
       var closingSpd=ai.speed-fwdCar.speed;
       if(closingSpd>0){
-        var allowedClose=Math.min(fwdGap*0.7,9.0);
+        var allowedClose=Math.min(fwdGap*1.4,16.0);
         if(closingSpd>allowedClose) targetSpd=Math.min(targetSpd,fwdCar.speed+allowedClose);
       }
-      var desiredGap=9;
+      var desiredGap=2.4;     // close right onto the gearbox before lunging, like a real attack
       if(fwdGap<desiredGap){
         var gapFac=fwdGap/desiredGap;
-        targetSpd=Math.min(targetSpd,fwdCar.speed*(0.90+0.10*gapFac));
+        targetSpd=Math.min(targetSpd,fwdCar.speed*(0.97+0.03*gapFac));
       }
     }
     if(fwdCar&&fwdGap<40) ai._stuckTimer+=dt;
     else ai._stuckTimer=Math.max(0,ai._stuckTimer-dt*1.4);
+  }
+  // Nearest car CLOSING from behind (for defending) — gap measured as how far it is behind us
+  var behindCar=null,behindGap=999,behindLat=0;
+  if(!launching){
+    for(var jb=0;jb<allCars.length;jb++){
+      var ob=allCars[jb];if(ob===ai||inPit(ob)) continue;
+      var gb=((ai.tIdx-ob.tIdx)+N)%N;
+      if(gb<1||gb>14) continue;
+      if(ob.speed<=ai.speed-0.5) continue;          // only defend against a car actually catching us
+      if(gb<behindGap){behindGap=gb;behindCar=ob;
+        behindLat=ob._latTarget!==undefined?ob._latTarget:((ob.x-bw0.x)*bp0.x+(ob.z-bw0.z)*bp0.z);}
+    }
+  }
+  // Lockup mistake: cut target speed hard and throw lockup smoke
+  if(ai._mistakeTimer>0&&ai._mistakeKind===1){
+    targetSpd=Math.min(targetSpd,maxSpd*0.45);
+    if(ai.speed>14&&Math.random()<0.4){SMOKE.emit(ai,1,1,0.9);SPARKS.emit(ai,0.9);}
   }
   // (No full-speed launch override: keep curvature braking active so cars still slow for Turn 1.)
 
@@ -2088,20 +2827,22 @@ function updateAI(ai,dt){
   var slipBoost=1.0;
   if(!launching){
     for(var js=0;js<allCars.length;js++){
-      var oS=allCars[js];if(oS===ai) continue;
+      var oS=allCars[js];if(oS===ai||inPit(oS)) continue;
       var gS=((oS.tIdx-ai.tIdx)+N)%N;
       if(gS<1||gS>25) continue;
       var oSLat=oS._latTarget!==undefined?oS._latTarget:((oS.x-bw0.x)*bp0.x+(oS.z-bw0.z)*bp0.z);
       if(Math.abs(myLat-oSLat)<TW*0.22){slipBoost=1.10;break;}
     }
   }
-  if(slipBoost>1.0&&drsZoneIndex(ai.tIdx)>=0&&gapAheadSec(ai)<1.0) slipBoost=1.16;  // DRS in zone
+  if(slipBoost>1.0&&drsZoneIndex(ai.tIdx)>=0&&gapAheadSec(ai)<1.0) slipBoost=1.16;
   maxSpd*=slipBoost;
+  if(ai._ovTimer>0) maxSpd*=1.06;   // attack push: a committed pass gets extra punch to actually complete it
 
   // Accelerate / brake toward target speed
   var force=targetSpd>ai.speed?ENG:-BRK;
+  ai._braking=(force<0);
   ai.speed=Math.max(0,Math.min(ai.speed+(force/CAR_MASS)*dt,maxSpd));
-  if(force<0&&ai.speed>15&&curvature>0.35&&Math.random()<0.18) SMOKE.emit(ai,1,1,0.7);  // lockup smoke
+  if(force<0&&ai.speed>15&&curvature>0.35&&Math.random()<0.18){SMOKE.emit(ai,1,1,0.7);if(Math.random()<0.5)SPARKS.emit(ai,0.6);}  // lockup smoke + sparks
 
   // Lateral target — committed-overtake state machine
   var halfTW=TW*0.44;
@@ -2115,7 +2856,7 @@ function updateAI(ai,dt){
     // COMMITTED OVERTAKE: hold _ovTgt until timer expires or gap opens
     ai._ovTimer-=dt;
     desiredLat=ai._ovTgt;
-    if(!fwdCar||fwdGap>55){ai._ovTimer=0;ai._baseLat=ai._ovTgt;}  // Lock new lane
+    if(!fwdCar||fwdGap>55){ai._ovTimer=0;ai._baseLat=ai._ovTgt;}
 
   } else if(curvature>0.22){
     // CORNER: each car takes its own apex; only fall back if nose-to-tail
@@ -2128,24 +2869,41 @@ function updateAI(ai,dt){
       // Direction: go to whichever side we're already biased toward — prevents flip-flopping
       var oDir=Math.abs(ai._latTarget)>halfTW*0.65?-Math.sign(ai._latTarget):ai._ovSide;
       var oTgt=Math.max(-halfTW,Math.min(halfTW,fwdLat+oDir*TW*0.35));
-      // Faster cars force past; others only go if the gap is clear
-      var doOvertake=ai._stuckTimer>1.5||((fwdCar.spdFac!==undefined)&&(ai.spdFac-fwdCar.spdFac)>0.05);
-      if(!doOvertake){
-        doOvertake=true;
+      // Go for the move readily: anyone within reach of a roughly-equal car lunges; aggressive
+      // drivers and slipstreaming cars send it even sooner. Only a car actually IN the target
+      // lane (just ahead/alongside) calls it off.
+      var doOvertake=ai._stuckTimer>0.35||((fwdCar.paceFac!==undefined)&&(ai.paceFac-fwdCar.paceFac)>-0.004)||(slipBoost>1.0&&fwdGap<18)||(ai._aggr>1.05&&fwdGap<20);
+      if(doOvertake){
         for(var kk=0;kk<allCars.length;kk++){
-          var ocb=allCars[kk];if(ocb===ai||ocb===fwdCar) continue;
+          var ocb=allCars[kk];if(ocb===ai||ocb===fwdCar||inPit(ocb)) continue;
           var og2=((ocb.tIdx-ai.tIdx)+N)%N;
-          if(og2>22||(N-og2)>10) continue;  // Window: 10 wp behind to 22 wp ahead
+          if(og2>16||(N-og2)>5) continue;  // Window: 5 wp behind to 16 wp ahead
           var ocbLat=ocb._latTarget!==undefined?ocb._latTarget:((ocb.x-bw0.x)*bp0.x+(ocb.z-bw0.z)*bp0.z);
-          if(Math.abs(oTgt-ocbLat)<TW*0.20){doOvertake=false;break;}
+          if(Math.abs(oTgt-ocbLat)<TW*0.17){doOvertake=false;break;}
         }
       }
-      if(doOvertake){ai._ovTgt=oTgt;ai._ovTimer=3.5;ai._ovSide*=-1;desiredLat=oTgt;}
+      if(doOvertake){ai._ovTgt=oTgt;ai._ovTimer=5.0;ai._ovSide*=-1;desiredLat=oTgt;}
       else desiredLat=ai._baseLat;
     } else {
       desiredLat=ai._baseLat;
     }
+    // DEFENDING: a faster car is closing and we're not mid-overtake → move to cover its line.
+    // One committed cover (the smoothing on _latTarget stops it from weaving), skill+aggr scaled.
+    if(ai._ovTimer<=0&&behindCar){
+      var defStr=Math.max(0,(ai.skill-0.3)/0.55)*Math.min(1,0.55+ai._aggr*0.5)*((15-behindGap)/14);
+      if(defStr>0){
+        var coverLat=Math.max(-halfTW,Math.min(halfTW,behindLat));
+        desiredLat=desiredLat+(coverLat-desiredLat)*Math.min(0.9,defStr);
+      }
+    }
   }
+  // Run-wide mistake: drift to the outside of the corner and scrub speed (lost lap time / places)
+  if(ai._mistakeTimer>0&&ai._mistakeKind===2){
+    desiredLat=turnSign?turnSign*halfTW:Math.sign(ai._latTarget||1)*halfTW*0.8;
+    ai.speed*=Math.max(0,1-dt*0.45);
+  }
+  if(ai._mistakeTimer>0) ai._mistakeTimer-=dt;
+
   var wallEdge=halfTW*0.78;
   if(Math.abs(desiredLat)>wallEdge) desiredLat-=Math.sign(desiredLat)*(Math.abs(desiredLat)-wallEdge)*1.4;
   desiredLat=Math.max(-halfTW,Math.min(halfTW,desiredLat));
@@ -2167,7 +2925,6 @@ function updateAI(ai,dt){
   ai.tIdx=closestWP(ai.x,ai.z,ai.tIdx);
   ai.y=waypoints[ai.tIdx].y;
 
-  // Track boundary clamp
   var bp=wpPerp(ai.tIdx),bw=waypoints[ai.tIdx];
   var lat=(ai.x-bw.x)*bp.x+(ai.z-bw.z)*bp.z;
   if(Math.abs(lat)>TW*0.5+CURB){
@@ -2180,22 +2937,71 @@ function updateAI(ai,dt){
     SMOKE.emit(ai,1,2,1.2);
   }
 
-  // Lap detection
   if(ai.tIdx<12&&!ai._inStart){
     ai._inStart=true;
     ai.lap++;if(ai.lap>LAPS){ai.lap=LAPS;if(ai.finishTime===Infinity)ai.finishTime=raceTime;}
   }
   if(ai.tIdx>=20) ai._inStart=false;
+  // Pit entry: on the planned lap, peel into the lane just after the line.
+  if(ai.pitState==='NONE'&&ai.pitLap&&ai.lap===ai.pitLap&&ai.tIdx>=2&&ai.tIdx<=22&&ai.lap<LAPS){
+    ai.pitState='LANE';ai.pitS=pitSFromX(ai.x);ai.pitLap=0;
+    // fresh rubber: start from the weather pick, harder if a long way to go, softer for a short final stint
+    var remain=LAPS-ai.lap;
+    var nc=weather.best+(remain>=3?1:0)-(remain<=1?1:0)+(Math.random()<0.25?(Math.random()<0.5?-1:1):0);
+    ai._nextCompound=Math.max(0,Math.min(2,nc));
+    var _epp=pitPointAt(ai.pitS);ai._pitErrZ=ai.z-_epp.z;ai._pitErrH=ai.heading-_epp.heading;
+  }
 }
 
-/* ===================== COLLISION ===================== */
 var CAR_HL=2.55,CAR_HW=1.05;
+// Damage model: contact accumulates wear; a big enough hit (or enough cumulative
+// damage) retires the car. Tuned against MAX_SPD=30 so a near-full-speed rear-end is a DNF.
+var CRASH_DNF=0.5,DMG_FRONT_K=0.020,DMG_REAR_K=0.012,DMG_SIDE_K=0.12;
+function applyDamage(c,amt,region){
+  if(c.dnf||amt<=0) return;
+  if(region==='front') c.dmgFront=Math.min(1,c.dmgFront+amt);
+  else if(region==='rear') c.dmgRear=Math.min(1,c.dmgRear+amt);
+  else c.dmgFront=Math.min(1,c.dmgFront+amt*0.3);   // side scrape also costs a little front grip
+  c.damage=Math.min(1,c.damage+amt);
+  if(amt>=CRASH_DNF||c.damage>=1) retire(c);
+}
+function retire(c){
+  if(c.dnf) return;
+  c.dnf=true;
+  if(c===P) retirePlayer();
+  else { radio(c._name+' is out — heavy contact. They\\'re into retirement.',false); }
+}
+function retirePlayer(){
+  if(P._retired) return; P._retired=true; P.dnf=true;
+  gameState='FINISHED';
+  radio('That\\'s the car gone — too much damage. We have to retire.',true);
+  showPodium();
+}
+// Map a car's damage state onto its mesh: front wing droops then detaches, rear wing tilts,
+// paint dulls and darkens. Called every frame from the loop for the player and each AI car.
+function applyDamageVisual(grp,c){
+  if(!grp||!grp.userData) return;
+  var u=grp.userData;
+  if(u.fw){
+    if(c.dmgFront>=0.8){ if(u.fw.visible){u.fw.visible=false;SPARKS.emit(c,1.0);} }
+    else { u.fw.visible=true; u.fw.rotation.z=-c.dmgFront*0.32; }
+  }
+  if(u.rw) u.rw.rotation.z=c.dmgRear*0.40;
+  if(u.bodyMat){
+    var d=c.damage;
+    if(u._baseCol===undefined) u._baseCol=u.bodyMat.color.clone();
+    u.bodyMat.roughness=0.22+d*0.55;
+    u.bodyMat.clearcoat=1.0-d*0.85;
+    u.bodyMat.color.copy(u._baseCol).multiplyScalar(1-d*0.45);
+  }
+}
 function resolveCollisions(){
   var cars=[P].concat(AI);
   for(var pass=0;pass<2;pass++){
     for(var i=0;i<cars.length;i++){
       for(var j=i+1;j<cars.length;j++){
         var a=cars[i],b=cars[j];
+        if(inPit(a)||inPit(b)) continue;
         var dx=b.x-a.x,dz=b.z-a.z;
         if(dx*dx+dz*dz>49) continue;
         var fx=Math.sin(a.heading),fz=Math.cos(a.heading);
@@ -2212,6 +3018,9 @@ function resolveCollisions(){
           a.speed=Math.max(0,a.speed-imp*0.65-flatPen*0.4);
           b.speed=Math.min(b.speed+imp*0.25,MAX_SPD*1.05);
           b.speed=Math.max(0,b.speed-flatPen*0.15);
+          // a (faster, behind) noses into b's tail: a takes front damage, b takes rear damage
+          applyDamage(a,dv*DMG_FRONT_K,'front');
+          applyDamage(b,dv*DMG_REAR_K,'rear');
         } else {
           nx=projS>0?sx:-sx;nz=projS>0?sz:-sz;pen=ovS*0.5;
           var bumpY=pen*0.08;
@@ -2220,6 +3029,9 @@ function resolveCollisions(){
           // Strong speed penalty on contact — proportional to penetration depth
           var rub=Math.min(pen*0.6,0.45);
           a.speed=Math.max(0,a.speed-rub);b.speed=Math.max(0,b.speed-rub);
+          // Side-by-side scrape damages both; throw sparks on the heavier rubs
+          applyDamage(a,rub*DMG_SIDE_K,'side');applyDamage(b,rub*DMG_SIDE_K,'side');
+          if(rub>0.2){SPARKS.emit(a,0.5);SPARKS.emit(b,0.5);}
           // Force lateral targets AND base lanes to diverge — prevents immediate re-merge
           var latPush=2.5,hTW=TW*0.44;
           if(a._latTarget!==undefined){a._latTarget+=(projS>0?-latPush:latPush);a._latTarget=Math.max(-hTW,Math.min(hTW,a._latTarget));}
@@ -2233,7 +3045,6 @@ function resolveCollisions(){
   }
 }
 
-/* ===================== AUDIO ===================== */
 var _AC=null,_masterComp=null,_playerEng=null,_aiEngs=[];
 var _prevRpm=0,_popCooldown=0,_prevTickT=0,_noiseBuffer=null;
 var _audioRpm=0,_prevGear=0,_crackleBurst=0;
@@ -2248,11 +3059,11 @@ function _initAudio(){
   _masterComp.ratio.value=6;_masterComp.attack.value=0.003;_masterComp.release.value=0.12;
   _masterComp.connect(_AC.destination);
 
-  // 8 harmonics, near-zero above the 4th. The 16-harmonic wave was generating
-  // 640–6400 Hz content that the distortion then multiplied — the entire screech source.
+  // 8 harmonics, weighted hard toward the fundamental + low orders so the tone reads
+  // as a deep growl, not a buzz. The thin 5th–7th are nearly gone — they were the screech.
   var eReal=new Float32Array(8),eImag=new Float32Array(8);
-  eImag[1]=1.00;eImag[2]=0.92;eImag[3]=0.65;eImag[4]=0.38;
-  eImag[5]=0.14;eImag[6]=0.05;eImag[7]=0.02;
+  eImag[1]=1.00;eImag[2]=0.74;eImag[3]=0.40;eImag[4]=0.18;
+  eImag[5]=0.07;eImag[6]=0.02;eImag[7]=0.0;
   var _exhaustWave=_AC.createPeriodicWave(eReal,eImag);
 
   _noiseBuffer=_AC.createBuffer(1,_AC.sampleRate,_AC.sampleRate);
@@ -2266,26 +3077,35 @@ function _initAudio(){
   }
 
   function buildEng(){
-    // Main chain: oscillator (200-1200 Hz) → soft clip → LP that SWEEPS OPEN with RPM.
-    // The LP opening is what makes the sound brighten as revs rise — no noise sweeps needed.
+    // Main chain: two oscillators (one detuned twin) → soft clip → LP that SWEEPS OPEN with
+    // RPM. The twin beats against the primary for a thick "many-cylinders" warble. A clean
+    // sub-octave sine is mixed under everything for chest weight — the core of the deep growl.
     var exhaustOsc=_AC.createOscillator();
     exhaustOsc.setPeriodicWave(_exhaustWave);
-    exhaustOsc.frequency.value=80;
+    exhaustOsc.frequency.value=60;
+    var exhaustOsc2=_AC.createOscillator();         // detuned twin → slow beat / thickness
+    exhaustOsc2.setPeriodicWave(_exhaustWave);
+    exhaustOsc2.frequency.value=60;
     var dist=_AC.createWaveShaper();
-    dist.curve=_makeDistCurve(2.5);dist.oversample='2x';
+    dist.curve=_makeDistCurve(1.8);dist.oversample='2x';   // softer drive = less rasp
     var exhaustLP=_AC.createBiquadFilter();
-    exhaustLP.type='lowpass';exhaustLP.frequency.value=400;exhaustLP.Q.value=0.5;
+    exhaustLP.type='lowpass';exhaustLP.frequency.value=320;exhaustLP.Q.value=0.5;
 
-    // Parallel low-body: boost 100-160 Hz band to keep deep chest weight at all RPM.
+    // Sub-octave: clean sine an octave below the crank pulse — pure low-end body.
+    var subOsc=_AC.createOscillator();
+    subOsc.type='sine';subOsc.frequency.value=30;
+    var subGain=_AC.createGain();subGain.gain.value=0.45;
+
+    // Parallel low-body: boost the ~90-120 Hz band to keep deep chest weight at all RPM.
     var bodyBPF=_AC.createBiquadFilter();
-    bodyBPF.type='bandpass';bodyBPF.frequency.value=70;bodyBPF.Q.value=1.0;
-    var bodyGain=_AC.createGain();bodyGain.gain.value=0.60;
+    bodyBPF.type='bandpass';bodyBPF.frequency.value=105;bodyBPF.Q.value=0.9;
+    var bodyGain=_AC.createGain();bodyGain.gain.value=0.72;
 
     // Mechanical texture: broadband noise at very low gain — Q=0.4 so it is diffuse, not tonal.
     var ns=_AC.createBufferSource();ns.buffer=_noiseBuffer;ns.loop=true;ns.start();
     var nBPF=_AC.createBiquadFilter();
-    nBPF.type='bandpass';nBPF.frequency.value=220;nBPF.Q.value=0.4;
-    var nGain=_AC.createGain();nGain.gain.value=0.04;
+    nBPF.type='bandpass';nBPF.frequency.value=200;nBPF.Q.value=0.4;
+    var nGain=_AC.createGain();nGain.gain.value=0.035;
 
     var gain=_AC.createGain();gain.gain.value=0;
     // LFO: cylinder-pulse burble — strong at idle, fades to texture at redline
@@ -2293,12 +3113,13 @@ function _initAudio(){
     var lfoDepth=_AC.createGain();lfoDepth.gain.value=0;
     lfo.connect(lfoDepth);lfoDepth.connect(gain.gain);
     lfo.start();
-    exhaustOsc.connect(dist);dist.connect(exhaustLP);exhaustLP.connect(gain);
+    exhaustOsc.connect(dist);exhaustOsc2.connect(dist);dist.connect(exhaustLP);exhaustLP.connect(gain);
     exhaustOsc.connect(bodyBPF);bodyBPF.connect(bodyGain);bodyGain.connect(gain);
+    subOsc.connect(subGain);subGain.connect(gain);
     ns.connect(nBPF);nBPF.connect(nGain);nGain.connect(gain);
     gain.connect(_masterComp);
-    exhaustOsc.start();
-    return {exhaustOsc:exhaustOsc,exhaustLP:exhaustLP,gain:gain,lfo:lfo,lfoDepth:lfoDepth};
+    exhaustOsc.start();exhaustOsc2.start();subOsc.start();
+    return {exhaustOsc:exhaustOsc,exhaustOsc2:exhaustOsc2,subOsc:subOsc,exhaustLP:exhaustLP,gain:gain,lfo:lfo,lfoDepth:lfoDepth};
   }
 
   _playerEng=buildEng();
@@ -2322,6 +3143,23 @@ function _fireExhaustCrackle(count){
     env.gain.exponentialRampToValueAtTime(0.001,t+0.055);
     ns.connect(bpf);bpf.connect(env);env.connect(_masterComp);
     ns.start(t);ns.stop(t+0.08);
+  }
+}
+
+// Pit wheel-gun rattle — a rapid burst of bandpassed impacts during the tyre change.
+function _fireWheelGun(){
+  if(!_AC||!_noiseBuffer) return;
+  var now=_AC.currentTime;
+  for(var i=0;i<4;i++){
+    var t=now+i*0.028;
+    var ns=_AC.createBufferSource();ns.buffer=_noiseBuffer;
+    var bpf=_AC.createBiquadFilter();bpf.type='bandpass';
+    bpf.frequency.value=1800+Math.random()*900;bpf.Q.value=3.0;
+    var env=_AC.createGain();
+    env.gain.setValueAtTime(0,t);env.gain.setValueAtTime(0.5,t+0.001);
+    env.gain.exponentialRampToValueAtTime(0.001,t+0.022);
+    ns.connect(bpf);bpf.connect(env);env.connect(_masterComp);
+    ns.start(t);ns.stop(t+0.03);
   }
 }
 
@@ -2366,10 +3204,10 @@ function _tickAudio(){
   // Gear-change transient: audible RPM drop/spike makes shifts feel physical
   if(_prevGear!==0&&P.gear!==_prevGear&&gameState==='RACING'&&_crackleBurst<=0){
     if(P.gear>_prevGear){
-      _audioRpm=Math.max(0.05,_audioRpm-0.38);  // upshift: RPM falls
+      _audioRpm=Math.max(0.05,_audioRpm-0.38);
       _fireUpshiftCrack();_crackleBurst=0.18;
     } else {
-      _audioRpm=Math.min(0.95,_audioRpm+0.22);  // downshift: RPM spikes
+      _audioRpm=Math.min(0.95,_audioRpm+0.22);
       _fireDownshiftCrackle();_crackleBurst=0.30;
     }
   }
@@ -2385,12 +3223,14 @@ function _tickAudio(){
   var wobble=(Math.random()-0.5)*(0.08-_audioRpm*0.06);
   var effRpm=Math.max(0,Math.min(1,_audioRpm+wobble));
 
-  // Oscillator 80→300 Hz, LP 280→2500 Hz — wider sweep = dramatic tonal shift
-  var crankHz=45+effRpm*155;
-  var lpHz=300+effRpm*1300;
+  // Crank 38→185 Hz (deeper floor), LP 250→1100 Hz — narrower/lower sweep = growl, not buzz
+  var crankHz=38+effRpm*147;
+  var lpHz=250+effRpm*850;
   if(brk>0)  lpHz*=0.50;   // braking: very dark and muted
-  else if(!thr) lpHz*=0.72; // coasting: slightly muffled
+  else if(!thr) lpHz*=0.72;
   _playerEng.exhaustOsc.frequency.setTargetAtTime(crankHz,now,0.02);
+  _playerEng.exhaustOsc2.frequency.setTargetAtTime(crankHz*1.008,now,0.02);
+  _playerEng.subOsc.frequency.setTargetAtTime(crankHz*0.5,now,0.02);
   _playerEng.exhaustLP.frequency.setTargetAtTime(lpHz,now,0.04);
 
   // LFO cylinder pulse: 2 Hz burble at idle → 12 Hz texture at redline
@@ -2415,7 +3255,6 @@ function _tickAudio(){
   _crackleBurst=Math.max(0,_crackleBurst-dt);
   _popCooldown=Math.max(0,_popCooldown-dt);
 
-  // Throttle-lift crackle
   if(_prevRpm>0.45&&(_audioRpm-_prevRpm)<-0.04&&_popCooldown<=0&&_crackleBurst<=0&&gameState==='RACING'){
     _fireExhaustCrackle(1+Math.floor(_audioRpm*3));
     _popCooldown=0.10;_crackleBurst=0.35;
@@ -2425,10 +3264,12 @@ function _tickAudio(){
   // AI engines — distance-attenuated, same LP sweep range
   for(var i=0;i<AI.length;i++){
     var ai=AI[i],e=_aiEngs[i];if(!e) continue;
-    var aiNorm=Math.min(1,ai.speed/(MAX_SPD*(ai.spdFac||1.0)));
-    var aiCrank=45+aiNorm*155;
-    var aiLP=300+aiNorm*1300;
+    var aiNorm=Math.min(1,ai.speed/(MAX_SPD*(ai.paceFac||1.0)));
+    var aiCrank=38+aiNorm*147;
+    var aiLP=250+aiNorm*850;
     e.exhaustOsc.frequency.setTargetAtTime(aiCrank,now,0.12);
+    e.exhaustOsc2.frequency.setTargetAtTime(aiCrank*1.008,now,0.12);
+    e.subOsc.frequency.setTargetAtTime(aiCrank*0.5,now,0.12);
     e.exhaustLP.frequency.setTargetAtTime(aiLP,now,0.15);
     var ddx=ai.x-P.x,ddz=ai.z-P.z;
     var vol=(active&&gameState==='RACING')?Math.max(0,0.10*(1-Math.sqrt(ddx*ddx+ddz*ddz)/160)):0;
@@ -2443,7 +3284,6 @@ function _stopAudio(){
   _aiEngs.forEach(function(e){e.gain.gain.setTargetAtTime(0,now,0.25);});
 }
 
-/* ============ COCKPIT STEERING WHEEL OVERLAY ============ */
 function updateCockpitWheel(dt){
   if(!cockpitWheel) return;
   var show=cockpitMode&&(gameState==='RACING'||gameState==='COUNTDOWN'||gameState==='FINISHED');
@@ -2457,7 +3297,6 @@ function updateCockpitWheel(dt){
   for(var i=0;i<cwLeds.length;i++) cwLeds[i].setAttribute('opacity',i<lit?'1':'0.12');
 }
 
-/* ===================== CAMERA ===================== */
 function updateCamera(dt){
   var spd=P.speed;
   if(gameState==='COUNTDOWN'){
@@ -2484,19 +3323,55 @@ function updateCamera(dt){
   camVel.z+=(tgt.z-camSmooth.z)*kk*dt-camVel.z*c2*dt;
   camSmooth.x+=camVel.x*dt;camSmooth.y+=camVel.y*dt;camSmooth.z+=camVel.z*dt;
   gameCam.position.copy(camSmooth);
-  gameCam.lookAt(new THREE.Vector3(P.x+fx*20,P.y+RIDE_H+0.5,P.z+fz*20));
-  gameCam.fov=P.drs?82:72+(spd/90)*6;gameCam.updateProjectionMatrix();
+  // Shake impulse from kerbs / lockups / contact, decaying each frame
+  var shk=P._shake||0;
+  if(shk>0.01){
+    gameCam.position.x+=(Math.random()-0.5)*shk*0.7;
+    gameCam.position.y+=(Math.random()-0.5)*shk*0.45;
+    gameCam.position.z+=(Math.random()-0.5)*shk*0.7;
+  }
+  P._shake=Math.max(0,shk-dt*3.5);
+  // Weight transfer: dip the look point under braking, lift it under power
+  var pitch=(P.brk?-0.7:0)+(P.thr?0.3:0);
+  gameCam.lookAt(new THREE.Vector3(P.x+fx*20,P.y+RIDE_H+0.5+pitch,P.z+fz*20));
+  // Sense of speed: FOV opens up with speed / DRS / shake
+  gameCam.fov=(P.drs?84:74)+Math.min(spd/MAX_SPD,1.1)*9+shk*4;gameCam.updateProjectionMatrix();
 }
 
-/* ===================== HUD ===================== */
 function fmt(t){
   var m=Math.floor(t/60),s=Math.floor(t%60),ms=Math.floor((t%1)*1000);
   return m+':'+(s<10?'0':'')+s+'.'+(ms<100?(ms<10?'00':'0'):'')+ms;
 }
 
+// Timed broadcast-style messages. `big` (purple) is for headline moments (fastest lap, win).
+var _radioEl=null,_radioT=0;
+function radio(msg,big){
+  if(!_radioEl){
+    _radioEl=document.createElement('div');
+    _radioEl.style.cssText='position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:10002;'+
+      'pointer-events:none;font-family:Space Mono,Courier New,monospace;font-size:13px;letter-spacing:.08em;'+
+      'color:#E0F2FE;background:rgba(3,15,26,.88);border-left:3px solid #00D4FF;padding:7px 16px;border-radius:3px;'+
+      'opacity:0;box-shadow:0 6px 24px rgba(0,0,0,.55);max-width:72%;text-align:center;transition:opacity .18s';
+    var host=(gameCanvas&&gameCanvas.parentNode)?gameCanvas.parentNode:document.body;
+    host.appendChild(_radioEl);
+  }
+  _radioEl.innerHTML='<span style="color:'+(big?'#cc00ff':'#00D4FF')+'">&#9646; RADIO&nbsp;&nbsp;</span>'+msg;
+  _radioEl.style.borderLeftColor=big?'#cc00ff':'#00D4FF';
+  _radioT=big?3.6:3.0;
+}
+function updateRadio(dt){
+  if(!_radioEl) return;
+  _radioT=Math.max(0,_radioT-dt);
+  _radioEl.style.opacity=_radioT>0?Math.min(1,_radioT*2.2):0;
+}
+
 // Single source of truth for race order: finished cars rank by finishTime (earliest
 // first) ahead of still-running cars, which fall through to laps-then-progress.
 function classifyCmp(a,b){
+  // Retired cars always rank below classified runners; between two DNFs, more laps = higher.
+  if(a.dnf&&!b.dnf) return 1;
+  if(b.dnf&&!a.dnf) return -1;
+  if(a.dnf&&b.dnf) return b.lap!==a.lap?b.lap-a.lap:b.ti-a.ti;
   if(a.ft<Infinity&&b.ft<Infinity) return a.ft-b.ft;
   if(a.ft<Infinity) return -1;
   if(b.ft<Infinity) return 1;
@@ -2504,8 +3379,8 @@ function classifyCmp(a,b){
 }
 
 function getPos(){
-  var all=[{n:'P',lap:P.lap,ti:P.tIdx,ft:P.finishTime}];
-  AI.forEach(function(ai,i){all.push({n:'A'+i,lap:ai.lap,ti:ai.tIdx,ft:ai.finishTime});});
+  var all=[{n:'P',lap:P.lap,ti:P.tIdx,ft:P.finishTime,dnf:P.dnf}];
+  AI.forEach(function(ai,i){all.push({n:'A'+i,lap:ai.lap,ti:ai.tIdx,ft:ai.finishTime,dnf:ai.dnf});});
   all.sort(classifyCmp);
   var pp=0;all.forEach(function(e,i){if(e.n==='P') pp=i;});return pp;
 }
@@ -2514,11 +3389,11 @@ var _stLast=0;
 function updateStandings(){
   if(!hudStandings) return;
   var now=Date.now();if(now-_stLast<200) return;_stLast=now;
-  var arr=[{isP:true,name:AI_NAMES[0],abbr:'YOU',color:'#2D7DFF',lap:P.lap,ti:P.tIdx,sp:P.speed,ft:P.finishTime}];
+  var arr=[{isP:true,name:AI_NAMES[0],abbr:'YOU',color:'#2D7DFF',lap:P.lap,ti:P.tIdx,sp:P.speed,ft:P.finishTime,pit:inPit(P),dnf:P.dnf}];
   for(var i=0;i<AI.length;i++){
     arr.push({isP:false,name:AI_NAMES[i+1],abbr:AI_TEAMS[i],
       color:'#'+(AI_COLORS[i]||0xAAAAAA).toString(16).padStart(6,'0'),
-      lap:AI[i].lap,ti:AI[i].tIdx,sp:AI[i].speed,ft:AI[i].finishTime});
+      lap:AI[i].lap,ti:AI[i].tIdx,sp:AI[i].speed,ft:AI[i].finishTime,pit:inPit(AI[i]),dnf:AI[i].dnf});
   }
   arr.sort(classifyCmp);
   var html='<div class="st-hd"><span>Race Order</span><b>LAP '+Math.min(P.lap,LAPS)+'/'+LAPS+'</b></div>';
@@ -2529,16 +3404,29 @@ function updateStandings(){
       if(e.lap<ah.lap) gap='+'+(ah.lap-e.lap)+'L';
       else{var wg=((ah.ti-e.ti)+N)%N;gap='+'+((wg*2.31)/Math.max(e.sp,4)).toFixed(1);}
     }
+    var gapCls='st-gap',gapTxt=gap;
+    if(e.dnf){gapCls='st-gap st-dnf';gapTxt='DNF';}
+    else if(e.pit){gapCls='st-gap st-pit';gapTxt='PIT';}
     html+='<div class="st-row'+(e.isP?' me':'')+'"><span class="st-pos">'+(k+1)+'</span>'+
       '<span class="st-chip" style="background:'+e.color+'"></span>'+
       '<span class="st-name">'+e.abbr+' '+e.name.slice(0,9)+'</span>'+
-      '<span class="st-gap">'+gap+'</span></div>';
+      '<span class="'+gapCls+'">'+gapTxt+'</span></div>';
   }
   hudStandings.innerHTML=html;
 }
 
+var _lastPos=-1,_posFlashUntil=0;
 function updateHUD(){
-  if(hudPos) hudPos.textContent='P'+(getPos()+1);
+  var _curPos=getPos();
+  // Position-change ticker: flash the position + a radio call when you gain or lose a place
+  if(gameState==='RACING'&&_lastPos>=0&&_curPos!==_lastPos){
+    if(_curPos<_lastPos){radio('P'+(_curPos+1)+' now — great move, keep pushing!');if(hudPos)hudPos.style.color='#00FF87';}
+    else{radio('Lost a place — we are P'+(_curPos+1)+'. Heads down.');if(hudPos)hudPos.style.color='#ff4400';}
+    _posFlashUntil=Date.now()+1000;
+  }
+  _lastPos=_curPos;
+  if(hudPos&&Date.now()>_posFlashUntil) hudPos.style.color='';
+  if(hudPos) hudPos.textContent='P'+(_curPos+1);
   if(hudLap) hudLap.textContent='LAP '+P.lap+'/'+LAPS;
   if(hudTimer) hudTimer.textContent=fmt(gameState==='RACING'?raceTime-P.lapStart:0);
   if(hudSpeed) hudSpeed.textContent=((P.speed*3.6)|0)+' km/h';
@@ -2551,8 +3439,16 @@ function updateHUD(){
   function tc(t2){return t2>0.7?'#ff4400':t2>0.4?'#ffdd00':'#1E41FF';}
   if(tempF) tempF.style.background=tc(P.tireTempF);
   if(tempR) tempR.style.background=tc(P.tireTempR);
+  // Compound chip + wear % + BOX advice (so the player knows when the pit lane is worth it)
+  var cmp=COMPOUNDS[P.compound];
+  if(tireCmp){tireCmp.textContent=cmp.id;tireCmp.style.background='#'+cmp.col.toString(16).padStart(6,'0');}
+  if(tirePct){tirePct.textContent=(tw*100|0)+'%';tirePct.style.color=tireColor;}
+  // Damage readout: fills up as the car takes hits; amber→red warns the wing/floor needs the pit.
+  var dmg=P.damage,dmgColor=dmg<0.3?'#00ff44':dmg<0.6?'#ffdd00':'#ff4400';
+  if(dmgBar){dmgBar.style.width=(dmg*100)+'%';dmgBar.style.background=dmgColor;}
+  if(dmgPct){dmgPct.textContent=(dmg*100|0)+'%';dmgPct.style.color=dmgColor;}
+  if(hudBox){var advise=((tw<0.25||dmg>0.45)&&P.pitState==='NONE'&&P.lap<LAPS);hudBox.className='hud-box'+(advise?' advise':'');}
   if(wheelInd) wheelInd.setAttribute('transform','rotate('+(-P.yawRate*20*180/Math.PI)+')');
-  // Best lap display
   var hudMsgEl=document.querySelector('#hud-main .hud-msg');
   if(hudMsgEl){
     if(P.bestLap<Infinity){hudMsgEl.textContent='BEST '+fmt(P.bestLap);hudMsgEl.style.color='#cc00ff';}
@@ -2575,6 +3471,14 @@ function updateHUD(){
         hudDeltaEl.className='hud-delta'+(gapS<1?' green':gapS>5?' red':'');
       }
     }
+  }
+  // Pit limiter / box-armed prompt
+  var pe=document.getElementById('pit-ind');
+  if(!pe&&overlay){pe=document.createElement('div');pe.id='pit-ind';pe.style.cssText='position:absolute;top:64px;left:50%;transform:translateX(-50%);font:700 15px Courier New,monospace;letter-spacing:2px;padding:5px 14px;border-radius:4px;background:rgba(0,0,0,0.62);display:none;z-index:30;';overlay.appendChild(pe);}
+  if(pe){
+    if(P.pitState!=='NONE'){pe.textContent='PIT LIMITER';pe.style.color='#ffd000';pe.style.display='block';}
+    else if(P._pitArmed){pe.textContent='▸ BOX — FIT '+COMPOUNDS[P._pitCompound==null?P.compound:P._pitCompound].name+'  [1]S [2]M [3]H';pe.style.color='#00D4FF';pe.style.display='block';}
+    else pe.style.display='none';
   }
   drawMinimap();
   updateStandings();
@@ -2616,6 +3520,9 @@ function drawMinimap(){
     }
     minimapCtx.stroke();
   }
+  minimapCtx.strokeStyle='#ffcc00';minimapCtx.lineWidth=2;minimapCtx.beginPath();
+  for(var pj=0;pj<=PIT_SEGS;pj+=3){var pw2=pitPts[pj];if(pj===0)minimapCtx.moveTo(wx(pw2.x),wz2(pw2.z));else minimapCtx.lineTo(wx(pw2.x),wz2(pw2.z));}
+  minimapCtx.stroke();
   minimapCtx.fillStyle='#1E41FF';minimapCtx.beginPath();
   minimapCtx.arc(wx(P.x),wz2(P.z),5,0,Math.PI*2);minimapCtx.fill();
   AI.forEach(function(ai,i){
@@ -2625,38 +3532,74 @@ function drawMinimap(){
   });
 }
 
-/* ===================== PODIUM ===================== */
 function showPodium(){
-  var all=[{n:AI_NAMES[0],lap:P.lap,ti:P.tIdx,ft:P.finishTime}];
-  AI.forEach(function(ai,i){all.push({n:AI_NAMES[i+1],lap:ai.lap,ti:ai.tIdx,ft:ai.finishTime});});
+  var all=[{n:AI_NAMES[0],lap:P.lap,ti:P.tIdx,ft:P.finishTime,dnf:P.dnf}];
+  AI.forEach(function(ai,i){all.push({n:AI_NAMES[i+1],lap:ai.lap,ti:ai.tIdx,ft:ai.finishTime,dnf:ai.dnf});});
   all.sort(classifyCmp);
   var rows='',medals=['1ST','2ND','3RD','4TH','5TH','6TH','7TH','8TH','9TH','10TH',
     '11TH','12TH','13TH','14TH','15TH','16TH','17TH','18TH','19TH','20TH'];
   all.forEach(function(e,i){
     if(i>=10) return;
-    rows+='<tr'+(i===0?' class="podium-p1"':'')+'><td>'+medals[i]+'</td><td>'+e.n+'</td><td>LAP '+e.lap+'</td></tr>';
+    var status=e.dnf?'<span style="color:#FF3B30;font-weight:700">DNF</span>':'LAP '+e.lap;
+    var pos=e.dnf?'—':medals[i];
+    rows+='<tr'+(i===0&&!e.dnf?' class="podium-p1"':'')+'><td>'+pos+'</td><td>'+e.n+'</td><td>'+status+'</td></tr>';
   });
   if(podiumTable) podiumTable.innerHTML=rows;
   if(podiumOvl) podiumOvl.className='active';
 }
 
-/* ===================== OPEN / CLOSE ===================== */
+// Pre-race tire-selection screen: shows the rolled weather + three compounds; player picks, then race.
+function showTireSelect(onPick){
+  var ov=document.getElementById('tire-select'),cards=document.getElementById('ts-cards');
+  var wl=document.getElementById('ts-wlabel'),wn=document.getElementById('ts-wnote');
+  if(!ov||!cards){onPick();return;}
+  if(wl) wl.textContent=weather.label;
+  if(wn) wn.textContent=weather.note;
+  cards.innerHTML='';
+  function choose(i){
+    P.compound=i;P._pitCompound=null;
+    ov.className='';document.removeEventListener('keydown',keyPick,true);
+    onPick();
+  }
+  function keyPick(e){
+    var i=e.code==='Digit1'?0:e.code==='Digit2'?1:e.code==='Digit3'?2:-1;
+    if(i>=0){e.preventDefault();e.stopPropagation();choose(i);}
+  }
+  COMPOUNDS.forEach(function(c,i){
+    var hex='#'+c.col.toString(16).padStart(6,'0');
+    var card=document.createElement('div');card.className='tire-card'+(i===weather.best?' rec':'');
+    card.innerHTML='<span class="tc-key">['+(i+1)+']</span>'+
+      '<div class="tc-disc" style="border-color:'+hex+';color:'+(i===2?'#222':'#0a0a0a')+';background:'+hex+'">'+c.id+'</div>'+
+      '<div class="tc-name" style="color:'+hex+'">'+c.name+'</div>'+
+      '<div class="tc-desc">'+c.desc+'</div>'+
+      '<div class="tc-rec">RECOMMENDED</div>';
+    card.addEventListener('click',function(){choose(i);});
+    cards.appendChild(card);
+  });
+  gameState='SELECT';
+  document.addEventListener('keydown',keyPick,true);
+  ov.className='active';
+}
+
 function openGame(){
   if(!overlay) return;
   overlay.className='active';
   gameCanvas.focus();requestAnimationFrame(resizeCam);
   _initAudio();
-  initRace();startCountdown();
-  if(!animRunning){animRunning=true;requestAnimationFrame(loop);}
+  initRace();
+  if(!animRunning){animRunning=true;requestAnimationFrame(loop);}  // render the lit grid behind the picker
+  showTireSelect(startCountdown);
 }
 
 function closeGame(){
   overlay.className='';
   if(podiumOvl) podiumOvl.className='';
   if(pauseOvl) pauseOvl.className='';
+  var tsOv=document.getElementById('tire-select');if(tsOv) tsOv.className='';
   if(lightsBarEl) lightsBarEl.className='';
   if(gridMsgEl) gridMsgEl.className='';
   _stopAudio();
+  _radioT=0;if(_radioEl) _radioEl.style.opacity=0;
   gameState='IDLE';paused=false;animRunning=false;
 }
 
@@ -2680,7 +3623,6 @@ function closeGame(){
 if(podiumClose) podiumClose.addEventListener('click',closeGame);
 if(hudClose) hudClose.addEventListener('click',closeGame);
 
-/* ===================== GAME LOOP ===================== */
 var prevTs=0;
 function loop(ts){
   if(!animRunning) return;
@@ -2692,24 +3634,42 @@ function loop(ts){
   updatePlayer(dt);
   AI.forEach(function(ai){updateAI(ai,dt);});
   resolveCollisions();
+  updatePits(dt);
   if(playerGrp){
-    playerGrp.visible=!cockpitMode;  // don't see your own chassis from the driver's seat
-    playerGrp.position.set(P.x,P.y+RIDE_H,P.z);playerGrp.rotation.y=P.heading-Math.PI/2;
+    playerGrp.visible=true;  // in cockpit you still see your own car ahead (halo, nose, mirrors)
+    if(playerGrp.userData.helmet) playerGrp.userData.helmet.visible=!cockpitMode;  // hide own head in first-person
+    playerGrp.position.set(P.x,P.y+RIDE_H+(P.pitLift||0),P.z);playerGrp.rotation.y=P.heading-Math.PI/2;
+    applyDamageVisual(playerGrp,P);
+    if((P.damage>0.55||P.dnf)&&Math.random()<0.6) SMOKE.emit(P,-1,1,Math.min(1.4,P.damage+0.4));
     if(playerGrp.userData.tailMat) playerGrp.userData.tailMat.emissiveIntensity=P.brk?3.6:1.4;
     if(playerGrp.userData.drsMat) playerGrp.userData.drsMat.emissiveIntensity=P.drs?2.2:0.0;
+    if(playerGrp.userData.brakeGlow){var pbg=(P.brk&&P.speed>6)?Math.min(1.3,0.4+P.speed/MAX_SPD):0;
+      playerGrp.userData.brakeGlow.forEach(function(m){m.opacity+=(pbg-m.opacity)*0.4;});}
   }
   AI.forEach(function(ai,i){
-    if(aiGrps[i]){aiGrps[i].position.set(ai.x,ai.y+RIDE_H,ai.z);aiGrps[i].rotation.y=ai.heading-Math.PI/2;}
+    if(aiGrps[i]){aiGrps[i].position.set(ai.x,ai.y+RIDE_H+(ai.pitLift||0),ai.z);aiGrps[i].rotation.y=ai.heading-Math.PI/2;
+      applyDamageVisual(aiGrps[i],ai);
+      if(ai.damage>0.55&&!ai.dnf&&Math.random()<0.4) SMOKE.emit(ai,-1,1,ai.damage);
+      if(aiGrps[i].userData.brakeGlow){var abg=(ai._braking&&ai.speed>6)?0.85:0;
+        aiGrps[i].userData.brakeGlow.forEach(function(m){m.opacity+=(abg-m.opacity)*0.35;});}}
     if(aiLabels[i]){aiLabels[i].position.set(ai.x,ai.y+RIDE_H+3.2,ai.z);}
   });
   SMOKE.update(dt);
+  SPARKS.update(dt);
   FLASH.update(dt);
+  WEATHER.update(dt,gameCam.position);
   // Crowd twinkle + slow cloud drift
   var _t=(typeof performance!=='undefined'&&performance.now)?performance.now()*0.001:Date.now()*0.001;
   for(var _ci=0;_ci<crowdMats.length;_ci++) crowdMats[_ci].emissiveIntensity=0.03+0.03*Math.sin(_t*2.2+_ci*0.8);
+  // Living crowd: a travelling Mexican wave (people rise then sit as the peak sweeps past) over a
+  // constant low fidget so even the still spectators are never frozen.
+  for(var _cf=0;_cf<crowdFolk.length;_cf++){var _f=crowdFolk[_cf];
+    var _w=Math.sin(_t*2.3-_f.ph);
+    _f.m.position.y=_f.by+(_w>0?_w*_w*0.5:0)+Math.sin(_t*3.1+_f.ph*2.0)*0.05;}
   for(var _cl=0;_cl<clouds.length;_cl++){var _c=clouds[_cl];_c.sp.position.x+=_c.vx*dt;if(_c.sp.position.x>1500) _c.sp.position.x=-1500;}
   updateCamera(dt);
   updateHUD();
+  updateRadio(dt);
   updateCockpitWheel(dt);
   _tickAudio();
   if(afterPass){
@@ -2736,9 +3696,6 @@ function loop(ts){
 </html>
 """
 
-# --------------------------------------------------------------------------- #
-#  2D chart helpers                                                             #
-# --------------------------------------------------------------------------- #
 
 def _axis_2d(title: str = "") -> dict:
     return dict(
@@ -2797,9 +3754,6 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-# --------------------------------------------------------------------------- #
-#  SQL helpers                                                                  #
-# --------------------------------------------------------------------------- #
 
 def _round_by_round_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
     """Cumulative points and finish position per driver per round, all seasons.
@@ -2844,9 +3798,6 @@ def _grid_finish_df(engine: Engine, team_refs: list[str]) -> pd.DataFrame:
         return pd.read_sql(text(sql), conn, params=params)
 
 
-# --------------------------------------------------------------------------- #
-#  2D chart builders                                                            #
-# --------------------------------------------------------------------------- #
 
 def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
     """Championship points per round — latest season. Area fills + win markers."""
@@ -2987,7 +3938,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
     surname_a = d_a.split()[-1]
     surname_b = d_b.split()[-1]
 
-    # Zero reference
     fig.add_hline(y=0, line=dict(color=_ZERO_LINE, width=1.5, dash="dot"))
 
     # Area fills — show which driver is leading at a glance
@@ -3029,7 +3979,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         else:
             seg_x.append(rounds[i])
             seg_y.append(gap[i])
-    # Final segment
     fig.add_trace(go.Scatter(
         x=seg_x, y=seg_y,
         mode="lines",
@@ -3221,9 +4170,6 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-# --------------------------------------------------------------------------- #
-#  Telemetry chart builders                                                     #
-# --------------------------------------------------------------------------- #
 
 def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
     """Pit stop efficiency — z-score horizontal bar per driver.
@@ -3373,9 +4319,9 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
     surnames = df["driver"].apply(lambda d: d.split()[-1]).tolist()
     # S2 was near-white (#E0F2FE) — invisible on dark background; use orange instead
     sector_cfg = [
-        ("s1_mean", "S1", _ACCENT),       # cyan
-        ("s2_mean", "S2", "#FF9500"),      # orange
-        ("s3_mean", "S3", "#FFD700"),      # gold
+        ("s1_mean", "S1", _ACCENT),
+        ("s2_mean", "S2", "#FF9500"),
+        ("s3_mean", "S3", "#FFD700"),
     ]
     for col, label, color in sector_cfg:
         if col not in df.columns:
@@ -3407,9 +4353,6 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-# --------------------------------------------------------------------------- #
-#  FastF1 lap analysis chart builders                                           #
-# --------------------------------------------------------------------------- #
 
 _COMPOUND_COLORS = {
     "SOFT":         "#FF3333",
@@ -3559,9 +4502,6 @@ def chart_pit_strategy_2d(strategy_df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-# --------------------------------------------------------------------------- #
-#  Dashboard generator                                                          #
-# --------------------------------------------------------------------------- #
 
 def generate_dashboard(
     engine: Engine,
@@ -3575,26 +4515,17 @@ def generate_dashboard(
 
     gf = _grid_finish_df(engine, team_refs)
 
-    try:
-        pit_df = pit_stop_efficiency(engine, team_refs)
-    except Exception:
-        pit_df = pd.DataFrame()
-    try:
-        dnf_df = dnf_rate_model(engine, team_refs)
-    except Exception:
-        dnf_df = pd.DataFrame()
-    try:
-        sec_df = sector_deltas(engine, team_refs)
-    except Exception:
-        sec_df = pd.DataFrame()
-    try:
-        deg_df = tyre_degradation(engine, team_refs)
-    except Exception:
-        deg_df = pd.DataFrame()
-    try:
-        strat_df = pit_strategy(engine, team_refs)
-    except Exception:
-        strat_df = pd.DataFrame()
+    def _df_or_empty(fn):
+        try:
+            return fn(engine, team_refs)
+        except Exception:
+            return pd.DataFrame()
+
+    pit_df   = _df_or_empty(pit_stop_efficiency)
+    dnf_df   = _df_or_empty(dnf_rate_model)
+    sec_df   = _df_or_empty(sector_deltas)
+    deg_df   = _df_or_empty(tyre_degradation)
+    strat_df = _df_or_empty(pit_strategy)
 
     fig1 = chart_championship_2d(traj)
     fig2 = chart_positions_bump_2d(traj)
