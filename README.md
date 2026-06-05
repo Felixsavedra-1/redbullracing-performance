@@ -4,32 +4,48 @@
   <img src="docs/dashboard.gif" alt="Interactive dashboard — Three.js 3D visualization + playable F1 game" width="100%">
 </p>
 
-Production-style ETL pipeline covering 6 seasons of F1 race data (2020–2025). Dual-source extraction — Ergast API for race results and FastF1 for lap-by-lap telemetry — with schema-validated transforms, 15+ CI-enforced quality gates, 7 statistical models, and a self-contained Three.js dashboard with an embedded playable F1 game — no server required.
+<p align="center">
+  <a href="https://github.com/Felixsavedra-1/redbullracing-f1-analytics/actions/workflows/ci.yml"><img src="https://github.com/Felixsavedra-1/redbullracing-f1-analytics/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white" alt="Python 3.11">
+  <img src="https://img.shields.io/badge/storage-SQLite%20·%20MySQL%20·%20DuckDB-003B57?logo=sqlite&logoColor=white" alt="Storage">
+  <img src="https://img.shields.io/badge/transform-dbt-FF694B?logo=dbt&logoColor=white" alt="dbt">
+  <img src="https://img.shields.io/badge/viz-Plotly%20·%20Three.js-3F4F75?logo=plotly&logoColor=white" alt="Visualization">
+</p>
 
----
+> Production-style F1 data pipeline — 6 seasons, dual-source extraction, 7 statistical models, and a self-contained 3D dashboard with a playable race sim. No server required.
 
-## Stack
+A resumable ETL pipeline that extracts Formula 1 race results and lap telemetry from two sources, validates every transform against explicit schema contracts, and loads a star-schema warehouse gated by 15+ CI-enforced quality checks. The analysis layer ships statistical models and an interactive Three.js dashboard that runs entirely in a single HTML file.
 
-| Layer | Technology |
-|---|---|
-| Extraction | Ergast API (`api.jolpi.ca/ergast/f1`) — resumable, adaptive backoff |
-| Lap telemetry | FastF1 — sector times, tyre compounds, stint structure |
-| Transformation | `pandas` — ref resolution, schema contracts |
-| Storage | SQLite (default) · MySQL · DuckDB |
-| Analytical layer | dbt — 6 staging views + 4 mart models |
-| Analysis | `scipy` OLS, Poisson MLE · 14 parameterized SQL queries |
-| Visualization | Plotly 3D · Three.js · Power BI |
-| CI | GitHub Actions — quality gates + dbt compile |
+## Highlights
 
----
+- **Dual-source ETL** — Ergast API for race results + FastF1 for lap-by-lap telemetry, 2020–2025, resumable with adaptive backoff
+- **7 statistical models** — OLS regression, Poisson MLE, and 95% t-intervals over the loaded warehouse
+- **CI-enforced quality** — 15+ post-load integrity gates plus `dbt compile` on every push
+- **Self-contained dashboard** — Three.js PBR car, 7 Plotly charts, and an embedded physics-based F1 game in one HTML file
+- **Modeled warehouse** — star schema on SQLite · MySQL · DuckDB, with dbt staging views and mart models
 
-## Pipeline
+## Tech Stack
+
+`Python` · `pandas` · `SQLite / MySQL / DuckDB` · `dbt` · `scipy` · `Plotly` · `Three.js` · `GitHub Actions`
+
+## Quickstart
 
 ```bash
 pip install -r requirements.txt
 cp scripts/config.example.py scripts/config.py
 python scripts/run_pipeline.py
+
+# build charts + open the interactive dashboard
+python scripts/run_analysis.py --export
+open data/exports/dashboard.html
 ```
+
+---
+
+<details>
+<summary><b>Pipeline</b> — extract → transform → load → quality → dbt</summary>
+
+<br>
 
 | Step | Script | Output |
 |---|---|---|
@@ -40,7 +56,7 @@ python scripts/run_pipeline.py
 | Lap telemetry | `extract_telemetry.py` | FastF1 → `laps` table (opt-in via `--telemetry`) |
 | dbt | `dbt/` | Staging views + `driver_summary`, `pit_stop_efficiency`, `championship_progression`, `qualifying_vs_race` |
 
-**Key flags:**
+**Key flags**
 
 | Flag | Description |
 |---|---|
@@ -50,14 +66,12 @@ python scripts/run_pipeline.py
 | `--incremental` | Upsert instead of full refresh |
 | `--skip-extract` / `--skip-load` | Run partial pipeline steps |
 
----
+</details>
 
-## Analysis
+<details>
+<summary><b>Analysis & Dashboard</b> — 7 statistical models + interactive 3D output</summary>
 
-```bash
-python scripts/run_analysis.py --export
-open data/exports/dashboard.html
-```
+<br>
 
 | Model | Method | Output |
 |---|---|---|
@@ -69,26 +83,30 @@ open data/exports/dashboard.html
 | Tyre degradation | OLS lap time vs tyre age per compound | Bar chart |
 | Pit strategy | Stint structure for most recent race | Gantt chart |
 
-Tyre degradation and pit strategy require `--telemetry` data. The dashboard degrades gracefully — charts show a placeholder until lap data is loaded.
+Tyre degradation and pit strategy require `--telemetry` data; the dashboard degrades gracefully, showing a placeholder until lap data is loaded.
 
-Dashboard: self-contained HTML — Three.js PBR F1 car, 7 Plotly charts, playable F1 racing game with physics-based AI (Pacejka tire model, PID steering), sector timing, and live race positions.
+**Dashboard** — self-contained HTML: Three.js PBR F1 car, 7 Plotly charts, and a playable F1 racing game with physics-based AI (Pacejka tyre model, PID steering), sector timing, and live race positions.
 
----
+</details>
 
-## Data Model
+<details>
+<summary><b>Data Model</b> — star schema (<code>f1_analytics.db</code>)</summary>
 
-Star schema — `f1_analytics.db`
+<br>
 
-**Dimensions:** `circuits` · `seasons` · `constructors` · `drivers`  
+**Dimensions:** `circuits` · `seasons` · `constructors` · `drivers`
 **Facts:** `races` · `results` · `qualifying` · `pit_stops` · `constructor_standings` · `driver_standings` · `laps`
 
-The `laps` table stores per-lap telemetry: sector times, tyre compound, stint number, tyre age, and track status. Populated by `--telemetry`; empty tables are handled gracefully throughout the analysis layer.
+The `laps` table stores per-lap telemetry — sector times, tyre compound, stint number, tyre age, track status — populated by `--telemetry`; empty tables are handled gracefully throughout the analysis layer.
 
 Schema DDL: `database/schema/` · Validation contracts: `scripts/schema_contracts.py`
 
----
+</details>
 
-## Quality Gates
+<details>
+<summary><b>Quality Gates & Tests</b> — 15+ checks + unit/integration suites</summary>
+
+<br>
 
 15+ checks run after every load:
 
@@ -101,10 +119,6 @@ Schema DDL: `database/schema/` · Validation contracts: `scripts/schema_contract
 
 Failures raise `RuntimeError` in CI (`GITHUB_ACTIONS=true`). CI also runs `dbt compile` to validate all model SQL.
 
----
-
-## Tests
-
 ```bash
 python -m unittest discover -s tests
 ```
@@ -115,6 +129,12 @@ python -m unittest discover -s tests
 | `test_quality_checks` | Quality gate integration |
 | `test_etl_unit` | Schema contracts, DNF sentinel, FK ref resolution |
 | `test_analytics` | All 7 statistical models — empty-data and populated paths |
+
+</details>
+
+<br>
+
+Full architecture → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ---
 
