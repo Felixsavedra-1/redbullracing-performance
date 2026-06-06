@@ -2,6 +2,14 @@
 
 <p align="center">
   <img src="docs/dashboard.gif" alt="Interactive dashboard — Three.js 3D visualization + playable F1 game" width="100%">
+  <br>
+  <em>3D dashboard</em>
+</p>
+
+<p align="center">
+  <img src="docs/game.gif" alt="Playable in-browser F1 race sim — Three.js physics game mode" width="100%">
+  <br>
+  <em>Playable race sim</em>
 </p>
 
 <p align="center">
