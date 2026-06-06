@@ -17,40 +17,33 @@ OUT_PATH = REPO / "docs" / "dashboard.gif"
 VIEWPORT_W = 1440
 VIEWPORT_H = 860
 
-# (scroll_y_fraction, hold_frames)
-SCROLL_WAYPOINTS = [
-    (0.000, 6),   # status bar + header
-    (0.030, 4),   # stats row
-    (0.100, 4),   # car viewer
-    (0.200, 4),   # chart start
-    (0.280, 6),   # championship trajectory
-    (0.400, 4),   # positions + points gap row
-    (0.540, 6),   # performance matrix heatmap
-    (0.680, 6),   # grid vs finish scatter
-    (0.840, 7),   # telemetry panels
-    (1.000, 6),   # footer
-]
-
-INTERP_STEPS = 5   # frames between waypoints
-FRAME_MS = 70      # ms per frame (~14 fps)
+PX_PER_FRAME = 36
+RAMP_FRAC = 0.18
+MIN_FRAMES = 40
+FRAME_MS = 50
+TARGET_W = 700
+GIF_COLORS = 64
 
 
-def eased(t: float) -> float:
-    return t * t * (3 - 2 * t)
+def build_scroll_sequence(max_scroll):
+    frames = max(round(max_scroll / PX_PER_FRAME), MIN_FRAMES)
+    ramp = max(int(frames * RAMP_FRAC), 1)
 
+    vel = []
+    for i in range(frames):
+        if i < ramp:
+            v = (i + 1) / ramp
+        elif i >= frames - ramp:
+            v = (frames - i) / ramp
+        else:
+            v = 1.0
+        vel.append(v)
 
-def build_scroll_sequence():
-    positions = []
-    for i in range(len(SCROLL_WAYPOINTS) - 1):
-        y0, hold0 = SCROLL_WAYPOINTS[i]
-        y1, _     = SCROLL_WAYPOINTS[i + 1]
-        positions.extend([y0] * hold0)
-        for step in range(1, INTERP_STEPS + 1):
-            t = eased(step / INTERP_STEPS)
-            positions.append(y0 + (y1 - y0) * t)
-    y_last, hold_last = SCROLL_WAYPOINTS[-1]
-    positions.extend([y_last] * hold_last)
-    return positions
+    cum, s = [], 0.0
+    for v in vel:
+        s += v
+        cum.append(s)
+    return [c / cum[-1] for c in cum]
 
 
 def main():
@@ -75,7 +68,7 @@ def main():
         max_scroll = max(page_h - VIEWPORT_H, 1)
         print(f"Page height: {page_h}px  max_scroll: {max_scroll}px")
 
-        scroll_seq = build_scroll_sequence()
+        scroll_seq = build_scroll_sequence(max_scroll)
         total = len(scroll_seq)
 
         for idx, frac in enumerate(scroll_seq):
@@ -86,12 +79,11 @@ def main():
             png_bytes = page.screenshot(type="png")
             img = Image.open(BytesIO(png_bytes)).convert("RGB")
 
-            target_w = 900
-            scale = target_w / img.width
+            scale = TARGET_W / img.width
             new_h = int(img.height * scale)
-            img = img.resize((target_w, new_h), Image.LANCZOS)
+            img = img.resize((TARGET_W, new_h), Image.LANCZOS)
 
-            img_q = img.quantize(colors=72, method=Image.Quantize.MEDIANCUT, dither=0)
+            img_q = img.quantize(colors=GIF_COLORS, method=Image.Quantize.MEDIANCUT, dither=0)
             frames_pil.append(img_q)
 
             if (idx + 1) % 10 == 0 or idx == total - 1:
