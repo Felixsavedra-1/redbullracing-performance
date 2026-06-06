@@ -2,12 +2,17 @@
 Capture a scrolling GIF of the dashboard.
 Usage: python scripts/capture_dashboard_gif.py
 Output: docs/dashboard.gif
-"""
-import sys
-from pathlib import Path
-from io import BytesIO
 
-from PIL import Image
+Frames are captured at full viewport resolution, then encoded with a two-pass
+ffmpeg palettegen/paletteuse pipeline (256-color per-scene palette + dithering)
+for vivid, band-free output. Requires ffmpeg on PATH.
+"""
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 REPO = Path(__file__).parent.parent
@@ -21,8 +26,8 @@ PX_PER_FRAME = 36
 RAMP_FRAC = 0.18
 MIN_FRAMES = 40
 FRAME_MS = 50
-TARGET_W = 700
-GIF_COLORS = 64
+TARGET_W = 720
+FPS = round(1000 / FRAME_MS)
 
 
 def build_scroll_sequence(max_scroll):
@@ -46,63 +51,74 @@ def build_scroll_sequence(max_scroll):
     return [c / cum[-1] for c in cum]
 
 
+def encode_gif(frame_dir: Path):
+    """Two-pass ffmpeg encode: build an optimized palette, then apply it."""
+    pattern = str(frame_dir / "f%04d.png")
+    palette = frame_dir / "palette.png"
+    scale = f"scale={TARGET_W}:-1:flags=lanczos"
+
+    subprocess.run(
+        ["ffmpeg", "-y", "-framerate", str(FPS), "-i", pattern,
+         "-vf", f"{scale},palettegen=max_colors=256:stats_mode=diff",
+         str(palette)],
+        check=True, capture_output=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-framerate", str(FPS), "-i", pattern, "-i", str(palette),
+         "-lavfi", f"{scale}[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle",
+         "-loop", "0", str(OUT_PATH)],
+        check=True, capture_output=True,
+    )
+
+
 def main():
     if not HTML_PATH.exists():
         print(f"ERROR: {HTML_PATH} not found. Run: python scripts/run_analysis.py --export")
+        sys.exit(1)
+
+    if shutil.which("ffmpeg") is None:
+        print("ERROR: ffmpeg not found on PATH. Install it (e.g. `brew install ffmpeg`).")
         sys.exit(1)
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     url = HTML_PATH.as_uri()
 
     print(f"Launching browser → {url}")
-    frames_pil = []
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
+    with tempfile.TemporaryDirectory(prefix="dashgif_") as tmp:
+        frame_dir = Path(tmp)
 
-        page.goto(url, wait_until="networkidle", timeout=30000)
-        page.wait_for_timeout(2500)
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
 
-        page_h = page.evaluate("document.documentElement.scrollHeight")
-        max_scroll = max(page_h - VIEWPORT_H, 1)
-        print(f"Page height: {page_h}px  max_scroll: {max_scroll}px")
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(2500)
 
-        scroll_seq = build_scroll_sequence(max_scroll)
-        total = len(scroll_seq)
+            page_h = page.evaluate("document.documentElement.scrollHeight")
+            max_scroll = max(page_h - VIEWPORT_H, 1)
+            print(f"Page height: {page_h}px  max_scroll: {max_scroll}px")
 
-        for idx, frac in enumerate(scroll_seq):
-            scroll_y = int(frac * max_scroll)
-            page.evaluate(f"window.scrollTo(0, {scroll_y})")
-            page.wait_for_timeout(18)
+            scroll_seq = build_scroll_sequence(max_scroll)
+            total = len(scroll_seq)
 
-            png_bytes = page.screenshot(type="png")
-            img = Image.open(BytesIO(png_bytes)).convert("RGB")
+            for idx, frac in enumerate(scroll_seq):
+                scroll_y = int(frac * max_scroll)
+                page.evaluate(f"window.scrollTo(0, {scroll_y})")
+                page.wait_for_timeout(18)
 
-            scale = TARGET_W / img.width
-            new_h = int(img.height * scale)
-            img = img.resize((TARGET_W, new_h), Image.LANCZOS)
+                page.screenshot(path=str(frame_dir / f"f{idx:04d}.png"), type="png")
 
-            img_q = img.quantize(colors=GIF_COLORS, method=Image.Quantize.MEDIANCUT, dither=0)
-            frames_pil.append(img_q)
+                if (idx + 1) % 10 == 0 or idx == total - 1:
+                    print(f"  Captured {idx + 1}/{total} frames (scroll={scroll_y}px)")
 
-            if (idx + 1) % 10 == 0 or idx == total - 1:
-                print(f"  Captured {idx + 1}/{total} frames (scroll={scroll_y}px)")
+            browser.close()
 
-        browser.close()
+        print(f"Encoding GIF (ffmpeg, {FPS}fps, {TARGET_W}px, 256-color) → {OUT_PATH}")
+        encode_gif(frame_dir)
 
-    print(f"Assembling GIF → {OUT_PATH}")
-    frames_pil[0].save(
-        OUT_PATH,
-        format="GIF",
-        save_all=True,
-        append_images=frames_pil[1:],
-        duration=FRAME_MS,
-        loop=0,
-        optimize=True,
-    )
     size_mb = OUT_PATH.stat().st_size / 1_048_576
-    print(f"Done. {len(frames_pil)} frames · {size_mb:.1f} MB → {OUT_PATH}")
+    print(f"Done. {total} frames · {size_mb:.1f} MB → {OUT_PATH}")
 
 
 if __name__ == "__main__":

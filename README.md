@@ -147,5 +147,5 @@ Full architecture → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 ---
 
 <p align="center">
-  <img src="company.JPG" alt="Company Logo" width="50%" />
+  <img src="VRcompany.png" alt="Company Logo" width="50%" />
 </p>

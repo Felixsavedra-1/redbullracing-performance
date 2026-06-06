@@ -4327,7 +4327,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
 
     fig.add_hline(y=0, line=dict(color=_ZERO_LINE, width=1.5, dash="dot"))
 
-    # Area fills — show which driver is leading at a glance
     pos_gap = [g if g >= 0 else 0 for g in gap]
     neg_gap = [g if g < 0 else 0 for g in gap]
     fig.add_trace(go.Scatter(
@@ -4343,8 +4342,7 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
-    # Gap line — step interpolation (gap only changes at race events)
-    # Color segments by leader: build separate traces per contiguous leader block
+    # Step interpolation (shape="hv"): the gap only changes at race events.
     leader_color = color_a if gap[0] >= 0 else color_b
     seg_x: list = [rounds[0]]
     seg_y: list = [gap[0]]
@@ -4373,7 +4371,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
-    # Markers per round with full hover context
     fig.add_trace(go.Scatter(
         x=rounds, y=gap,
         mode="markers",
@@ -4389,7 +4386,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         ),
     ))
 
-    # End annotation — show the final gap prominently
     final_gap = gap[-1]
     final_round = rounds[-1]
     leader_name = surname_a if final_gap >= 0 else surname_b
@@ -4403,7 +4399,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         xanchor="left",
     )
 
-    # Zone labels — anchored to right edge, clearly in each zone
     fig.add_annotation(
         x=0.98, y=0.93, xref="paper", yref="paper",
         text=f"↑ {surname_a} leads",
