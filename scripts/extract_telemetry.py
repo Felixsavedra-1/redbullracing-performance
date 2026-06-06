@@ -123,7 +123,6 @@ def extract_all(
 
     races, driver_map, race_to_codes = _load_maps(engine, start_year, end_year)
 
-    # Full refresh for the requested range — idempotent re-runs.
     with engine.begin() as conn:
         conn.execute(text(
             "DELETE FROM laps WHERE race_id IN "

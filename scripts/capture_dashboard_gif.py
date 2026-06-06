@@ -17,7 +17,7 @@ OUT_PATH = REPO / "docs" / "dashboard.gif"
 VIEWPORT_W = 1440
 VIEWPORT_H = 860
 
-# (scroll_y_fraction, hold_frames) — hold longer at key visual sections
+# (scroll_y_fraction, hold_frames)
 SCROLL_WAYPOINTS = [
     (0.000, 6),   # status bar + header
     (0.030, 4),   # stats row
@@ -69,7 +69,6 @@ def main():
         page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
 
         page.goto(url, wait_until="networkidle", timeout=30000)
-        # Wait for Three.js + Space Mono font
         page.wait_for_timeout(2500)
 
         page_h = page.evaluate("document.documentElement.scrollHeight")
@@ -87,13 +86,11 @@ def main():
             png_bytes = page.screenshot(type="png")
             img = Image.open(BytesIO(png_bytes)).convert("RGB")
 
-            # Downsample to 900px wide to balance quality and file size
             target_w = 900
             scale = target_w / img.width
             new_h = int(img.height * scale)
             img = img.resize((target_w, new_h), Image.LANCZOS)
 
-            # Quantize to 72 colours — sufficient for dark UI palette
             img_q = img.quantize(colors=72, method=Image.Quantize.MEDIANCUT, dither=0)
             frames_pil.append(img_q)
 

@@ -38,7 +38,6 @@ except ImportError:
 _log = logging.getLogger("f1_analytics")
 _OUT = os.path.join("data", "exports", "f1_dashboard.html")
 
-# ── Blueprint palette ─────────────────────────────────────────────────────────
 _BG_SHEET = "#0b1929"   # drawing sheet
 _BG_PLOT  = "#071220"   # plot area (slightly deeper)
 _FG       = "#c8e6ff"   # primary text / lines
@@ -82,8 +81,6 @@ def _layout(**overrides) -> dict:
     }
 
 
-# ── Chart 1: Championship points progression ─────────────────────────────────
-
 def _championship(engine) -> go.Figure | None:
     sql = f"""
     SELECT ra.year, ra.round, ra.race_name,
@@ -122,8 +119,6 @@ def _championship(engine) -> go.Figure | None:
     fig.update_layout(**_layout(height=300 * nrows))
     return fig
 
-
-# ── Chart 2: Grid → Finish scatter with OLS ──────────────────────────────────
 
 def _qualifying_scatter(engine) -> go.Figure | None:
     sql = """
@@ -166,8 +161,6 @@ def _qualifying_scatter(engine) -> go.Figure | None:
     fig.update_layout(**_layout(height=520))
     return fig
 
-
-# ── Chart 3: Pit stop z-scores (individual stops) ────────────────────────────
 
 def _pit_stops(engine) -> go.Figure | None:
     sql = f"""
@@ -215,8 +208,6 @@ def _pit_stops(engine) -> go.Figure | None:
     fig.update_layout(**_layout(height=max(280, len(order) * 52)))
     return fig
 
-
-# ── Chart 4: Tyre strategy — compound per lap (most recent season) ────────────
 
 _COMPOUND_COLOR = {
     "SOFT":         "#E8002D",
@@ -270,8 +261,6 @@ def _tyre_strategy(engine) -> go.Figure | None:
     return fig
 
 
-# ── Chart 5: Mean sector time breakdown per driver ────────────────────────────
-
 def _sector_comparison(engine) -> go.Figure | None:
     sql = """
     SELECT COALESCE(d.forename,'') || ' ' || COALESCE(d.surname,'') AS driver,
@@ -312,8 +301,6 @@ def _sector_comparison(engine) -> go.Figure | None:
     fig.update_layout(**_layout(height=420))
     return fig
 
-
-# ── CAD drawing sheet HTML ────────────────────────────────────────────────────
 
 def _build_html(figs: list[go.Figure]) -> str:
     divs = [
@@ -505,8 +492,6 @@ def _build_html(figs: list[go.Figure]) -> str:
 </body>
 </html>"""
 
-
-# ── Entry point ───────────────────────────────────────────────────────────────
 
 def main() -> None:
     setup_logging()

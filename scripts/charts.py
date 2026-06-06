@@ -12,24 +12,20 @@ _PALETTE = [
 ]
 
 _RC: dict = {
-    # background / spines
     "figure.facecolor":     "#1C1C1C",
     "axes.facecolor":       "#232323",
     "axes.spines.top":      False,
     "axes.spines.right":    False,
     "axes.edgecolor":       "#FFD700",
-    # grid
     "axes.grid":            True,
     "axes.grid.axis":       "y",
     "grid.alpha":           0.22,
     "grid.linewidth":       0.6,
     "grid.color":           "#444444",
-    # text / tick colors
     "text.color":           "#FFFFFF",
     "axes.labelcolor":      "#FFFFFF",
     "xtick.color":          "#AAAAAA",
     "ytick.color":          "#AAAAAA",
-    # typography
     "font.family":          "sans-serif",
     "font.size":            10,
     "axes.titlesize":       12,
@@ -37,12 +33,10 @@ _RC: dict = {
     "axes.labelsize":       10,
     "xtick.labelsize":      9,
     "ytick.labelsize":      9,
-    # legend
     "legend.fontsize":      9,
     "legend.frameon":       False,
     "legend.facecolor":     "#232323",
     "legend.edgecolor":     "#444444",
-    # lines / export
     "lines.linewidth":      2.2,
     "patch.linewidth":      0.5,
     "figure.dpi":           150,
