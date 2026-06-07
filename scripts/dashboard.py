@@ -23,28 +23,32 @@ _LOGO_PATH = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "redbullracinglogo.jpg")
 )
 
+# "Wayne Enterprises" minimalist palette: pure black, bone-white data, a single
+# soft-amber accent. No neon, no glow — restraint carries the high-tech feel.
 _BG         = "#000000"
-_BG_CARD    = "#0B0B0C"
-_BG_HOVER   = "#141416"
-_GRID       = "#1C1C1F"
-_GRID_SOFT  = "#141417"
-_ZERO_LINE  = "#26262B"
-_TICK       = "#6B7077"
-_FONT_COLOR = "#FFFFFF"
+_BG_CARD    = "#0B0A08"
+_BG_HOVER   = "#16140F"
+_GRID       = "#1A1814"
+_GRID_SOFT  = "#141210"
+_ZERO_LINE  = "#26231C"
+_TICK       = "#6E685C"
+_FONT_COLOR = "#EDE8DF"
 _FONT       = "'Inter', 'Helvetica Neue', Arial, sans-serif"
-_ACCENT     = "#1E41FF"
-_ACCENT_DIM = "#2A2A30"
-_STATUS_OK  = "#1E41FF"
-_SPIKE      = "#1E41FF"
-_GLOW       = "#1E41FF"
+_ACCENT     = "#C8102E"
+_ACCENT_DIM = "#3A1A1F"
+_STATUS_OK  = "#C8102E"
+_SPIKE      = "#6E685C"
+_GLOW       = "#C8102E"
 
+# Single-accent discipline: the championship leader carries crimson; everyone else
+# steps down a warm-grey monochrome ramp.
 _DRIVER_COLORS = {
-    "Verstappen": "#1E41FF",
-    "Pérez":      "#FFFFFF",
-    "Tsunoda":    "#FF1800",
-    "Lawson":     "#FFDD00",
+    "Verstappen": "#C8102E",
+    "Pérez":      "#EDE8DF",
+    "Tsunoda":    "#9A958A",
+    "Lawson":     "#6B6760",
 }
-_FALLBACK_COLORS = ["#1E41FF", "#FFFFFF", "#FF1800", "#FFDD00", "#888888"]
+_FALLBACK_COLORS = ["#C8102E", "#EDE8DF", "#9A958A", "#6B6760", "#4A463F"]
 
 
 def _driver_color(name: str, idx: int) -> str:
@@ -76,26 +80,25 @@ _HTML_TEMPLATE = """\
 <script src="https://unpkg.com/three@0.128.0/examples/js/postprocessing/AfterimagePass.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
 <style>
-:root{--bg:#000;--bg-card:#0B0B0C;--bg-hover:#141416;--accent:#1E41FF;--accent-2:#CC0000;--text:#FFFFFF;--dim:#9AA0A6;--border:#1C1C1F;--line:#26262B;--elev-1:#101012;--elev-2:#0B0B0C;--glow:rgba(30,65,255,.45);--hair:rgba(255,255,255,.05);--font:'Inter','Helvetica Neue','Helvetica',Arial,sans-serif;--mono:'Space Mono','SFMono-Regular',ui-monospace,Menlo,Consolas,monospace}
+:root{--bg:#000;--bg-card:#0B0A08;--bg-hover:#16140F;--accent:#C8102E;--accent-soft:rgba(200,16,46,.14);--text:#EDE8DF;--dim:#857F72;--border:#1A1814;--line:#26231C;--elev-1:#0E0D0A;--elev-2:#080706;--glow:rgba(200,16,46,.12);--hair:rgba(237,232,223,.05);--font:'Inter','Helvetica Neue','Helvetica',Arial,sans-serif;--mono:'Space Mono','SFMono-Regular',ui-monospace,Menlo,Consolas,monospace}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:var(--font);min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-.status-bar{display:flex;align-items:center;gap:18px;padding:9px 40px;background:linear-gradient(180deg,#050507,#000);border-bottom:1px solid var(--border);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);position:sticky;top:0;z-index:100;flex-wrap:wrap;box-shadow:0 1px 0 rgba(30,65,255,.10),0 6px 18px rgba(0,0,0,.6)}
-.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 7px var(--accent)}
+body{background:#000;color:var(--text);font-family:var(--font);min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.status-bar{display:flex;align-items:center;gap:18px;padding:11px 44px;background:#000;border-bottom:1px solid var(--border);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sb-label{color:var(--dim)}
-.sb-val{color:#fff;font-weight:700;font-family:var(--mono);letter-spacing:.06em}
-.sb-sep{color:#3A3A3F}
+.sb-val{color:var(--text);font-weight:700;font-family:var(--mono);letter-spacing:.06em}
+.sb-sep{color:#2A2722}
 .sb-spacer{margin-left:auto}
 .sb-rec{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:700}
-.sb-rec b{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:sbPulse 1.1s ease-in-out infinite}
-header{padding:48px 40px 34px;border-bottom:1px solid var(--border);background:#000}
-.hd-team{font-size:.62rem;font-weight:600;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
+.sb-rec b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+header{padding:56px 44px 40px;border-bottom:1px solid var(--border);background:#000}
+.hd-team{font-size:.62rem;font-weight:600;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:14px}
 h1{font-size:2.4rem;font-weight:600;letter-spacing:-.02em;line-height:1.04}
 h1 span.accent{color:var(--accent)}
 .sub{color:var(--dim);font-size:.72rem;font-weight:500;letter-spacing:.16em;margin-top:14px;text-transform:uppercase}
-.cluster{position:relative;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#0a0a0d,#000);padding:30px 40px 34px;overflow:hidden}
-.cluster::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 18% 0%,rgba(30,65,255,.08),transparent 55%)}
-.cluster-hd{display:flex;align-items:center;gap:12px;font-size:.56rem;font-weight:600;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:24px;font-family:var(--font);position:relative}
-.cluster-hd>.dot{width:8px;height:8px;background:var(--accent);box-shadow:0 0 8px var(--accent);flex-shrink:0}
+.cluster{position:relative;border-bottom:1px solid var(--border);background:#000;padding:38px 44px 42px}
+.cluster-hd{display:flex;align-items:center;gap:12px;font-size:.56rem;font-weight:600;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;margin-bottom:28px;font-family:var(--font);position:relative}
+.cluster-hd>.dot{width:6px;height:6px;background:var(--accent);flex-shrink:0}
 .cluster-hd>.ln{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
 .cluster-hd>.tag{font-family:var(--mono);color:var(--accent);letter-spacing:.10em}
 .cluster-body{display:grid;grid-template-columns:auto 1fr;gap:42px;align-items:center;position:relative}
@@ -104,19 +107,19 @@ h1 span.accent{color:var(--accent)}
 .gauge:nth-child(2){animation-delay:.08s}.gauge:nth-child(3){animation-delay:.16s}
 .g-ring{position:relative;width:124px;height:124px}
 .g-ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
-.g-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.55rem;font-weight:700;color:#fff;letter-spacing:-.02em;text-shadow:0 0 14px var(--glow);font-variant-numeric:tabular-nums}
+.g-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.55rem;font-weight:700;color:var(--text);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .g-val small{font-size:.72rem;color:var(--dim);margin-left:1px;font-weight:400}
-.g-lbl{margin-top:9px;font-size:.50rem;font-weight:600;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;text-align:center}
-.g-track{fill:none;stroke:#16171c}
-.g-arc{fill:none;stroke:var(--accent);stroke-linecap:round;filter:drop-shadow(0 0 4px var(--glow));transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1)}
-.g-tick{fill:none;stroke:#2a2b33;stroke-width:4}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.kpi{background:linear-gradient(180deg,var(--elev-1),var(--elev-2));padding:15px 16px;position:relative;transition:background .18s,box-shadow .18s;animation:fadeUp .55s ease both}
+.g-lbl{margin-top:11px;font-size:.50rem;font-weight:600;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;text-align:center}
+.g-track{fill:none;stroke:#16140F}
+.g-arc{fill:none;stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1)}
+.g-tick{fill:none;stroke:#26231C;stroke-width:4}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.kpi{background:var(--elev-1);padding:16px 17px;position:relative;transition:background .18s;animation:fadeUp .55s ease both}
 .kpi:nth-child(n+2){animation-delay:.05s}.kpi:nth-child(n+5){animation-delay:.12s}
-.kpi:hover{background:linear-gradient(180deg,#15161c,#0c0c10);box-shadow:inset 0 0 0 1px var(--glow)}
-.kpi::after{content:'';position:absolute;top:11px;right:11px;width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);opacity:.65}
+.kpi:hover{background:var(--bg-hover)}
+.kpi::after{content:'';position:absolute;top:12px;right:12px;width:3px;height:3px;border-radius:50%;background:var(--accent);opacity:.7}
 .kpi-top{display:flex;align-items:baseline;gap:4px}
-.kpi-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:#fff;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+.kpi-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--text);letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
 .kpi-unit{font-size:.5rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 .kpi-lbl{font-size:.5rem;color:var(--dim);font-weight:500;letter-spacing:.14em;margin-top:9px;text-transform:uppercase}
 .ticker{position:relative;border-bottom:1px solid var(--border);background:#040406;overflow:hidden;white-space:nowrap}
@@ -126,42 +129,39 @@ h1 span.accent{color:var(--accent)}
 .ticker-track{display:inline-flex;align-items:center;will-change:transform;animation:tickerScroll 42s linear infinite}
 .ticker:hover .ticker-track{animation-play-state:paused}
 .ticker-item{display:inline-flex;align-items:center;gap:8px;padding:8px 22px;font-family:var(--mono);font-size:.6rem;letter-spacing:.10em;color:var(--dim);text-transform:uppercase}
-.ticker-item b{color:#fff;font-weight:700}
+.ticker-item b{color:var(--text);font-weight:700}
 .ticker-item .k{color:var(--accent)}
-.ticker-item::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);margin-right:4px}
+.ticker-item::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.7;margin-right:4px}
 @keyframes tickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .car-viewer{padding:0;display:flex;justify-content:center;border-bottom:1px solid var(--border);background:radial-gradient(ellipse at 50% 42%,#141416 0%,#000 72%);cursor:pointer;position:relative}
 .car-viewer::before{content:'RB \\00B7 STUDIO RENDER';position:absolute;top:16px;left:24px;font-size:.56rem;font-weight:500;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;font-family:var(--font);z-index:2}
 #f1car{display:block;width:100%;height:480px}
-.race-cta{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:10px;font-family:var(--font);font-size:.74rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:13px 26px;cursor:pointer;z-index:3;transition:transform .16s ease,background .16s ease,box-shadow .16s ease;box-shadow:0 6px 22px rgba(30,65,255,.28)}
-.race-cta:hover{transform:translateX(-50%) translateY(-2px);background:#3358ff;box-shadow:0 10px 30px rgba(30,65,255,.42)}
+.race-cta{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:10px;font-family:var(--font);font-size:.74rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#EDE8DF;background:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:13px 26px;cursor:pointer;z-index:3;transition:transform .16s ease,background .16s ease}
+.race-cta:hover{transform:translateX(-50%) translateY(-2px);background:#E0263F}
 .race-cta:active{transform:translateX(-50%) translateY(0)}
-.race-cta .tri{width:0;height:0;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #fff}
-.charts{padding:40px;display:grid;grid-template-columns:1fr;gap:40px}
-.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
-.chart-section{background:linear-gradient(var(--glow),var(--glow)) left 9px top 9px/14px 1px no-repeat,linear-gradient(var(--glow),var(--glow)) left 9px top 9px/1px 14px no-repeat,linear-gradient(var(--glow),var(--glow)) right 9px top 9px/14px 1px no-repeat,linear-gradient(var(--glow),var(--glow)) right 9px top 9px/1px 14px no-repeat,linear-gradient(var(--glow),var(--glow)) left 9px bottom 9px/14px 1px no-repeat,linear-gradient(var(--glow),var(--glow)) left 9px bottom 9px/1px 14px no-repeat,linear-gradient(var(--glow),var(--glow)) right 9px bottom 9px/14px 1px no-repeat,linear-gradient(var(--glow),var(--glow)) right 9px bottom 9px/1px 14px no-repeat,linear-gradient(180deg,var(--elev-1),var(--elev-2));border:1px solid var(--border);border-radius:12px;padding:26px 22px 16px;position:relative;box-shadow:inset 0 1px 0 var(--hair),0 10px 32px rgba(0,0,0,.45);transition:transform .2s ease,box-shadow .2s ease}
-.chart-section:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 var(--hair),0 0 0 1px var(--glow),0 16px 42px rgba(30,65,255,.13)}
+.race-cta .tri{width:0;height:0;border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent #EDE8DF}
+.charts{padding:48px 44px;display:grid;grid-template-columns:1fr;gap:44px}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.chart-section{background:var(--elev-1);border:1px solid var(--border);border-radius:10px;padding:28px 24px 18px;position:relative;transition:border-color .2s ease}
+.chart-section:hover{border-color:#2E2A22}
 .chart-section[data-section]::before{content:attr(data-section);position:absolute;top:-7px;left:18px;font-size:.50rem;font-weight:500;letter-spacing:.20em;color:var(--dim);background:var(--elev-1);padding:0 8px;font-family:var(--mono);text-transform:uppercase;z-index:2}
-.chart-section[data-readout]::after{content:attr(data-readout);position:absolute;top:14px;right:18px;font-size:.48rem;font-weight:700;letter-spacing:.16em;color:var(--accent);font-family:var(--mono);text-transform:uppercase;z-index:2;opacity:.8}
-.chart-section .scan{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--glow),transparent);opacity:0;pointer-events:none;z-index:1}
-.chart-section:hover .scan{animation:panelScan 1.2s ease}
-@keyframes panelScan{0%{top:0;opacity:0}12%{opacity:.9}88%{opacity:.9}100%{top:100%;opacity:0}}
-.chart-label{font-size:.70rem;font-weight:600;letter-spacing:.16em;color:#fff;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px}
-.chart-label::before{content:'';width:8px;height:8px;background:var(--accent);border-radius:1px;flex-shrink:0}
+.chart-section[data-readout]::after{content:attr(data-readout);position:absolute;top:14px;right:18px;font-size:.48rem;font-weight:700;letter-spacing:.16em;color:var(--accent);font-family:var(--mono);text-transform:uppercase;z-index:2;opacity:.75}
+.chart-label{font-size:.70rem;font-weight:600;letter-spacing:.18em;color:var(--text);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.chart-label::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:1px;flex-shrink:0}
 .telemetry-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;padding-top:16px}
-.telem-panel{border:1px solid var(--border);border-radius:6px;padding:16px 18px;position:relative;background:linear-gradient(180deg,var(--elev-1),var(--elev-2));box-shadow:inset 0 1px 0 var(--hair);transition:box-shadow .18s}
-.telem-panel:hover{box-shadow:inset 0 1px 0 var(--hair),0 0 0 1px var(--glow),0 8px 24px rgba(30,65,255,.12)}
+.telem-panel{border:1px solid var(--border);border-radius:6px;padding:16px 18px;position:relative;background:var(--elev-2);transition:border-color .18s}
+.telem-panel:hover{border-color:#2E2A22}
 .telem-label{font-size:.56rem;font-weight:500;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-bottom:10px;font-family:var(--font)}
-footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-.ft-left{font-size:.58rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+footer{padding:28px 44px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.ft-left{font-size:.58rem;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
 .ft-status{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.56rem;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}
-.ft-status b{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:sbPulse 1.6s ease-in-out infinite}
+.ft-status b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
 .ft-right{font-size:.58rem;color:var(--dim);letter-spacing:.08em;font-family:var(--mono)}
 .ft-right span{color:var(--accent)}
 @media(max-width:860px){.chart-row{grid-template-columns:1fr}.telemetry-row{grid-template-columns:1fr}.cluster-body{grid-template-columns:1fr;gap:28px}.gauges{justify-content:center;flex-wrap:wrap}.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){h1{font-size:1.6rem}.kpis{grid-template-columns:1fr}.charts{padding:24px}.cluster{padding:24px}}
 .logo-bar{display:flex;justify-content:center;padding:34px 0 18px}
-.logo-img{height:150px;display:block;filter:invert(1)}
+.logo-img{height:104px;display:block;filter:grayscale(1) invert(1) brightness(1.05);opacity:.92}
 #game-overlay{display:none;position:fixed;inset:0;z-index:9999;background:#000}
 #game-overlay.active{display:grid;grid-template-rows:1fr auto}
 #game-canvas{width:100%;height:100%;display:block;outline:none;min-height:0}
@@ -260,21 +260,16 @@ footer{padding:24px 40px;border-top:1px solid var(--border);display:flex;justify
 #go-flash{display:none;position:absolute;inset:0;background:rgba(255,255,255,.88);z-index:20002;pointer-events:none}
 #grid-msg{display:none;position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:20001;color:#E0F2FE;font-family:'Space Mono','Courier New',monospace;font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;text-align:center;text-shadow:0 0 8px #00D4FF;pointer-events:none}
 #grid-msg.active{display:block}
-body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.13) 0,rgba(0,0,0,.13) 1px,transparent 1px,transparent 3px),repeating-linear-gradient(to right,rgba(30,65,255,.030) 0,rgba(30,65,255,.030) 1px,transparent 1px,transparent 46px),repeating-linear-gradient(to bottom,rgba(30,65,255,.030) 0,rgba(30,65,255,.030) 1px,transparent 1px,transparent 46px),radial-gradient(ellipse at 50% 28%,transparent 58%,rgba(0,0,0,.55) 100%)}
-body::before{content:'';position:fixed;left:0;right:0;top:0;height:120px;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(30,65,255,.055),transparent);animation:scanSweep 9s linear infinite}
-@keyframes scanSweep{0%{transform:translateY(-130px)}100%{transform:translateY(100vh)}}
+body::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 22%,transparent 62%,rgba(0,0,0,.45) 100%)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes sbPulse{0%,100%{opacity:1}50%{opacity:.32}}
-@keyframes carPulse{0%,100%{opacity:.5}50%{opacity:.95}}
 header{animation:fadeUp .55s ease both}
 .charts>*{animation:fadeIn .7s ease both}
 .charts>*:nth-child(n+2){animation-delay:.1s}
 .charts>*:nth-child(n+4){animation-delay:.2s}
 .charts>*:nth-child(n+6){animation-delay:.3s}
-.sb-dot{animation:sbPulse 1.6s ease-in-out infinite}
 #f1car{position:relative;z-index:1}
-.car-viewer::after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;background:radial-gradient(ellipse at 50% 100%,rgba(30,65,255,.18),transparent 70%);pointer-events:none;z-index:0;animation:carPulse 4s ease-in-out infinite}
+.car-viewer::after{content:'';position:absolute;left:0;right:0;bottom:0;height:150px;background:radial-gradient(ellipse at 50% 100%,rgba(200,16,46,.07),transparent 72%);pointer-events:none;z-index:0}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -4113,15 +4108,10 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def _glow_line(x, y, color, *, name=None, width=2.5, shape="spline",
+def _glow_line(x, y, color, *, name=None, width=2.0, shape="spline",
                marker=None, hovertemplate=None) -> list[go.Scatter]:
-    """A neon line: a wide low-opacity halo trace beneath a crisp core trace.
-    The halo sells the glow; the core carries the data, legend, and hover."""
-    halo = go.Scatter(
-        x=x, y=y, mode="lines",
-        line=dict(color=_hex_to_rgba(color, 0.10), width=width * 4.5, shape=shape),
-        showlegend=False, hoverinfo="skip",
-    )
+    """A single crisp data line — no neon halo. Kept as a list so callers can
+    keep using add_traces; the minimalist look relies on restraint, not glow."""
     core = go.Scatter(
         x=x, y=y,
         mode="lines+markers" if marker else "lines",
@@ -4130,7 +4120,7 @@ def _glow_line(x, y, color, *, name=None, width=2.5, shape="spline",
         hovertemplate=hovertemplate,
         showlegend=name is not None,
     )
-    return [halo, core]
+    return [core]
 
 
 
@@ -4214,7 +4204,7 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
         fig.add_traces(_glow_line(
             g["round"], g["points"], color,
             name=surname,
-            marker=dict(size=6, color=color, line=dict(color="#030F1A", width=1)),
+            marker=dict(size=6, color=color, line=dict(color="#0B0A08", width=1)),
             hovertemplate=f"<b>{surname}</b>  %{{y}} pts<extra></extra>",
         ))
 
@@ -4225,7 +4215,7 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
                 mode="markers",
                 name=f"{surname} win glow",
                 marker=dict(symbol="circle", size=22,
-                            color=_hex_to_rgba("#FFD700", 0.22)),
+                            color="rgba(255,255,255,0.18)"),
                 showlegend=False, hoverinfo="skip",
             ))
             fig.add_trace(go.Scatter(
@@ -4234,8 +4224,8 @@ def chart_championship_2d(traj_df: pd.DataFrame) -> go.Figure:
                 name=f"{surname} win",
                 marker=dict(
                     symbol="star-diamond", size=12,
-                    color="#FFD700",
-                    line=dict(color="#030F1A", width=1),
+                    color="#EDE8DF",
+                    line=dict(color="#0B0A08", width=1),
                 ),
                 showlegend=False,
                 hovertemplate=f"<b>{surname}</b>  WIN  %{{y}} pts<extra></extra>",
@@ -4270,7 +4260,7 @@ def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
     layout.yaxis.update(autorange="reversed", dtick=5)
     fig = go.Figure(layout=layout)
 
-    fig.add_hrect(y0=0.5, y1=1.5, fillcolor="rgba(255,215,0,0.10)", layer="below", line_width=0)
+    fig.add_hrect(y0=0.5, y1=1.5, fillcolor="rgba(200,16,46,0.10)", layer="below", line_width=0)
     fig.add_hrect(y0=0.5, y1=3.5, fillcolor="rgba(255,255,255,0.04)", layer="below", line_width=0)
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
@@ -4278,7 +4268,7 @@ def chart_positions_bump_2d(traj_df: pd.DataFrame) -> go.Figure:
         fig.add_traces(_glow_line(
             g["round"], g["position"], color,
             name=driver.split()[-1], shape="linear",
-            marker=dict(size=7, color=color, line=dict(color="#030F1A", width=1.5)),
+            marker=dict(size=7, color=color, line=dict(color="#0B0A08", width=1.5)),
             hovertemplate="<b>%{fullData.name}</b>  P%{y}<extra></extra>",
         ))
     return fig
@@ -4378,7 +4368,7 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         marker=dict(
             size=7,
             color=[color_a if g >= 0 else color_b for g in gap],
-            line=dict(color="#030F1A", width=1),
+            line=dict(color="#0B0A08", width=1),
         ),
         customdata=[[surname_a if (g or 0) >= 0 else surname_b, abs(int(g)) if pd.notna(g) else 0] for g in gap],
         hovertemplate=(
@@ -4448,12 +4438,14 @@ def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
         z[ri][ci] = float(row["pos_clip"])
         text[ri][ci] = row["label"]
 
+    # Monochrome crimson ramp: a win (P1) glows crimson, midfield fades to warm grey,
+    # a poor finish sinks to near-black. Single-accent, no clashing hues.
     colorscale = [
-        [0.00, "#00D4FF"],
-        [0.10, "#1E41FF"],
-        [0.40, "#0A2035"],
-        [0.75, "#8B0000"],
-        [1.00, "#4A0000"],
+        [0.00, "#E0263F"],
+        [0.18, "#C8102E"],
+        [0.45, "#883A45"],
+        [0.75, "#45262B"],
+        [1.00, "#1A1414"],
     ]
 
     fig.add_trace(go.Heatmap(
@@ -4525,7 +4517,7 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
             customdata=list(zip(g["year"], delta)),
             marker=dict(
                 size=7, color=point_colors,
-                line=dict(color="#030F1A", width=0.5),
+                line=dict(color="#0B0A08", width=0.5),
             ),
             hovertemplate=(
                 "<b>%{fullData.name}</b>  %{customdata[0]}<br>"
@@ -4574,8 +4566,9 @@ def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
     z_min, z_max = df["mean_z"].min(), df["mean_z"].max()
     z_range = max(z_max - z_min, 1e-9)
     norm = ((df["mean_z"] - z_min) / z_range).tolist()  # 0 = fastest, 1 = slowest
+    # Fastest = crimson, slowest = warm grey — a single-accent gradient, no magenta.
     bar_colors = [
-        f"rgba({int(255 * v)},{int(212 * (1 - v))},{int(255 * (1 - v))},0.90)"
+        f"rgba({int(200 - 90 * v)},{int(16 + 88 * v)},{int(46 + 46 * v)},0.92)"
         for v in norm
     ]
 
@@ -4587,7 +4580,7 @@ def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
         marker=dict(color=bar_colors),
         error_x=dict(
             type="data", array=sem.tolist(), visible=True,
-            color="#FFFFFF", thickness=1.8, width=5,
+            color="#EDE8DF", thickness=1.8, width=5,
         ),
         customdata=list(zip(df["n_stops"], df["std_z"].fillna(0))),
         hovertemplate=(
@@ -4633,8 +4626,10 @@ def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
     err_lower = (df["rate"] - df["ci_lower"]).clip(lower=0)
 
     max_rate = max(df["rate"].max(), 1e-9)
+    # Reliable (low DNF) = crimson, unreliable = warm grey — same single-accent ramp
+    # as the pit-efficiency bars.
     dot_colors = [
-        f"rgba({int(220 * r / max_rate)},{int(200 * (1 - r / max_rate))},60,0.95)"
+        (lambda t: f"rgba({int(200 - 90 * t)},{int(16 + 88 * t)},{int(46 + 46 * t)},0.95)")(r / max_rate)
         for r in df["rate"]
     ]
 
@@ -4645,14 +4640,14 @@ def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
         marker=dict(
             size=11,
             color=dot_colors,
-            line=dict(color="#030F1A", width=1.5),
+            line=dict(color="#0B0A08", width=1.5),
         ),
         error_x=dict(
             type="data", symmetric=False,
             array=err_upper.tolist(),
             arrayminus=err_lower.tolist(),
             visible=True,
-            color="rgba(255,255,255,0.65)",
+            color="rgba(237,232,223,0.55)",
             thickness=2.5, width=5,
         ),
         customdata=list(zip(df["ci_lower"], df["ci_upper"], df["races"], df["dnfs"])),
@@ -4694,11 +4689,12 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
         return fig
 
     surnames = df["driver"].apply(lambda d: d.split()[-1]).tolist()
-    # S2 was near-white (#E0F2FE) — invisible on dark background; use orange instead
+    # Three sectors in the monochrome + amber palette so they read on black
+    # without introducing clashing hues.
     sector_cfg = [
         ("s1_mean", "S1", _ACCENT),
-        ("s2_mean", "S2", "#FF9500"),
-        ("s3_mean", "S3", "#FFD700"),
+        ("s2_mean", "S2", "#EDE8DF"),
+        ("s3_mean", "S3", "#9A958A"),
     ]
     for col, label, color in sector_cfg:
         if col not in df.columns:
@@ -4730,12 +4726,14 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
 
 
 
+# Compound identity kept (still readable as F1 tyres) but desaturated to sit
+# inside the dark, minimalist palette instead of clashing with it.
 _COMPOUND_COLORS = {
-    "SOFT":         "#FF3333",
-    "MEDIUM":       "#FFD700",
-    "HARD":         "#CCCCCC",
-    "INTERMEDIATE": "#39B54A",
-    "WET":          "#0067FF",
+    "SOFT":         "#C0584A",
+    "MEDIUM":       "#D6A53C",
+    "HARD":         "#D8D2C6",
+    "INTERMEDIATE": "#5E8C5A",
+    "WET":          "#5A7CA0",
 }
 
 
