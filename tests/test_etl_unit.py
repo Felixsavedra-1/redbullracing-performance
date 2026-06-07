@@ -64,7 +64,6 @@ class TestApplyRefMap(unittest.TestCase):
             t = F1DataTransformer(raw_data_path=tmp + "/", processed_data_path=tmp + "/")
             df = pd.DataFrame({"constructor_ref": ["red_bull", "unknown_team"]})
             result = t._apply_ref_map(df, "constructor_ref", "constructor_id", "constructors.csv")
-            # known ref is mapped correctly
             self.assertEqual(result.loc[result["constructor_ref"] == "red_bull", "constructor_id"].iloc[0], 9)
             # unknown ref row is dropped entirely — no FK=0 pollution
             self.assertEqual(len(result[result["constructor_ref"] == "unknown_team"]), 0)
@@ -188,7 +187,6 @@ class TestIncrementalStagingCleanup(unittest.TestCase):
         """Full-refresh must rename old DB to .bak rather than deleting it."""
         with tempfile.TemporaryDirectory() as tmp:
             db_path = os.path.join(tmp, "test.db")
-            # Create a pre-existing database file
             with open(db_path, "w") as f:
                 f.write("old data")
             F1DataLoader(

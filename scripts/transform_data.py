@@ -1,6 +1,4 @@
-"""
-Data transformation utilities for F1 analytics.
-"""
+"""Clean raw F1 CSVs and resolve ``*_ref`` string keys to integer ``*_id`` surrogate keys for load."""
 
 import os
 import sys
