@@ -1,4 +1,4 @@
-# Oracle Red Bull Racing · F1 Analytics
+# Red Bull Racing F1 Performance Analytics + Game
 
 <p align="center">
   <img src="docs/dashboard.gif" alt="Interactive dashboard — Three.js 3D visualization + playable F1 game" width="100%">
