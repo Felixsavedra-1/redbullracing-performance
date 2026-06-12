@@ -26,7 +26,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from constants import CONSTRUCTOR_ID, TEAM_REFS, TEAM_NAME
+from constants import CONSTRUCTOR_ID, DNF_POSITION_ORDER, TEAM_REFS, TEAM_NAME
 from load_data import _build_connection_string
 from logging_utils import setup_logging
 
@@ -121,7 +121,7 @@ def _championship(engine) -> go.Figure | None:
 
 
 def _qualifying_scatter(engine) -> go.Figure | None:
-    sql = """
+    sql = f"""
     SELECT COALESCE(d.forename,'') || ' ' || COALESCE(d.surname,'') AS driver,
            ra.year, ra.race_name, r.grid,
            r.position_order AS finish
@@ -129,7 +129,7 @@ def _qualifying_scatter(engine) -> go.Figure | None:
     JOIN drivers d  ON r.driver_id = d.driver_id
     JOIN races   ra ON r.race_id   = ra.race_id
     WHERE r.constructor_id = :cid
-      AND r.grid > 0 AND r.position_order < 999
+      AND r.grid > 0 AND r.position_order < {DNF_POSITION_ORDER}
     """
     with engine.connect() as conn:
         df = pd.read_sql(text(sql), conn, params={"cid": CONSTRUCTOR_ID})

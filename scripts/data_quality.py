@@ -11,7 +11,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR
+from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, DNF_POSITION_ORDER
 
 
 def _as_round_set(skipped: dict | None) -> set:
@@ -69,11 +69,11 @@ def run_quality_checks(
         add_check(f"results_{col}_non_negative", f"SELECT COUNT(*) AS value FROM results WHERE {col} < 0")
     add_check(
         "results_position_order_consistency",
-        """
+        f"""
         SELECT COUNT(*) AS value FROM results
         WHERE position IS NOT NULL
           AND CAST(position AS INTEGER) BETWEEN 1 AND 20
-          AND position_order = 999
+          AND position_order = {DNF_POSITION_ORDER}
         """,
     )
 

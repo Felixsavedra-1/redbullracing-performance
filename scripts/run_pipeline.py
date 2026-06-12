@@ -13,7 +13,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from logging_utils import setup_logging, format_table
-from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, TEAM_NAME, TEAM_REFS
+from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, DNF_POSITION_ORDER, TEAM_NAME, TEAM_REFS
 from extract_data import F1DataExtractor
 from transform_data import F1DataTransformer
 from load_data import F1DataLoader, DB_CONFIG
@@ -42,8 +42,8 @@ SELECT
     SUM(res.points) AS points,
     COUNT(*) FILTER (WHERE res.position = 1)  AS wins,
     COUNT(*) FILTER (WHERE res.position <= 3) AS podiums,
-    ROUND(AVG(res.position_order) FILTER (WHERE res.position_order < 999), 1) AS avg_finish,
-    COUNT(*) FILTER (WHERE res.position_order = 999) AS dnfs,
+    ROUND(AVG(res.position_order) FILTER (WHERE res.position_order < {dnf}), 1) AS avg_finish,
+    COUNT(*) FILTER (WHERE res.position_order = {dnf}) AS dnfs,
     MIN(r.year) AS from_yr,
     MAX(r.year) AS to_yr
 FROM results res
@@ -63,8 +63,8 @@ SELECT
     SUM(res.points) AS points,
     COUNT(CASE WHEN res.position = 1  THEN 1 END) AS wins,
     COUNT(CASE WHEN res.position <= 3 THEN 1 END) AS podiums,
-    ROUND(AVG(CASE WHEN res.position_order < 999 THEN res.position_order END), 1) AS avg_finish,
-    COUNT(CASE WHEN res.position_order = 999 THEN 1 END) AS dnfs,
+    ROUND(AVG(CASE WHEN res.position_order < {dnf} THEN res.position_order END), 1) AS avg_finish,
+    COUNT(CASE WHEN res.position_order = {dnf} THEN 1 END) AS dnfs,
     MIN(r.year) AS from_yr,
     MAX(r.year) AS to_yr
 FROM results res
@@ -93,7 +93,7 @@ def _print_driver_summary(engine) -> None:
         placeholders = ", ".join(f":r{i}" for i in range(len(TEAM_REFS)))
         params = {f"r{i}": r for i, r in enumerate(TEAM_REFS)}
         template = _DRIVER_SUMMARY_SQL if (DB_CONFIG or {}).get("type") == "duckdb" else _DRIVER_SUMMARY_SQL_SQLITE
-        sql = template.format(team_refs=placeholders)
+        sql = template.format(team_refs=placeholders, dnf=DNF_POSITION_ORDER)
         with engine.connect() as conn:
             df = pd.read_sql(text(sql), conn, params=params)
         if df.empty:
@@ -274,7 +274,7 @@ def run_full_pipeline(
     logger.info("Pipeline completed successfully.")
     logger.info("Next steps:")
     logger.info("  - Run queries: python scripts/run_queries.py --list")
-    logger.info("  - Export results: python scripts/run_queries.py --query kpi_summary --export")
+    logger.info("  - Export results: python scripts/run_queries.py --query key_performance_indicators --export")
 
 
 def main() -> None:
