@@ -26,7 +26,7 @@ A resumable ETL pipeline that extracts Formula 1 race results and lap telemetry 
 
 ## Highlights
 
-- **Dual-source ETL** — Ergast API for race results + FastF1 for lap-by-lap telemetry, 2020–2025, resumable with adaptive backoff
+- **Dual-source ETL** — Ergast API for race results + FastF1 for lap-by-lap telemetry, 2021–2025, resumable with adaptive backoff
 - **7 statistical models** — OLS regression, Poisson MLE, and 95% t-intervals over the loaded warehouse
 - **CI-enforced quality** — 15+ post-load integrity gates plus `dbt compile` on every push
 - **Self-contained dashboard** — Three.js PBR car, 7 Plotly charts, and an embedded physics-based F1 game in one HTML file
