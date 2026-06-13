@@ -104,6 +104,11 @@ body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;bac
 .sb-spacer{margin-left:auto}
 .sb-rec{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:700}
 .sb-rec b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.brand-badge{display:flex;flex-direction:column;gap:3px;padding:8px 14px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
+.brand-name{font-family:var(--font);font-size:.74rem;font-weight:700;letter-spacing:.12em;color:var(--text);line-height:1;text-transform:none}
+.brand-sub{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.46rem;font-weight:600;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;line-height:1}
+.brand-sub::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px rgba(179,18,43,.8);flex-shrink:0}
+.brand-badge.in-game{position:fixed;top:12px;left:12px;z-index:10002;pointer-events:none}
 header{padding:56px 44px 40px;border-bottom:1px solid var(--border);background:#000;position:relative;overflow:hidden}
 .hd-team{font-size:.62rem;font-weight:600;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .hd-team::before{content:'';width:18px;height:1px;background:var(--accent)}
@@ -260,7 +265,7 @@ footer{padding:28px 44px;border-top:1px solid var(--border);display:flex;justify
 #hud-minimap{position:absolute;bottom:8px;right:12px;border:1px solid rgba(214,32,63,.55);background:rgba(8,7,6,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:6px;pointer-events:none;box-shadow:0 8px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05)}
 #hud-wheel{position:absolute;bottom:10px;right:182px;pointer-events:none}
 .hud-drs.armed{color:#C7A06A;border-color:#C7A06A;text-shadow:0 0 8px #C7A06A}
-#hud-standings{position:fixed;top:12px;left:12px;width:188px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;pointer-events:none;overflow:hidden;z-index:10001;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
+#hud-standings{position:fixed;top:70px;left:12px;width:188px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;pointer-events:none;overflow:hidden;z-index:10001;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
 #hud-standings .st-hd{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;font-size:9px;letter-spacing:.22em;color:#D6203F;background:linear-gradient(90deg,rgba(214,32,63,.18),rgba(214,32,63,0));border-bottom:1px solid #2A2E30;text-transform:uppercase}
 #hud-standings .st-hd b{color:#ECE5D5;font-weight:700;letter-spacing:.10em}
 #hud-standings .st-row{display:flex;align-items:center;gap:6px;padding:1px 6px;font-size:10px;line-height:15px;letter-spacing:.04em;color:#7E858B;border-bottom:1px solid rgba(22,20,16,.5)}
@@ -345,6 +350,10 @@ header{animation:fadeUp .55s ease both}
 </head>
 <body>
 <div class="status-bar">
+  <div class="brand-badge">
+    <span class="brand-name">Vedra Research</span>
+    <span class="brand-sub">Powered by Claude</span>
+  </div>
   <div class="sb-dot"></div>
   <span><span class="sb-label">SYSTEM</span>&nbsp;<span class="sb-val">NOMINAL</span></span>
   <span class="sb-sep">&middot;</span>
@@ -382,6 +391,10 @@ header{animation:fadeUp .55s ease both}
 <div id="game-overlay">
   <canvas id="game-canvas" tabindex="0"></canvas>
   <div id="hud">
+    <div class="brand-badge in-game">
+      <span class="brand-name">Vedra Research</span>
+      <span class="brand-sub">Powered by Claude</span>
+    </div>
     <div id="hud-main">
       <span class="hud-pos">P4</span>
       <span class="hud-lap">LAP 1/3</span>

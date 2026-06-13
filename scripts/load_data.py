@@ -25,6 +25,7 @@ class TableSpec(NamedTuple):
     datetime_cols: list[str]
     fillna_defaults: dict[str, str]
 
+
 try:
     from config import DB_CONFIG, DATA_PATHS
 except ImportError:

@@ -7,12 +7,10 @@ extend-ignore =
     E402,
     # Line break before binary operator — Black-compatible style
     W503,
-    # Whitespace in blank lines — pre-existing style in extract_data.py
-    W293,
-    # Expected 2 blank lines — pre-existing style throughout
-    E302,E303,E305,
-    # Multiple spaces before operator/keyword — column-alignment style
+    # Multiple spaces before operator/keyword — intentional column alignment in data tables
     E221,E272,
 per-file-ignores =
     # Test files: allow longer lines for assertion messages
     tests/*.py: E501
+    # dashboard.py is a large generated HTML/JS template module; relax blank-line spacing there
+    scripts/dashboard.py: E303,E305

@@ -78,7 +78,7 @@ class F1DataExtractor:
         wait_for = delay + jitter
         self.logger.info("Backoff %.1fs (base_delay=%.2fs)", wait_for, self.base_delay)
         time.sleep(wait_for)
-    
+
     def _rate_limit(self) -> None:
         now = time.time()
         elapsed = now - self._last_request_ts
@@ -186,27 +186,27 @@ class F1DataExtractor:
 
         self.logger.error("Failed to fetch %s after %s retries.", endpoint, self.max_retries)
         return None
-    
+
     def _extract_table(self, json_data: dict, table_name: str) -> list[dict]:
-        if not json_data or 'MRData' not in json_data:
+        if not json_data or "MRData" not in json_data:
             return []
-        
-        mr_data = json_data['MRData']
+
+        mr_data = json_data["MRData"]
         table_data = mr_data.get(table_name)
         if not table_data:
             for key in mr_data.keys():
-                if key.endswith('Table'):
+                if key.endswith("Table"):
                     table_data = mr_data[key]
                     break
         if not table_data:
             return []
-        
+
         for key, value in table_data.items():
             if isinstance(value, list):
                 return value
 
         return []
-    
+
     def _paginate(
         self, endpoint: str, table_key: str, limit: int = 100
     ) -> Iterator[list]:
@@ -228,22 +228,22 @@ class F1DataExtractor:
         all_circuits = []
         for circuits in self._paginate("circuits", "CircuitsTable"):
             for circuit in circuits:
-                location = circuit.get('Location', {})
+                location = circuit.get("Location", {})
                 all_circuits.append({
-                    'circuit_ref': circuit.get('circuitId', ''),
-                    'circuit_name': circuit.get('circuitName', ''),
-                    'location': location.get('locality', ''),
-                    'country': location.get('country', ''),
-                    'lat': _safe_float(location.get('lat')),
-                    'lng': _safe_float(location.get('long')),
-                    'altitude': None,
-                    'url': circuit.get('url', ''),
+                    "circuit_ref": circuit.get("circuitId", ""),
+                    "circuit_name": circuit.get("circuitName", ""),
+                    "location": location.get("locality", ""),
+                    "country": location.get("country", ""),
+                    "lat": _safe_float(location.get("lat")),
+                    "lng": _safe_float(location.get("long")),
+                    "altitude": None,
+                    "url": circuit.get("url", ""),
                 })
         df = pd.DataFrame(all_circuits)
         self._write_csv_atomic(df, "circuits.csv")
         self.logger.info("Extracted %s circuits.", len(df))
         return df
-    
+
     def extract_seasons(self) -> pd.DataFrame:
         self.logger.info("Extracting seasons...")
         all_seasons = []
@@ -257,46 +257,46 @@ class F1DataExtractor:
         self._write_csv_atomic(df, "seasons.csv")
         self.logger.info("Extracted %s seasons.", len(df))
         return df
-    
+
     def extract_constructors(self) -> pd.DataFrame:
         self.logger.info("Extracting constructors...")
         all_constructors = []
         for constructors in self._paginate("constructors", "ConstructorTable"):
             for constructor in constructors:
                 all_constructors.append({
-                    'constructor_ref': constructor.get('constructorId', ''),
-                    'constructor_name': constructor.get('name', ''),
-                    'nationality': constructor.get('nationality', ''),
-                    'url': constructor.get('url', ''),
+                    "constructor_ref": constructor.get("constructorId", ""),
+                    "constructor_name": constructor.get("name", ""),
+                    "nationality": constructor.get("nationality", ""),
+                    "url": constructor.get("url", ""),
                 })
         df = pd.DataFrame(all_constructors)
         df.insert(0, "constructor_id", range(1, len(df) + 1))
         self._write_csv_atomic(df, "constructors.csv")
         self.logger.info("Extracted %s constructors.", len(df))
         return df
-    
+
     def extract_drivers(self) -> pd.DataFrame:
         self.logger.info("Extracting drivers...")
         all_drivers = []
         for drivers in self._paginate("drivers", "DriverTable"):
             for driver in drivers:
-                dob = driver.get('dateOfBirth', '')
+                dob = driver.get("dateOfBirth", "")
                 all_drivers.append({
-                    'driver_ref': driver.get('driverId', ''),
-                    'driver_number': None,
-                    'code': driver.get('code', ''),
-                    'forename': driver.get('givenName', ''),
-                    'surname': driver.get('familyName', ''),
-                    'dob': dob if dob else None,
-                    'nationality': driver.get('nationality', ''),
-                    'url': driver.get('url', ''),
+                    "driver_ref": driver.get("driverId", ""),
+                    "driver_number": None,
+                    "code": driver.get("code", ""),
+                    "forename": driver.get("givenName", ""),
+                    "surname": driver.get("familyName", ""),
+                    "dob": dob if dob else None,
+                    "nationality": driver.get("nationality", ""),
+                    "url": driver.get("url", ""),
                 })
         df = pd.DataFrame(all_drivers)
         df.insert(0, "driver_id", range(1, len(df) + 1))
         self._write_csv_atomic(df, "drivers.csv")
         self.logger.info("Extracted %s drivers.", len(df))
         return df
-    
+
     def extract_races(
         self, start_year: int = DEFAULT_START_YEAR, end_year: int = DEFAULT_END_YEAR
     ) -> pd.DataFrame:
@@ -305,22 +305,22 @@ class F1DataExtractor:
         for year in range(start_year, end_year + 1):
             for races in self._paginate(f"{year}/races", "RaceTable"):
                 for race in races:
-                    circuit = race.get('Circuit', {})
+                    circuit = race.get("Circuit", {})
                     all_races.append({
-                        'year': year,
-                        'round': int(race.get('round', 0)),
-                        'race_id': int(f"{year}{int(race.get('round', 0)):02d}"),
-                        'circuit_ref': circuit.get('circuitId', ''),
-                        'race_name': race.get('raceName', ''),
-                        'race_date': race.get('date', ''),
-                        'race_time': race.get('time', '00:00:00Z').replace('Z', ''),
-                        'url': race.get('url', ''),
+                        "year": year,
+                        "round": int(race.get("round", 0)),
+                        "race_id": int(f"{year}{int(race.get('round', 0)):02d}"),
+                        "circuit_ref": circuit.get("circuitId", ""),
+                        "race_name": race.get("raceName", ""),
+                        "race_date": race.get("date", ""),
+                        "race_time": race.get("time", "00:00:00Z").replace("Z", ""),
+                        "url": race.get("url", ""),
                     })
         df = pd.DataFrame(all_races)
         self._write_csv_atomic(df, "races.csv")
         self.logger.info("Extracted %s races.", len(df))
         return df
-    
+
     def _extract_per_round(
         self,
         start_year: int,
@@ -480,7 +480,7 @@ class F1DataExtractor:
         self._write_csv_atomic(df, "qualifying.csv")
         self.logger.info("Extracted %s qualifying results.", len(df))
         return df
-    
+
     def _normalize_progress(
         self, data: dict, start_year: int, end_year: int
     ) -> dict[str, dict[str, list[int]]]:
@@ -562,7 +562,7 @@ class F1DataExtractor:
         self._write_csv_atomic(df, "pit_stops.csv")
         self.logger.info("Extracted %s pit stops.", len(df))
         return df
-    
+
     def _get_rounds_by_year(self, start_year: int, end_year: int) -> dict[int, list[int]]:
         races_path = os.path.join(self.output_path, "races.csv")
         if not os.path.exists(races_path):
@@ -627,7 +627,7 @@ class F1DataExtractor:
         self.logger.info("Extracted %s constructor standings.", len(df_const))
         self.logger.info("Extracted %s driver standings.", len(df_driver))
         return df_const, df_driver
-    
+
     def extract_all(
         self,
         start_year: int = DEFAULT_START_YEAR,
@@ -649,7 +649,7 @@ class F1DataExtractor:
         if start_year > end_year:
             raise ValueError(f"Invalid year range after clamping to {DEFAULT_START_YEAR}-{DEFAULT_END_YEAR}.")
         self.logger.info("Starting F1 data extraction from the Ergast API")
-        
+
         try:
             self.extract_circuits()
             self.extract_seasons()
@@ -663,40 +663,42 @@ class F1DataExtractor:
             else:
                 self.extract_pit_stops(start_year, end_year)
             self.extract_standings(start_year, end_year)
-            
+
             self.logger.info("All data extraction steps completed successfully.")
             self.logger.info("Raw data saved to: %s", self.output_path)
-            
+
         except Exception:
             self.logger.exception("Error during extraction.")
             raise
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Extract F1 data from Ergast API")
     parser.add_argument(
-        '--start-year',
+        "--start-year",
         type=int,
         default=DEFAULT_START_YEAR,
         help=f"Start year (default: {DEFAULT_START_YEAR})",
     )
     parser.add_argument(
-        '--end-year',
+        "--end-year",
         type=int,
         default=DEFAULT_END_YEAR,
         help=f"End year (default: {DEFAULT_END_YEAR})",
     )
-    parser.add_argument('--output', type=str, default='data/raw/', help='Output directory (default: data/raw/)')
-    parser.add_argument('--base-delay', type=float, default=1.5, help='Delay between API requests in seconds')
-    parser.add_argument('--max-retries', type=int, default=6, help='Max retries on API errors or rate limits')
-    
+    parser.add_argument("--output", type=str, default="data/raw/", help="Output directory (default: data/raw/)")
+    parser.add_argument("--base-delay", type=float, default=1.5, help="Delay between API requests in seconds")
+    parser.add_argument("--max-retries", type=int, default=6, help="Max retries on API errors or rate limits")
+
     args = parser.parse_args()
-    
+
     extractor = F1DataExtractor(
         output_path=args.output,
         base_delay=args.base_delay,
         max_retries=args.max_retries,
     )
     extractor.extract_all(start_year=args.start_year, end_year=args.end_year)
+
 
 if __name__ == "__main__":
     main()
