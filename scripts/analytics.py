@@ -19,6 +19,9 @@ from constants import TEAM_REFS, DNF_POSITION_ORDER
 
 _log = logging.getLogger(__name__)
 
+PIT_STOP_MIN_MS = 15000
+PIT_STOP_MAX_MS = 60000
+
 
 def ref_params(refs: list[str]) -> tuple[str, dict]:
     """Returns (IN-clause placeholders, params dict) for parameterized queries."""
@@ -140,7 +143,7 @@ def pit_stop_efficiency(
                  - AVG(p.milliseconds) * AVG(p.milliseconds)) AS sigma
         FROM pit_stops p
         JOIN races ra ON p.race_id = ra.race_id
-        WHERE p.milliseconds BETWEEN 15000 AND 60000
+        WHERE p.milliseconds BETWEEN {PIT_STOP_MIN_MS} AND {PIT_STOP_MAX_MS}
         GROUP BY ra.year
     )
     SELECT
@@ -154,7 +157,7 @@ def pit_stop_efficiency(
     JOIN constructors c   ON res.constructor_id  = c.constructor_id
     JOIN drivers da       ON p.driver_id         = da.driver_id
     WHERE c.constructor_ref IN ({placeholders})
-      AND p.milliseconds BETWEEN 15000 AND 60000
+      AND p.milliseconds BETWEEN {PIT_STOP_MIN_MS} AND {PIT_STOP_MAX_MS}
     """
     try:
         with engine.connect() as conn:

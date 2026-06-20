@@ -38,13 +38,13 @@ except ImportError:
 _log = logging.getLogger("f1_analytics")
 _OUT = os.path.join("data", "exports", "f1_dashboard.html")
 
-_BG_SHEET = "#0b1929"   # drawing sheet
-_BG_PLOT  = "#071220"   # plot area (slightly deeper)
-_FG       = "#c8e6ff"   # primary text / lines
-_GRID     = "#142d4a"   # subtle grid
-_ACCENT   = "#00b4d8"   # cyan highlight
-_DIM      = "#4a9ec4"   # dimension annotations / borders
-_CALLOUT  = "#ff9f43"   # OLS line / orange callout
+_BG_SHEET = "#0b1929"
+_BG_PLOT  = "#071220"
+_FG       = "#c8e6ff"
+_GRID     = "#142d4a"
+_ACCENT   = "#00b4d8"
+_DIM      = "#4a9ec4"
+_CALLOUT  = "#ff9f43"
 
 _PALETTE  = ["#00b4d8", "#48cae4", "#90e0ef",
              "#0096c7", "#0077b6", "#ade8f4",

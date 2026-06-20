@@ -65,7 +65,6 @@ class TestApplyRefMap(unittest.TestCase):
             df = pd.DataFrame({"constructor_ref": ["red_bull", "unknown_team"]})
             result = t._apply_ref_map(df, "constructor_ref", "constructor_id", "constructors.csv")
             self.assertEqual(result.loc[result["constructor_ref"] == "red_bull", "constructor_id"].iloc[0], 9)
-            # unknown ref row is dropped entirely — no FK=0 pollution
             self.assertEqual(len(result[result["constructor_ref"] == "unknown_team"]), 0)
             self.assertEqual(len(result), 1)
 

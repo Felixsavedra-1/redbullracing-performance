@@ -78,7 +78,6 @@ class F1DataTransformer:
             return empty
 
         df["circuit_id"] = range(1, len(df) + 1)
-        # Leave altitude as NaN when missing — 0 is valid (sea level) and must stay distinguishable.
         df = df[[
             "circuit_id",
             "circuit_ref",
@@ -204,7 +203,6 @@ class F1DataTransformer:
             if col in df.columns:
                 df[col] = df[col].fillna(0).astype(int)
 
-        # grid=0 is a valid F1 value (pit-lane start); preserve NULL for missing data.
         if "grid" in df.columns:
             df["grid"] = pd.to_numeric(df["grid"], errors="coerce")
 
@@ -222,8 +220,6 @@ class F1DataTransformer:
             df["status"] = ""
 
         if "position_order" not in df.columns:
-            # Derive from position as fallback. Non-numeric position (R=retired, D/DQ=disqualified)
-            # all map to the same sentinel; use the `status` column to distinguish DNF vs DSQ downstream.
             df["position_order"] = df["position"].fillna(DNF_POSITION_ORDER)
         df["position_order"] = pd.to_numeric(
             df["position_order"], errors="coerce"

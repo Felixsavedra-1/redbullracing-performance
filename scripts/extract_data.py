@@ -329,7 +329,7 @@ class F1DataExtractor:
         endpoint: str,
         progress_file: str,
         output_file: str,
-        parse_race: Callable,  # (race_dict, race_id) -> list[dict]
+        parse_race: Callable,
         label: str,
         min_rows_per_race: int = 0,
     ) -> list[dict]:
@@ -546,7 +546,6 @@ class F1DataExtractor:
         os.replace(tmp_path, path)
 
     def extract_pit_stops(self, start_year: int = DEFAULT_START_YEAR, end_year: int = DEFAULT_END_YEAR) -> pd.DataFrame:
-        # Pit stop data is only available from 2012 onward in the Ergast API.
         self.logger.info("Extracting pit stops (%s-%s)...", start_year, end_year)
         rounds_by_year = self._get_rounds_by_year(start_year, end_year)
         rows = self._extract_per_round(

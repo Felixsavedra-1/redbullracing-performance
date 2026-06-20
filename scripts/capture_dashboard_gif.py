@@ -15,6 +15,11 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, str(Path(__file__).parent))
+from logging_utils import setup_logging
+
+_log = setup_logging()
+
 REPO = Path(__file__).parent.parent
 HTML_PATH = REPO / "data" / "exports" / "dashboard.html"
 OUT_PATH = REPO / "docs" / "dashboard.gif"
@@ -73,17 +78,17 @@ def encode_gif(frame_dir: Path):
 
 def main():
     if not HTML_PATH.exists():
-        print(f"ERROR: {HTML_PATH} not found. Run: python scripts/run_analysis.py --export")
+        _log.error("%s not found. Run: python scripts/run_analysis.py --export", HTML_PATH)
         sys.exit(1)
 
     if shutil.which("ffmpeg") is None:
-        print("ERROR: ffmpeg not found on PATH. Install it (e.g. `brew install ffmpeg`).")
+        _log.error("ffmpeg not found on PATH. Install it (e.g. `brew install ffmpeg`).")
         sys.exit(1)
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     url = HTML_PATH.as_uri()
 
-    print(f"Launching browser → {url}")
+    _log.info("Launching browser → %s", url)
 
     with tempfile.TemporaryDirectory(prefix="dashgif_") as tmp:
         frame_dir = Path(tmp)
@@ -97,7 +102,7 @@ def main():
 
             page_h = page.evaluate("document.documentElement.scrollHeight")
             max_scroll = max(page_h - VIEWPORT_H, 1)
-            print(f"Page height: {page_h}px  max_scroll: {max_scroll}px")
+            _log.info("Page height: %dpx  max_scroll: %dpx", page_h, max_scroll)
 
             scroll_seq = build_scroll_sequence(max_scroll)
             total = len(scroll_seq)
@@ -110,15 +115,15 @@ def main():
                 page.screenshot(path=str(frame_dir / f"f{idx:04d}.png"), type="png")
 
                 if (idx + 1) % 10 == 0 or idx == total - 1:
-                    print(f"  Captured {idx + 1}/{total} frames (scroll={scroll_y}px)")
+                    _log.info("  Captured %d/%d frames (scroll=%dpx)", idx + 1, total, scroll_y)
 
             browser.close()
 
-        print(f"Encoding GIF (ffmpeg, {FPS}fps, {TARGET_W}px, 256-color) → {OUT_PATH}")
+        _log.info("Encoding GIF (ffmpeg, %dfps, %dpx, 256-color) → %s", FPS, TARGET_W, OUT_PATH)
         encode_gif(frame_dir)
 
     size_mb = OUT_PATH.stat().st_size / 1_048_576
-    print(f"Done. {total} frames · {size_mb:.1f} MB → {OUT_PATH}")
+    _log.info("Done. %d frames · %.1f MB → %s", total, size_mb, OUT_PATH)
 
 
 if __name__ == "__main__":

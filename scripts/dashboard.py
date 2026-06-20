@@ -23,31 +23,26 @@ _LOGO_PATH = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "redbullracinglogo.jpg")
 )
 
-# Five-color semantic palette: black ground, bone-white data, and three accents that
-# carry meaning — crimson = primary/negative (worst, DNF, lost, slowest), titanium grey
-# = neutral (grids, ticks, midfield), sand-gold = positive (best, P1, fastest, gained).
 _BG         = "#000000"
 _BG_CARD    = "#0B0A08"
 _BG_HOVER   = "#16140F"
 _GRID       = "#1A1814"
 _GRID_SOFT  = "#141210"
 _ZERO_LINE  = "#26231C"
-_TICK       = "#6A7176"   # titanium-dim
+_TICK       = "#6A7176"
 _FONT_COLOR = "#ECE5D5"
 _FONT       = "'Inter', 'Helvetica Neue', Arial, sans-serif"
 _MONO       = "'Space Mono', 'SFMono-Regular', Menlo, monospace"
-_ACCENT     = "#B3122B"   # crimson — primary / negative
-_ACCENT_HI  = "#D6203F"   # bright crimson — negative emphasis
+_ACCENT     = "#B3122B"
+_ACCENT_HI  = "#D6203F"
 _ACCENT_DIM = "#3A1A1F"
-_NEUTRAL    = "#9DA3A8"   # titanium grey — neutral
+_NEUTRAL    = "#9DA3A8"
 _NEUTRAL_DIM = "#6A7176"
-_POSITIVE   = "#C7A06A"   # sand-gold — positive
+_POSITIVE   = "#C7A06A"
 _STATUS_OK  = "#B3122B"
 _SPIKE      = "#6A7176"
 _GLOW       = "#B3122B"
 
-# Drivers: the leader carries crimson, the runner-up bone-white; the rest step through
-# titanium and sand-gold so traces stay separable on black.
 _DRIVER_COLORS = {
     "Verstappen": "#B3122B",
     "Pérez":      "#ECE5D5",
@@ -5769,7 +5764,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         return fig
 
     pivot = df.pivot_table(index="round", columns="driver", values="points", aggfunc="last").ffill()
-    # Sort by total season points descending so d_a is always the championship leader
     total_pts = df.groupby("driver")["points"].max()
     sorted_drivers = total_pts.sort_values(ascending=False).index.tolist()
     d_a = next((d for d in sorted_drivers if d in pivot.columns), None)
@@ -5780,8 +5774,6 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
 
     rounds = pivot.index.tolist()
     gap = (pivot[d_a] - pivot[d_b]).tolist()
-    # Gap is signed: leader-ahead (d_a) reads sand-gold (positive), trailing (d_b)
-    # reads crimson (negative). Fills, line, markers and labels all track this sign.
     color_a = _POSITIVE
     color_b = _ACCENT
     surname_a = d_a.split()[-1]
@@ -5804,14 +5796,12 @@ def chart_points_gap_2d(traj_df: pd.DataFrame) -> go.Figure:
         showlegend=False, hoverinfo="skip",
     ))
 
-    # Step interpolation (shape="hv"): the gap only changes at race events.
     leader_color = color_a if gap[0] >= 0 else color_b
     seg_x: list = [rounds[0]]
     seg_y: list = [gap[0]]
     for i in range(1, len(gap)):
         cur_color = color_a if gap[i] >= 0 else color_b
         if cur_color != leader_color:
-            # Close the segment and start a new one, sharing the boundary point
             seg_x.append(rounds[i])
             seg_y.append(gap[i])
             fig.add_trace(go.Scatter(
@@ -5910,8 +5900,6 @@ def chart_heatmap_2d(traj_df: pd.DataFrame) -> go.Figure:
         z[ri][ci] = float(row["pos_clip"])
         text[ri][ci] = row["label"]
 
-    # Semantic ramp: a win (P1) glows sand-gold, midfield reads titanium grey, and a
-    # poor finish sinks through crimson to near-black — positive→neutral→negative.
     colorscale = [
         [0.00, "#C7A06A"],
         [0.22, "#9DA3A8"],
@@ -5976,8 +5964,6 @@ def chart_grid_finish_2d(df: pd.DataFrame) -> go.Figure:
 
     for i, (driver, g) in enumerate(df.groupby("driver")):
         delta = g["grid"] - g["finish"]
-        # Encode outcome, not identity: places gained = sand-gold (positive),
-        # places lost = crimson (negative), no change = titanium (neutral).
         point_colors = [
             _hex_to_rgba(_POSITIVE if d > 0 else _ACCENT if d < 0 else _NEUTRAL,
                          0.4 + 0.55 * year_norm[y])
@@ -6035,13 +6021,11 @@ def chart_pit_efficiency_2d(df: pd.DataFrame) -> go.Figure:
         return _no_data_fig("PIT STOP EFFICIENCY · Z-SCORE",
                             "pit stop data not loaded")
 
-    # SEM — precision of the mean, not spread of individual stops
     sem = (df["std_z"] / np.sqrt(df["n_stops"])).fillna(0)
 
     z_min, z_max = df["mean_z"].min(), df["mean_z"].max()
     z_range = max(z_max - z_min, 1e-9)
-    norm = ((df["mean_z"] - z_min) / z_range).tolist()  # 0 = fastest, 1 = slowest
-    # Fastest = sand-gold (positive), slowest = crimson (negative) — semantic gradient.
+    norm = ((df["mean_z"] - z_min) / z_range).tolist()
     _gold, _crim = (199, 160, 106), (179, 18, 43)
     bar_colors = [
         f"rgba({int(_gold[0] + (_crim[0] - _gold[0]) * v)},"
@@ -6106,8 +6090,6 @@ def chart_dnf_reliability_2d(df: pd.DataFrame) -> go.Figure:
     err_lower = (df["rate"] - df["ci_lower"]).clip(lower=0)
 
     max_rate = max(df["rate"].max(), 1e-9)
-    # Reliable (low DNF) = crimson, unreliable = warm grey — same single-accent ramp
-    # as the pit-efficiency bars.
     dot_colors = [
         (lambda t: f"rgba({int(179 - 69 * t)},{int(18 + 86 * t)},{int(43 + 49 * t)},0.95)")(r / max_rate)
         for r in df["rate"]
@@ -6170,7 +6152,6 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
                             "no green-flag lap telemetry")
 
     surnames = df["driver"].apply(lambda d: d.split()[-1]).tolist()
-    # Three sectors across crimson / bone / titanium so they stay distinct on black.
     sector_cfg = [
         ("s1_mean", "S1", _ACCENT),
         ("s2_mean", "S2", _FONT_COLOR),
@@ -6206,8 +6187,6 @@ def chart_sector_delta_2d(df: pd.DataFrame) -> go.Figure:
 
 
 
-# Compound identity kept (still readable as F1 tyres) but mapped onto the palette:
-# soft crimson, medium sand-gold, hard bone, inters/wets titanium.
 _COMPOUND_COLORS = {
     "SOFT":         "#B3122B",
     "MEDIUM":       "#C7A06A",

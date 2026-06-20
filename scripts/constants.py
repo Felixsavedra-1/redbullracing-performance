@@ -2,9 +2,8 @@ import datetime
 
 DEFAULT_START_YEAR = 2020
 DEFAULT_END_YEAR = datetime.date.today().year
-DNF_POSITION_ORDER = 999  # sentinel for non-finishers in position_order
+DNF_POSITION_ORDER = 999
 
-# Team config — overridden by config.py when present
 try:
     from config import TEAM_CONFIG  # type: ignore[import]
     TEAM_REFS: list[str] = TEAM_CONFIG["family_refs"]
@@ -17,8 +16,8 @@ except ImportError:
 except KeyError as e:
     raise KeyError(f"config.py is present but missing required key: {e}") from e
 
-CONSTRUCTOR_ID = 9  # Oracle Red Bull Racing in the Ergast API
+CONSTRUCTOR_ID = 9
 
-TEAM_COLORS.setdefault("primary", "#1E41FF")  # Red Bull blue
-TEAM_COLORS.setdefault("accent",  "#FF1800")  # Red Bull red
+TEAM_COLORS.setdefault("primary", "#1E41FF")
+TEAM_COLORS.setdefault("accent",  "#FF1800")
 TEAM_COLORS.setdefault("neutral", "#AAAAAA")

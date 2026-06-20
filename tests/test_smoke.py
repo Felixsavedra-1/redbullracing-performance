@@ -238,7 +238,6 @@ class TestPipelineSmoke(unittest.TestCase):
                     "results table must not be empty",
                 )
 
-                # No NULL primary keys — a NULL PK indicates a broken ref-map or schema issue.
                 for table, pk in [("drivers", "driver_id"), ("races", "race_id"),
                                   ("circuits", "circuit_id"), ("constructors", "constructor_id")]:
                     self.assertEqual(
@@ -246,7 +245,6 @@ class TestPipelineSmoke(unittest.TestCase):
                         f"{table}.{pk} must not be NULL",
                     )
 
-                # FK spot-check: every result row references a real driver.
                 self.assertEqual(
                     conn.execute(text("""
                         SELECT COUNT(*) FROM results r
@@ -256,7 +254,6 @@ class TestPipelineSmoke(unittest.TestCase):
                     "results must not contain orphaned driver_id",
                 )
 
-            # Data quality gates must all pass on the minimal dataset.
             failures = run_quality_checks(engine, start_year=2024, end_year=2024)
             self.assertEqual(failures, [], f"Quality checks failed: {failures}")
 

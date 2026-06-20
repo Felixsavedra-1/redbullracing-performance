@@ -7,7 +7,9 @@ config.py
 data/raw/*.csv
 data/processed/*.csv
 data/cache/
+data/exports/
 *.db
+*.duckdb
 .DS_Store
 .vscode/
 CLAUDE.md

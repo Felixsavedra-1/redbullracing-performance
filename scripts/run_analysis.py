@@ -3,7 +3,7 @@ import os
 import sys
 
 import matplotlib
-matplotlib.use("Agg")  # non-interactive; must precede pyplot
+matplotlib.use("Agg")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:

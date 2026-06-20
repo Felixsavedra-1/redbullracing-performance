@@ -51,9 +51,6 @@ CREATE TABLE laps (race_id INTEGER NOT NULL, driver_id INTEGER NOT NULL,
     track_status TEXT, PRIMARY KEY (race_id, driver_id, lap_number));
 """
 
-# 2 drivers, 1 constructor (ref='red_bull'), 6 races.
-# Driver 1 always finishes P1 (grid=2); driver 2 always finishes P2 (grid=1).
-# This gives: delta = pos_order_a - pos_order_b = 1 - 2 = -1 (driver_a ahead on average).
 _FIXTURE = """
 INSERT INTO seasons VALUES (2024, '');
 INSERT INTO circuits VALUES (1,'silverstone','Silverstone','Silverstone','UK',52.07,-1.02,153,'');
@@ -128,7 +125,6 @@ class TestTeammateDelta(unittest.TestCase):
 
     def test_driver_a_finishes_ahead(self):
         df = teammate_delta(self.engine, team_refs=["red_bull"], min_shared_races=5)
-        # Driver 1 always P1, driver 2 always P2 → delta = 1-2 = -1 (negative = ahead)
         self.assertLess(df.iloc[0]["mean_delta"], 0)
 
     def test_below_min_shared_races_returns_empty(self):
@@ -210,7 +206,6 @@ class TestDnfRateModel(unittest.TestCase):
 
     def test_zero_dnfs_gives_zero_rate(self):
         df = dnf_rate_model(self.engine, team_refs=["red_bull"], min_races=1)
-        # All results are 'Finished' → DNF rate should be 0
         self.assertTrue((df["dnfs"] == 0).all())
         self.assertTrue((df["rate"] == 0.0).all())
 

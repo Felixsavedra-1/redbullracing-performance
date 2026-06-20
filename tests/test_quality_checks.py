@@ -127,7 +127,6 @@ class TestQualityCheckFailures(unittest.TestCase):
     def test_position_order_consistency_fires(self):
         engine = self._engine_with_base_data()
         with engine.begin() as conn:
-            # position=1 (valid finish) but position_order=999 (DNF sentinel) — contradiction
             conn.execute(text(
                 "INSERT INTO results VALUES "
                 "(202401,1,1,33,1,1,'1',999,25,52,'',0,0,0,'','','Finished')"
@@ -148,7 +147,6 @@ class TestQualityCheckFailures(unittest.TestCase):
             conn.execute(text(
                 "INSERT INTO qualifying VALUES (202401,1,1,33,1,'1:21','1:20','1:20')"
             ))
-        # Request year range 2023-2024 but only 2024 exists → 2023 missing
         failures = run_quality_checks(engine, start_year=2023, end_year=2024)
         self.assertIn("missing_race_years", self._check_names(failures))
 

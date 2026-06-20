@@ -91,7 +91,6 @@ class F1DataLoader:
             self.engine = create_engine(_build_connection_string(self.config))
 
             if db_type == "sqlite":
-                # Enable FK enforcement on every new connection — SQLite disables it by default.
                 @event.listens_for(self.engine, "connect")
                 def set_fk_pragma(dbapi_conn, _):
                     dbapi_conn.execute("PRAGMA foreign_keys=ON")
@@ -336,7 +335,6 @@ class F1DataLoader:
             self.logger.error("Error loading %s: %s", table_name, exc)
             raise
 
-    # csv path is relative to processed_path unless prefixed with "raw:"
     _TABLE_SPECS = [
         TableSpec("seasons",               "raw:seasons.csv",                 None,  [], {}),
         TableSpec("circuits",              "circuits_clean.csv",              None,  [], {}),

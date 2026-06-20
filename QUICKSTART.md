@@ -33,7 +33,7 @@ This will:
 - Clean and transform the data
 - Load the processed data into your database
 
-Note: The project is scoped to the 2015–2025 seasons. Year ranges outside that window are clamped.
+Note: The project is scoped to the 2020–2025 seasons. Year ranges outside that window are clamped.
 
 ## Step 3: Run Your First Query
 

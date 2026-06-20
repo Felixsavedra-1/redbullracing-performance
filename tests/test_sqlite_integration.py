@@ -110,12 +110,12 @@ class TestSQLiteIntegration(unittest.TestCase):
     def test_teammate_delta_ver_ahead_of_per(self):
         df = teammate_delta(self.engine, team_refs=["red_bull"], min_shared_races=5)
         self.assertFalse(df.empty)
-        self.assertLess(df.iloc[0]["mean_delta"], 0)  # driver 1 (P1) finishes ahead on average
+        self.assertLess(df.iloc[0]["mean_delta"], 0)
 
     def test_qualifying_regression_perfect_fit(self):
         stats, scatter = qualifying_race_ols(self.engine, team_refs=["red_bull"])
         self.assertIsNotNone(stats["slope"])
-        self.assertAlmostEqual(stats["r2"], 1.0, places=5)  # deterministic fixture → perfect R²
+        self.assertAlmostEqual(stats["r2"], 1.0, places=5)
         self.assertEqual(stats["n"], 12)
 
     def test_nonexistent_team_returns_empty(self):
