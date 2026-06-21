@@ -101,8 +101,6 @@ body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;bac
 .sb-rec b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
 .brand-badge{display:flex;flex-direction:column;gap:3px;padding:8px 14px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
 .brand-name{font-family:var(--font);font-size:.74rem;font-weight:700;letter-spacing:.12em;color:var(--text);line-height:1;text-transform:none}
-.brand-sub{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.46rem;font-weight:600;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;line-height:1}
-.brand-sub::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px rgba(179,18,43,.8);flex-shrink:0}
 .brand-badge.in-game{position:fixed;top:12px;left:12px;z-index:10002;pointer-events:none}
 header{padding:56px 44px 40px;border-bottom:1px solid var(--border);background:#000;position:relative;overflow:hidden}
 .hd-team{font-size:.62rem;font-weight:600;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
@@ -347,7 +345,6 @@ header{animation:fadeUp .55s ease both}
 <div class="status-bar">
   <div class="brand-badge">
     <span class="brand-name">Vedra Research</span>
-    <span class="brand-sub">Powered by Claude</span>
   </div>
   <div class="sb-dot"></div>
   <span><span class="sb-label">SYSTEM</span>&nbsp;<span class="sb-val">NOMINAL</span></span>
@@ -388,7 +385,6 @@ header{animation:fadeUp .55s ease both}
   <div id="hud">
     <div class="brand-badge in-game">
       <span class="brand-name">Vedra Research</span>
-      <span class="brand-sub">Powered by Claude</span>
     </div>
     <div id="hud-main">
       <span class="hud-pos">P4</span>

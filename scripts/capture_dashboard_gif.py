@@ -1,11 +1,13 @@
 """
-Capture a scrolling GIF of the dashboard.
+Capture a cinematic widescreen GIF of the dashboard.
 Usage: python scripts/capture_dashboard_gif.py
 Output: docs/dashboard.gif
 
-Frames are captured at full viewport resolution, then encoded with a two-pass
-ffmpeg palettegen/paletteuse pipeline (256-color per-scene palette + dithering)
-for vivid, band-free output. Requires ffmpeg on PATH.
+The dashboard scrolls through a 2.39:1 anamorphic letterbox slot (a short, wide
+viewport) for a cinemascope feel. Frames are captured at 2x device scale for
+crisp text, then encoded with a two-pass ffmpeg palettegen/paletteuse pipeline
+(256-color per-scene palette + dithering) for vivid, band-free output.
+Requires ffmpeg on PATH.
 """
 import shutil
 import subprocess
@@ -24,19 +26,23 @@ REPO = Path(__file__).parent.parent
 HTML_PATH = REPO / "data" / "exports" / "dashboard.html"
 OUT_PATH = REPO / "docs" / "dashboard.gif"
 
-VIEWPORT_W = 1440
-VIEWPORT_H = 860
+# Short, wide viewport (~2.39:1) renders the desktop layout through an
+# anamorphic letterbox slot; captured at 2x for crisp downscaling.
+VIEWPORT_W = 1500
+VIEWPORT_H = 628
+DEVICE_SCALE = 2
 
-PX_PER_FRAME = 24
+TARGET_FRAMES = 84
 RAMP_FRAC = 0.18
-MIN_FRAMES = 40
-FRAME_MS = 50
-TARGET_W = 720
-FPS = round(1000 / FRAME_MS)
+FRAME_MS = 60
+TARGET_W = 1200
+TARGET_H = 502
+# Rational framerate so GIF centisecond rounding lands on the exact FRAME_MS
+# delay (e.g. 1000/60 → 6cs = 60ms); a plain int would truncate to 50ms.
+FPS_ARG = f"1000/{FRAME_MS}"
 
 
-def build_scroll_sequence(max_scroll):
-    frames = max(round(max_scroll / PX_PER_FRAME), MIN_FRAMES)
+def build_scroll_sequence(frames=TARGET_FRAMES):
     ramp = max(int(frames * RAMP_FRAC), 1)
 
     vel = []
@@ -60,16 +66,16 @@ def encode_gif(frame_dir: Path):
     """Two-pass ffmpeg encode: build an optimized palette, then apply it."""
     pattern = str(frame_dir / "f%04d.png")
     palette = frame_dir / "palette.png"
-    scale = f"scale={TARGET_W}:-1:flags=lanczos"
+    scale = f"scale={TARGET_W}:{TARGET_H}:flags=lanczos"
 
     subprocess.run(
-        ["ffmpeg", "-y", "-framerate", str(FPS), "-i", pattern,
+        ["ffmpeg", "-y", "-framerate", FPS_ARG, "-i", pattern,
          "-vf", f"{scale},palettegen=max_colors=256:stats_mode=diff",
          str(palette)],
         check=True, capture_output=True,
     )
     subprocess.run(
-        ["ffmpeg", "-y", "-framerate", str(FPS), "-i", pattern, "-i", str(palette),
+        ["ffmpeg", "-y", "-framerate", FPS_ARG, "-i", pattern, "-i", str(palette),
          "-lavfi", f"{scale}[x];[x][1:v]paletteuse=dither=sierra2_4a:diff_mode=rectangle",
          "-loop", "0", str(OUT_PATH)],
         check=True, capture_output=True,
@@ -95,7 +101,10 @@ def main():
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            page = browser.new_page(viewport={"width": VIEWPORT_W, "height": VIEWPORT_H})
+            page = browser.new_page(
+                viewport={"width": VIEWPORT_W, "height": VIEWPORT_H},
+                device_scale_factor=DEVICE_SCALE,
+            )
 
             page.goto(url, wait_until="networkidle", timeout=30000)
             page.wait_for_timeout(2500)
@@ -104,7 +113,7 @@ def main():
             max_scroll = max(page_h - VIEWPORT_H, 1)
             _log.info("Page height: %dpx  max_scroll: %dpx", page_h, max_scroll)
 
-            scroll_seq = build_scroll_sequence(max_scroll)
+            scroll_seq = build_scroll_sequence()
             total = len(scroll_seq)
 
             for idx, frac in enumerate(scroll_seq):
@@ -119,7 +128,8 @@ def main():
 
             browser.close()
 
-        _log.info("Encoding GIF (ffmpeg, %dfps, %dpx, 256-color) → %s", FPS, TARGET_W, OUT_PATH)
+        _log.info("Encoding GIF (ffmpeg, %dms/frame, %dx%d, 256-color) → %s",
+                  FRAME_MS, TARGET_W, TARGET_H, OUT_PATH)
         encode_gif(frame_dir)
 
     size_mb = OUT_PATH.stat().st_size / 1_048_576
