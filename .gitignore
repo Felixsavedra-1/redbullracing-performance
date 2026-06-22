@@ -1,6 +1,6 @@
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 venv/
 .env
 config.py
@@ -13,3 +13,6 @@ data/exports/
 .DS_Store
 .vscode/
 CLAUDE.md
+dbt/target/
+dbt/logs/
+dbt/.user.yml

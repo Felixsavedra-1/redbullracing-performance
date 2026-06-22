@@ -101,6 +101,8 @@ body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;bac
 .sb-rec b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
 .brand-badge{display:flex;flex-direction:column;gap:3px;padding:8px 14px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
 .brand-name{font-family:var(--font);font-size:.74rem;font-weight:700;letter-spacing:.12em;color:var(--text);line-height:1;text-transform:none}
+.brand-viz{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:30px;opacity:.95;border:1px solid var(--line);border-radius:2px;background:linear-gradient(180deg,#0E0D0A,#000)}
+.sysbar{display:flex;justify-content:center;align-items:center;gap:18px;flex-wrap:wrap;padding:2px 44px 16px;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .brand-badge.in-game{position:fixed;top:12px;left:12px;z-index:10002;pointer-events:none}
 header{padding:56px 44px 40px;border-bottom:1px solid var(--border);background:#000;position:relative;overflow:hidden}
 .hd-team{font-size:.62rem;font-weight:600;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
@@ -346,6 +348,83 @@ header{animation:fadeUp .55s ease both}
   <div class="brand-badge">
     <span class="brand-name">Vedra Research</span>
   </div>
+  <canvas class="brand-viz" data-scene="racing" width="112" height="60" aria-hidden="true"></canvas>
+  <span class="sb-spacer"></span>
+  <span><span class="sb-label">BUILD</span>&nbsp;<span class="sb-val">PLACEHOLDER_BUILD</span></span>
+  <span class="sb-sep">&middot;</span>
+  <span class="sb-rec"><b></b>&nbsp;LIVE</span>
+</div>
+<script>
+(function(){
+  var c=document.querySelector('.brand-viz'); if(!c) return;
+  var GOLD='178,58,58', GREY='140,140,147', BONE='#E8E3D6', BONE_RGB='232,227,214';
+  function grid(ctx,W,H){
+    ctx.strokeStyle='rgba(38,38,43,0.85)'; ctx.lineWidth=1;
+    for(var x=0;x<=W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(var y=0;y<=H;y+=H/8){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  }
+  function dot(ctx,x,y,r,fill){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
+  function ring(ctx,x,y,r,s){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.strokeStyle=s;ctx.lineWidth=1;ctx.stroke();}
+  function glow(ctx,x,y,r,rgb,a){
+    var g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba('+rgb+','+a+')'); g.addColorStop(1,'rgba('+rgb+',0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  function tail(ctx,pts,rgb,maxA,maxW){
+    ctx.lineCap='round';
+    for(var i=0;i<pts.length-1;i++){
+      var f=1-i/(pts.length-1);
+      ctx.strokeStyle='rgba('+rgb+','+(maxA*f).toFixed(3)+')';
+      ctx.lineWidth=Math.max(0.4,maxW*f);
+      ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[i+1].x,pts[i+1].y);ctx.stroke();
+    }
+    ctx.lineCap='butt';
+  }
+  var RBR=[77.8,53.5,75.6,54.1,73.4,54.7,71.1,55.3,68.9,55.9,66.7,56.5,64.4,57.1,62.2,57.7,59.9,58.3,57.7,58.9,55.4,59.5,53.2,60.1,51.0,60.8,48.7,61.4,46.5,62.0,44.3,62.6,42.0,63.2,40.9,62.7,39.9,60.6,38.6,58.7,37.2,56.8,35.8,55.0,34.4,53.1,33.1,51.2,31.8,49.3,30.5,47.4,29.2,45.4,28.0,43.4,26.8,41.5,25.6,39.5,24.4,37.5,23.4,35.4,22.4,33.3,21.4,31.2,20.5,29.1,19.5,27.0,18.6,24.8,17.6,22.7,16.5,20.7,15.3,18.7,13.9,16.9,12.5,15.1,10.9,13.3,9.3,11.7,7.6,10.0,6.0,8.4,4.3,6.8,2.7,5.2,1.0,3.5,-0.0,1.8,1.7,0.7,4.0,0.4,6.3,0.2,8.6,0.0,10.9,-0.0,13.2,-0.0,15.5,0.1,17.9,0.3,20.2,0.5,22.5,0.9,24.7,1.3,27.0,1.7,29.3,2.2,31.6,2.6,33.8,3.1,36.1,3.5,38.4,4.0,40.7,4.4,43.0,4.8,45.3,5.0,47.6,5.2,49.9,5.3,52.2,5.4,54.5,5.5,56.9,5.5,59.2,5.6,61.5,5.7,63.0,6.3,63.8,8.4,62.9,10.5,61.5,12.4,59.9,14.1,58.1,15.5,56.1,16.6,53.9,17.4,51.6,17.9,49.3,18.1,47.0,17.9,44.7,17.5,42.4,17.1,40.1,16.8,37.8,16.4,35.5,16.0,33.2,15.7,31.2,16.4,29.3,17.7,28.0,19.6,27.5,21.8,27.7,24.2,28.5,25.9,29.7,27.9,30.8,29.9,32.0,31.9,33.1,33.9,34.3,35.9,35.8,37.4,37.9,38.4,40.2,38.5,42.3,37.7,44.1,36.3,45.5,34.4,47.1,32.7,48.9,31.3,51.0,30.2,53.1,29.4,55.2,29.0,57.5,28.9,59.8,28.8,62.1,28.8,64.5,28.8,66.8,28.7,69.1,28.7,71.4,28.6,73.7,28.6,76.0,28.5,78.4,28.5,80.7,28.4,83.0,28.4,85.3,28.3,87.6,28.2,90.0,28.2,92.0,28.2,94.1,29.1,95.7,30.7,96.7,32.8,97.4,35.0,98.1,37.2,98.7,39.4,99.4,41.6,100.0,43.9,99.3,45.6,97.4,46.9,95.4,48.0,93.3,49.0,91.3,49.8,89.0,50.4,86.8,51.0,84.6,51.7,82.3,52.3,80.1,52.9];
+  function drawRacing(ctx,W,H,t){
+    grid(ctx,W,H);
+    var C=drawRacing._c;
+    if(!C||C.W!==W||C.H!==H){
+      var pts=[];for(var i=0;i<RBR.length;i+=2)pts.push([RBR[i],RBR[i+1]]);
+      var xs=pts.map(function(p){return p[0];}),ys=pts.map(function(p){return p[1];});
+      var minx=Math.min.apply(0,xs),maxx=Math.max.apply(0,xs),miny=Math.min.apply(0,ys),maxy=Math.max.apply(0,ys);
+      var padX=W*0.12,padY=H*0.16,sc=Math.min((W-2*padX)/(maxx-minx),(H-2*padY)/(maxy-miny));
+      var offx=(W-(maxx-minx)*sc)/2-minx*sc,offy=(H-(maxy-miny)*sc)/2-miny*sc;
+      var P=pts.map(function(p){return {x:p[0]*sc+offx,y:p[1]*sc+offy};});
+      C={W:W,H:H,P:P,N:P.length,tw:Math.max(5,sc*2.6)};drawRacing._c=C;
+    }
+    var P=C.P,N=C.N,tw=C.tw;
+    function trace(){ctx.beginPath();for(var i=0;i<=N;i++){var p=P[i%N];if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);}}
+    ctx.lineJoin='round';ctx.lineCap='round';
+    trace();ctx.strokeStyle='rgba('+GREY+',0.13)';ctx.lineWidth=tw;ctx.stroke();
+    trace();ctx.strokeStyle='rgba('+GREY+',0.50)';ctx.lineWidth=1.2;ctx.stroke();
+    ctx.save();ctx.setLineDash([3,5]);trace();ctx.strokeStyle='rgba('+GOLD+',0.16)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+    ctx.lineCap='butt';
+    var a0=P[0],a1=P[1],tx=a1.x-a0.x,ty=a1.y-a0.y,tl=Math.hypot(tx,ty)||1,nxp=-ty/tl,nyp=tx/tl,hw=tw*0.55;
+    ctx.beginPath();ctx.moveTo(a0.x-nxp*hw,a0.y-nyp*hw);ctx.lineTo(a0.x+nxp*hw,a0.y+nyp*hw);
+    ctx.strokeStyle='rgba('+BONE_RGB+',0.65)';ctx.lineWidth=1.6;ctx.stroke();
+    function carPts(s,len){var idx=s*N,a=[];for(var m=0;m<len;m++){a.push(P[Math.floor(idx-m+N*4)%N]);}return a;}
+    var cp2=carPts(((t*0.13-0.07)%1+1)%1,24);
+    tail(ctx,cp2,GREY,0.5,2.2);glow(ctx,cp2[0].x,cp2[0].y,7,BONE_RGB,0.30);dot(ctx,cp2[0].x,cp2[0].y,2.1,'rgba('+BONE_RGB+',0.85)');
+    var cp1=carPts(((t*0.13)%1+1)%1,32);
+    tail(ctx,cp1,GOLD,0.95,3);glow(ctx,cp1[0].x,cp1[0].y,9,GOLD,0.6);ring(ctx,cp1[0].x,cp1[0].y,6,'rgba(232,227,214,0.35)');dot(ctx,cp1[0].x,cp1[0].y,2.7,BONE);
+    ctx.lineJoin='miter';
+  }
+  var ctx=c.getContext('2d'), W=c.width, H=c.height;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ drawRacing(ctx,W,H,-0.9); return; }
+  var t=0;
+  (function loop(){ t+=0.011; ctx.clearRect(0,0,W,H); drawRacing(ctx,W,H,t); requestAnimationFrame(loop); })();
+})();
+</script>
+<div class="logo-bar">PLACEHOLDER_LOGO</div>
+<header>
+  <span class="hd-ghost" aria-hidden="true">PLACEHOLDER_YEAR_RANGE</span>
+  <div class="hd-team">Oracle Red Bull Racing</div>
+  <h1>Red Bull <span class="accent">F1</span> Analytics</h1>
+  <p class="sub">PLACEHOLDER_SUBTITLE</p>
+</header>
+<div class="sysbar">
   <div class="sb-dot"></div>
   <span><span class="sb-label">SYSTEM</span>&nbsp;<span class="sb-val">NOMINAL</span></span>
   <span class="sb-sep">&middot;</span>
@@ -356,18 +435,7 @@ header{animation:fadeUp .55s ease both}
   <span><span class="sb-label">ROUNDS</span>&nbsp;<span class="sb-val">PLACEHOLDER_ROUNDS</span></span>
   <span class="sb-sep">&middot;</span>
   <span><span class="sb-label">DRIVERS</span>&nbsp;<span class="sb-val">PLACEHOLDER_DRIVER_COUNT</span></span>
-  <span class="sb-spacer"></span>
-  <span><span class="sb-label">BUILD</span>&nbsp;<span class="sb-val">PLACEHOLDER_BUILD</span></span>
-  <span class="sb-sep">&middot;</span>
-  <span class="sb-rec"><b></b>&nbsp;LIVE</span>
 </div>
-<div class="logo-bar">PLACEHOLDER_LOGO</div>
-<header>
-  <span class="hd-ghost" aria-hidden="true">PLACEHOLDER_YEAR_RANGE</span>
-  <div class="hd-team">Oracle Red Bull Racing</div>
-  <h1>Red Bull <span class="accent">F1</span> Analytics</h1>
-  <p class="sub">PLACEHOLDER_SUBTITLE</p>
-</header>
 <div class="hero">
 <section class="cluster">
   <div class="cluster-hd"><span class="dot"></span>Vehicle Telemetry &middot; Performance Cluster<span class="ln"></span><span class="tag">PLACEHOLDER_CLUSTER_TAG</span></div>
