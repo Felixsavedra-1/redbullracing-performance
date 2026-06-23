@@ -146,9 +146,13 @@ Full architecture → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ---
 
-<table width="100%">
-  <tr>
-    <td width="50%" align="center"><img src="VRcompany.png" alt="Vedra Research" width="100%" /></td>
-    <td width="50%" align="center"><img src="VR-04.gif" alt="VR-04 — Red Bull Racing Analytics" width="100%" /></td>
-  </tr>
+<table align="center" width="100%">
+<tr>
+<td width="50%" align="center" valign="middle">
+  <img src="VRcompany.png" width="92%" alt="Vedra Research" />
+</td>
+<td width="50%" align="center" valign="middle">
+  <img src="VR-04.gif" width="92%" alt="VR-04 — animated racing visual: neon cars circulating a track with trailing light streaks, evoking F1 lap telemetry" />
+</td>
+</tr>
 </table>
