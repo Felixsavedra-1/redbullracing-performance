@@ -91,17 +91,18 @@ html{scrollbar-color:#26231C #000;scrollbar-width:thin}
 ::-webkit-scrollbar-thumb:hover{background:#26231C}
 body{background:#000;color:var(--text);font-family:var(--font);min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle,rgba(236,229,213,.045) 1px,transparent 1.4px) 0 0/26px 26px;mask-image:radial-gradient(ellipse at 50% 16%,rgba(0,0,0,.6),transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 50% 16%,rgba(0,0,0,.6),transparent 70%)}
-.status-bar{display:flex;align-items:center;gap:18px;padding:11px 44px;background:rgba(0,0,0,.74);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.status-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:11px 44px;background:rgba(0,0,0,.74);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);position:sticky;top:0;z-index:100}
+.sb-mark{justify-self:start;font-family:var(--mono);font-size:.86rem;letter-spacing:.14em;color:var(--text);text-transform:none}
+.sb-meta{justify-self:end;display:inline-flex;align-items:center;gap:10px}
 .sb-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .sb-label{color:var(--dim)}
 .sb-val{color:var(--text);font-weight:700;font-family:var(--mono);letter-spacing:.06em}
 .sb-sep{color:#282C2E}
-.sb-spacer{margin-left:auto}
 .sb-rec{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:700}
 .sb-rec b{width:5px;height:5px;border-radius:50%;background:var(--accent)}
 .brand-badge{display:flex;flex-direction:column;gap:3px;padding:8px 14px;background:linear-gradient(180deg,rgba(11,10,8,.78),rgba(8,7,6,.86));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(214,32,63,.18);border-radius:7px;box-shadow:0 0 0 1px rgba(214,32,63,.10),0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
 .brand-name{font-family:var(--font);font-size:.74rem;font-weight:700;letter-spacing:.12em;color:var(--text);line-height:1;text-transform:none}
-.brand-viz{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:30px;opacity:.95;border:1px solid var(--line);border-radius:2px;background:linear-gradient(180deg,#0E0D0A,#000)}
+.brand-viz{justify-self:center;width:72px;height:40px;opacity:.95;border:1px solid var(--line);border-radius:2px;background:linear-gradient(180deg,#0E0D0A,#000)}
 .sysbar{display:flex;justify-content:center;align-items:center;gap:18px;flex-wrap:wrap;padding:2px 44px 16px;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
 .brand-badge.in-game{position:fixed;top:12px;left:12px;z-index:10002;pointer-events:none}
 header{padding:56px 44px 40px;border-bottom:1px solid var(--border);background:#000;position:relative;overflow:hidden}
@@ -345,14 +346,13 @@ header{animation:fadeUp .55s ease both}
 </head>
 <body>
 <div class="status-bar">
-  <div class="brand-badge">
-    <span class="brand-name">Vedra Research</span>
-  </div>
+  <span class="sb-mark">Vedra Research</span>
   <canvas class="brand-viz" data-scene="racing" width="112" height="60" aria-hidden="true"></canvas>
-  <span class="sb-spacer"></span>
-  <span><span class="sb-label">BUILD</span>&nbsp;<span class="sb-val">PLACEHOLDER_BUILD</span></span>
-  <span class="sb-sep">&middot;</span>
-  <span class="sb-rec"><b></b>&nbsp;LIVE</span>
+  <span class="sb-meta">
+    <span><span class="sb-label">BUILD</span>&nbsp;<span class="sb-val">PLACEHOLDER_BUILD</span></span>
+    <span class="sb-sep">&middot;</span>
+    <span class="sb-rec"><b></b>&nbsp;LIVE</span>
+  </span>
 </div>
 <script>
 (function(){

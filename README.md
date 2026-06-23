@@ -146,6 +146,9 @@ Full architecture → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ---
 
-<p align="center">
-  <img src="VRcompany.png" alt="Company Logo" width="50%" />
-</p>
+<table width="100%">
+  <tr>
+    <td width="50%" align="center"><img src="VRcompany.png" alt="Vedra Research" width="100%" /></td>
+    <td width="50%" align="center"><img src="VR-04.gif" alt="VR-04 — Red Bull Racing Analytics" width="100%" /></td>
+  </tr>
+</table>
