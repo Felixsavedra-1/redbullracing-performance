@@ -12,3 +12,8 @@ models:
       +materialized: view
     marts:
       +materialized: table
+
+# Mirrors scripts/constants.py CONSTRUCTOR_ID / DNF_POSITION_ORDER — keep both in sync.
+vars:
+  constructor_id: 9
+  dnf_position_order: 999

@@ -9,7 +9,7 @@ with base as (
         lag(cs.points) over (partition by r.season order by r.round) as prev_points
     from {{ source('f1_raw', 'constructor_standings') }} cs
     join {{ ref('stg_races') }} r on cs.race_id = r.race_id
-    where cs.constructor_id = {{ var('constructor_id', 9) }}
+    where cs.constructor_id = {{ var('constructor_id') }}
 )
 select
     *,

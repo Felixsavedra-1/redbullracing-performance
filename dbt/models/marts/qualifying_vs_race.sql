@@ -13,6 +13,6 @@ join {{ ref('stg_races') }}     r   on res.race_id  = r.race_id
 join {{ ref('stg_drivers') }}   d   on res.driver_id = d.driver_id
 left join {{ ref('stg_qualifying') }} q
     on res.race_id = q.race_id and res.driver_id = q.driver_id
-where res.constructor_id = {{ var('constructor_id', 9) }}
+where res.constructor_id = {{ var('constructor_id') }}
 group by d.driver_id, d.driver_name, r.season
 order by r.season desc, avg_race_position

@@ -11,6 +11,6 @@ join {{ ref('stg_races') }}     r   on ps.race_id  = r.race_id
 join {{ ref('stg_drivers') }}   d   on ps.driver_id = d.driver_id
 join {{ source('f1_raw', 'results') }} res
     on ps.race_id = res.race_id and ps.driver_id = res.driver_id
-where res.constructor_id = {{ var('constructor_id', 9) }}
+where res.constructor_id = {{ var('constructor_id') }}
 group by r.season, d.driver_id, d.driver_name
 order by r.season desc, avg_stop_ms

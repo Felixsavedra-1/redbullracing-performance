@@ -28,6 +28,7 @@ from analytics import ref_params
 from constants import DEFAULT_START_YEAR, DEFAULT_END_YEAR, TEAM_REFS
 from load_data import _build_connection_string, DB_CONFIG
 from logging_utils import setup_logging
+from schema_contracts import validate_dataframe
 
 _log = logging.getLogger("f1_analytics")
 _CACHE_DIR = os.path.join("data", "fastf1_cache")
@@ -143,6 +144,9 @@ def extract_all(
             if df.empty:
                 _log.info("  %s R%02d — no accurate laps found.", year, rnd)
                 continue
+            issues = validate_dataframe("laps", df)
+            if issues:
+                _log.warning("  %s R%02d — schema validation issues: %s", year, rnd, issues)
             df.to_sql("laps", engine, if_exists="append", index=False)
             total += len(df)
             _log.info("  %s R%02d — %s laps loaded.", year, rnd, len(df))

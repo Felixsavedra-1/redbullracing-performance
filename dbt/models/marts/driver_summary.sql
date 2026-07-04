@@ -15,6 +15,6 @@ join {{ ref('stg_races') }}   r   on res.race_id        = r.race_id
 join {{ ref('stg_drivers') }} d   on res.driver_id      = d.driver_id
 join {{ source('f1_raw', 'constructors') }} con
                                   on res.constructor_id = con.constructor_id
-where res.constructor_id = {{ var('constructor_id', 9) }}
+where res.constructor_id = {{ var('constructor_id') }}
 group by d.driver_id, d.driver_name
 order by points desc

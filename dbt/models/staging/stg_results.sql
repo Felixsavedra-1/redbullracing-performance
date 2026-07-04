@@ -16,5 +16,5 @@ select
     fastest_lap_time,
     fastest_lap_speed,
     status,
-    position_order = 999 as is_dnf
+    position_order = {{ var('dnf_position_order') }} as is_dnf
 from {{ source('f1_raw', 'results') }}

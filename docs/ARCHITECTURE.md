@@ -11,10 +11,7 @@ Ergast-compatible API
 scripts/extract_data.py
         |
         v
-data/raw/*.csv
-        |
-        v
-data/cache/*.json (resume state)
+data/raw/*.csv + data/cache/*.json (resume state)
         |
         v
 scripts/transform_data.py
@@ -23,13 +20,18 @@ scripts/transform_data.py
 data/processed/*_clean.csv
         |
         v
-scripts/load_data.py
-        |
-        v
-SQLite (f1_analytics.db) or MySQL
-        |
-        v
-scripts/run_queries.py / notebooks / Power BI
+scripts/load_data.py                     FastF1 (lap-by-lap telemetry)
+        |                                            |
+        v                                            v
+        +------------->  DuckDB / SQLite / MySQL  <--+  scripts/extract_telemetry.py (laps table)
+                                    |
+                                    v
+                          scripts/data_quality.py
+                                    |
+                +-------------------+-------------------+
+                v                                        v
+scripts/run_queries.py / scripts/analytics.py    dbt/ (staging views + mart models)
+        (notebooks, Power BI, dashboard)
 ```
 
 ## Data Model (Core Tables)
@@ -46,6 +48,7 @@ facts
   results
   qualifying
   pit_stops
+  laps                  (FastF1 telemetry: sector times, tyre compound, stint)
   constructor_standings
   driver_standings
 ```
@@ -55,4 +58,4 @@ Key relationships:
 - `results.race_id -> races.race_id`
 - `results.driver_id -> drivers.driver_id`
 - `results.constructor_id -> constructors.constructor_id`
-- `qualifying` and `pit_stops` share `race_id` and `driver_id` with `results`
+- `qualifying`, `pit_stops`, and `laps` share `race_id` and `driver_id` with `results`
