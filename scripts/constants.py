@@ -19,5 +19,5 @@ except KeyError as e:
 CONSTRUCTOR_ID = 9
 
 TEAM_COLORS.setdefault("primary", "#1E41FF")
-TEAM_COLORS.setdefault("accent",  "#FF1800")
-TEAM_COLORS.setdefault("neutral", "#AAAAAA")
+TEAM_COLORS.setdefault("accent",  "#D6203F")
+TEAM_COLORS.setdefault("neutral", "#9DA3A8")

@@ -7,25 +7,25 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 _PALETTE = [
-    "#1E41FF", "#FF1800", "#FFD700", "#FFFFFF",
-    "#00B4FF", "#FF6B35", "#C8FF00", "#AAAAAA",
+    "#1E41FF", "#D6203F", "#9DA3A8", "#ECE5D5",
+    "#00B4FF", "#FF6B35", "#C8FF00", "#7E858B",
 ]
 
 _RC: dict = {
-    "figure.facecolor":     "#1C1C1C",
-    "axes.facecolor":       "#232323",
+    "figure.facecolor":     "#0B0A08",
+    "axes.facecolor":       "#000000",
     "axes.spines.top":      False,
     "axes.spines.right":    False,
-    "axes.edgecolor":       "#FFD700",
+    "axes.edgecolor":       "#9DA3A8",
     "axes.grid":            True,
     "axes.grid.axis":       "y",
     "grid.alpha":           0.22,
     "grid.linewidth":       0.6,
-    "grid.color":           "#444444",
-    "text.color":           "#FFFFFF",
-    "axes.labelcolor":      "#FFFFFF",
-    "xtick.color":          "#AAAAAA",
-    "ytick.color":          "#AAAAAA",
+    "grid.color":           "#26231C",
+    "text.color":           "#ECE5D5",
+    "axes.labelcolor":      "#ECE5D5",
+    "xtick.color":          "#6A7176",
+    "ytick.color":          "#6A7176",
     "font.family":          "sans-serif",
     "font.size":            10,
     "axes.titlesize":       12,
@@ -35,8 +35,8 @@ _RC: dict = {
     "ytick.labelsize":      9,
     "legend.fontsize":      9,
     "legend.frameon":       False,
-    "legend.facecolor":     "#232323",
-    "legend.edgecolor":     "#444444",
+    "legend.facecolor":     "#0B0A08",
+    "legend.edgecolor":     "#26231C",
     "lines.linewidth":      2.2,
     "patch.linewidth":      0.5,
     "figure.dpi":           150,
@@ -52,7 +52,7 @@ def _primary(colors: dict | None) -> str:
 
 
 def _accent(colors: dict | None) -> str:
-    return (colors or {}).get("accent", "#FF1800")
+    return (colors or {}).get("accent", "#D6203F")
 
 
 def _driver_colors(names: list[str], primary: str) -> dict[str, str]:
@@ -151,7 +151,7 @@ def teammate_delta_chart(
 
     ax.barh(y_pos, df["mean_delta"].tolist(), xerr=xerr,
             color=bar_colors, alpha=0.82,
-            error_kw={"linewidth": 1.4, "capsize": 4, "color": "#CCBBAA"})
+            error_kw={"linewidth": 1.4, "capsize": 4, "color": "#9DA3A8"})
     ax.axvline(0, color="#888888", linewidth=1, linestyle="--", alpha=0.55)
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels)
@@ -165,7 +165,7 @@ def teammate_delta_chart(
         ax.text(
             row.ci_upper + 0.05, pos,
             f"  {sig}  n={row.n}",
-            va="center", fontsize=8, color="#BBAA99",
+            va="center", fontsize=8, color="#9DA3A8",
         )
 
     fig.tight_layout()
@@ -194,7 +194,7 @@ def qualifying_regression(
 
     x = np.linspace(df["grid"].min(), df["grid"].max(), 120)
     ax.plot(x, ols_stats["intercept"] + ols_stats["slope"] * x,
-            color="#FFD700", linewidth=2, zorder=5, label="_fit")
+            color="#9DA3A8", linewidth=2, zorder=5, label="_fit")
 
     p = ols_stats["p_value"]
     p_str = "p < 0.001" if p < 0.001 else ("n/a" if pd.isna(p) else f"p = {p:.4f}")
@@ -232,7 +232,7 @@ def pit_stops_chart(
     ax.errorbar(
         x, df["mean_z"].tolist(),
         yerr=df["std_z"].fillna(0).tolist(),
-        fmt="none", color="#CCBBAA", linewidth=1.4, capsize=4, zorder=4,
+        fmt="none", color="#9DA3A8", linewidth=1.4, capsize=4, zorder=4,
     )
     ax.axhline(0, color="#888888", linewidth=1, linestyle="--", alpha=0.55)
     ax.set_xticks(x)
@@ -307,7 +307,7 @@ def reliability_chart(
 
     ax.barh(y_pos, df["rate"].tolist(), xerr=xerr,
             color=primary, alpha=0.78,
-            error_kw={"linewidth": 1.4, "capsize": 4, "color": "#CCBBAA"})
+            error_kw={"linewidth": 1.4, "capsize": 4, "color": "#9DA3A8"})
     ax.set_yticks(y_pos)
     ax.set_yticklabels(
         (df["driver"].str.rsplit(" ", n=1).str[-1] + "  ("
